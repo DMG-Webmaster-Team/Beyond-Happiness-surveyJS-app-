@@ -1,0 +1,14 @@
+[
+  {
+    "id": "admin1",
+    "email": "admin@surveyjs.com",
+    "password": "admin123",
+    "name": "Survey Admin"
+  },
+  {
+    "id": "admin2", 
+    "email": "manager@surveyjs.com",
+    "password": "manager123",
+    "name": "Survey Manager"
+  }
+] 

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "user1",
+    "email": "user1@example.com",
+    "phone": "+1234567890",
+    "otp": "123456",
+    "assignedSurvey": "survey1",
+    "hasSubmitted": true,
+    "submittedAt": "2025-08-07T12:50:48.612Z"
+  },
+  {
+    "id": "user2",
+    "email": "user2@example.com",
+    "phone": "+0987654321",
+    "otp": "654321",
+    "assignedSurvey": "survey2",
+    "hasSubmitted": false,
+    "submittedAt": null
+  },
+  {
+    "id": "user3",
+    "email": "user3@example.com",
+    "phone": "+1122334455",
+    "otp": "111111",
+    "assignedSurvey": "survey1",
+    "hasSubmitted": true,
+    "submittedAt": "2024-01-15T10:30:00Z"
+  },
+  {
+    "id": "user4",
+    "email": "user4@example.com",
+    "phone": "+1555666777",
+    "otp": "444444",
+    "assignedSurvey": null,
+    "hasSubmitted": false,
+    "submittedAt": null
+  }
+]

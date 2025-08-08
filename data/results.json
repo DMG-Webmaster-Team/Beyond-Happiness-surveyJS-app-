@@ -1,0 +1,82 @@
+[
+  {
+    "id": "result1",
+    "surveyId": "survey1",
+    "userId": "user3",
+    "adminId": "admin1",
+    "submittedAt": "2024-01-15T10:30:00Z",
+    "data": {
+      "Quality": {
+        "affordable": 4,
+        "does what it claims": 5,
+        "better then others": 3,
+        "easy to use": 4
+      },
+      "satisfaction": 4,
+      "suggestions": "The product is great but could use more features."
+    }
+  },
+  {
+    "surveyId": "survey1754405802017",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 3
+    },
+    "id": "result1754570930423",
+    "submittedAt": "2025-08-07T12:48:50.423Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "Quality": {
+        "affordable": 2,
+        "does what it claims": 1,
+        "better then others": 2,
+        "easy to use": 1
+      },
+      "satisfaction": 3,
+      "suggestions": "scsafasdasdasd"
+    },
+    "id": "result1754571048612",
+    "submittedAt": "2025-08-07T12:50:48.612Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 5
+    },
+    "id": "result1754571774108",
+    "submittedAt": "2025-08-07T13:02:54.108Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 5
+    },
+    "id": "result1754572141461",
+    "submittedAt": "2025-08-07T13:09:01.461Z"
+  },
+  {
+    "surveyId": "survey1754405802017",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 2,
+      "question2": [
+        "Item 2"
+      ],
+      "question4": "1212",
+      "question5": "231",
+      "question6": "123123"
+    },
+    "id": "result1754677282342",
+    "submittedAt": "2025-08-08T18:21:22.342Z"
+  }
+]
