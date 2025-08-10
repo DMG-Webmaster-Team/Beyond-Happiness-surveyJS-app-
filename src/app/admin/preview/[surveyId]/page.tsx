@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Model } from "survey-core";
 import { Survey as SurveyComponent } from "survey-react-ui";
+import useSWR from "swr";
 import "survey-core/survey-core.css";
 
 interface SurveyData {
@@ -15,34 +16,40 @@ interface SurveyData {
   json: any;
 }
 
+// Fetcher function for SWR
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error("Failed to fetch survey");
+    return res.json();
+  });
+
 export default function AdminPreviewPage() {
   const params = useParams();
   const router = useRouter();
   const surveyId = params.surveyId as string;
 
-  const [survey, setSurvey] = useState<SurveyData | null>(null);
-  const [model, setModel] = useState<Model | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  // Use SWR for live data fetching with 2-second refresh interval
+  const {
+    data: survey,
+    error,
+    isLoading,
+  } = useSWR<SurveyData>(
+    surveyId ? `/api/surveys/${surveyId}` : null,
+    fetcher,
+    {
+      refreshInterval: 2000, // Refresh every 2 seconds
+      revalidateOnFocus: true, // Revalidate when window gains focus
+      revalidateOnReconnect: true, // Revalidate when reconnecting
+    }
+  );
 
-  useEffect(() => {
-    if (!surveyId) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/surveys/${surveyId}`);
-        if (!res.ok) throw new Error("Failed to fetch survey");
-        const data = await res.json();
-        setSurvey(data);
-        setModel(new Model(data.json));
-      } catch (e: any) {
-        setError(e?.message || "Failed to load survey");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [surveyId]);
+  // Create survey model from the latest data
+  const model = useMemo(() => {
+    if (!survey?.json) return null;
+    return new Model(survey.json);
+  }, [survey?.json]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Loading preview...</div>
@@ -55,7 +62,7 @@ export default function AdminPreviewPage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-600 text-xl mb-4">
-            {error || "Survey not found"}
+            {error?.message || "Survey not found"}
           </div>
           <button
             onClick={() => router.push("/admin/dashboard")}

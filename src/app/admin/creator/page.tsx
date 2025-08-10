@@ -1,11 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SurveyCreatorComponent, SurveyCreator } from "survey-creator-react";
-import { ICreatorOptions } from "survey-creator-core";
+import dynamic from "next/dynamic";
+import useSWR, { mutate } from "swr";
 import "survey-core/survey-core.css";
 import "survey-creator-core/survey-creator-core.css";
+
+// Dynamically import SurveyJS Creator to avoid SSR issues
+const SurveyCreatorComponent = dynamic(
+  () =>
+    import("survey-creator-react").then((mod) => mod.SurveyCreatorComponent),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-gray-500 text-lg">Loading survey creator...</div>
+      </div>
+    ),
+  }
+);
 
 interface Survey {
   id: string;
@@ -15,15 +29,81 @@ interface Survey {
   json: any;
 }
 
+// Error Boundary for SurveyJS Creator
+class SurveyCreatorErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("SurveyCreator Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="text-red-600 text-lg mb-4">
+              Survey Creator Error
+            </div>
+            <div className="text-gray-600 text-sm mb-4">
+              There was an issue loading the survey creator. Please try
+              refreshing the page.
+            </div>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Fetcher function for SWR
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error("Failed to fetch survey");
+    return res.json();
+  });
+
 export default function AdminCreator() {
-  const [creator, setCreator] = useState<SurveyCreator | null>(null);
-  const [survey, setSurvey] = useState<Survey | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [creator, setCreator] = useState<any>(null);
+  const [localSurvey, setLocalSurvey] = useState<Survey | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [isCreatorReady, setIsCreatorReady] = useState(false);
+  const [newSurveySettings, setNewSurveySettings] = useState({
+    canTakeMultiple: false,
+  });
   const router = useRouter();
   const searchParams = useSearchParams();
   const idParam = searchParams.get("surveyId") || searchParams.get("id");
+
+  // Use SWR to fetch survey data with live updates
+  const {
+    data: survey,
+    error: fetchError,
+    isLoading,
+  } = useSWR<Survey>(idParam ? `/api/surveys/${idParam}` : null, fetcher, {
+    refreshInterval: 3000, // Refresh every 3 seconds
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+  });
 
   useEffect(() => {
     // Check if admin is logged in
@@ -33,54 +113,124 @@ export default function AdminCreator() {
       return;
     }
 
-    // Initialize creator
-    const creatorOptions: ICreatorOptions = {
-      showLogicTab: true,
-      isAutoSave: false,
+    // Initialize creator only on client side
+    const initCreator = async () => {
+      try {
+        // Check if we're in the browser
+        if (typeof window === "undefined") return;
+
+        const { SurveyCreator } = await import("survey-creator-react");
+
+        const creatorOptions = {
+          showLogicTab: true,
+          isAutoSave: false,
+          showJSONEditorTab: true,
+          showTestSurveyTab: false,
+        };
+
+        const newCreator = new SurveyCreator(creatorOptions);
+
+        // Configure save function
+        newCreator.saveSurveyFunc = (
+          no: number,
+          callback: (num: number, status: boolean) => void
+        ) => {
+          callback(no, true);
+        };
+
+        // Initialize with empty survey to prevent undefined errors
+        if (!newCreator.JSON || Object.keys(newCreator.JSON).length === 0) {
+          newCreator.JSON = {
+            title: "Untitled Survey",
+            pages: [
+              {
+                name: "page1",
+                elements: [],
+              },
+            ],
+          };
+        }
+
+        // Wait a bit to ensure the creator is fully initialized
+        setTimeout(() => {
+          // Ensure creator has a valid survey object
+          if (newCreator.survey) {
+            setCreator(newCreator);
+            setIsCreatorReady(true);
+            console.log("SurveyCreator initialized successfully");
+          } else {
+            console.error("Creator survey object not properly initialized");
+            setError("Failed to initialize survey creator properly");
+          }
+        }, 150);
+      } catch (error) {
+        console.error("Failed to initialize SurveyCreator:", error);
+        setError("Failed to initialize survey creator");
+      }
     };
 
-    const newCreator = new SurveyCreator(creatorOptions);
-    newCreator.saveSurveyFunc = (
-      no: number,
-      callback: (num: number, status: boolean) => void
-    ) => {
-      callback(no, true);
-    };
-
-    setCreator(newCreator);
+    initCreator();
   }, [router]);
 
-  // Fetch the survey once we have both the id and the creator ready
+  // Initialize local survey state from SWR data (only once per survey)
   useEffect(() => {
-    if (!creator) return;
-    if (!idParam) {
-      setLoading(false);
-      return;
+    if (survey && (!localSurvey || localSurvey.id !== survey.id)) {
+      console.log("Setting local survey:", survey.title, survey.id);
+      setLocalSurvey(survey);
     }
-    (async () => {
-      try {
-        const response = await fetch(`/api/surveys/${idParam}`);
-        if (response.ok) {
-          const data = await response.json();
-          setSurvey(data);
-        } else {
-          setError("Failed to fetch survey");
-        }
-      } catch (e) {
-        setError("An error occurred while fetching the survey");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [creator, idParam]);
+  }, [survey, localSurvey]);
 
-  // Keep creator JSON synced from loaded survey
+  // Keep creator JSON synced from loaded survey (only when both creator and survey are ready)
   useEffect(() => {
-    if (survey && creator) {
-      creator.JSON = survey.json;
-      if (creator.survey) creator.survey.fromJSON(survey.json);
+    if (survey && creator && isCreatorReady) {
+      try {
+        console.log(
+          "Loading survey data into creator:",
+          survey.title,
+          survey.json
+        );
+
+        // Use a small delay to ensure creator is ready for JSON updates
+        setTimeout(() => {
+          try {
+            // Ensure the survey JSON has required structure
+            const validSurveyJson = {
+              title: survey.json.title || "Untitled Survey",
+              pages: survey.json.pages || [
+                {
+                  name: "page1",
+                  elements: survey.json.elements || [],
+                },
+              ],
+              ...survey.json,
+            };
+
+            creator.JSON = validSurveyJson;
+
+            // Also update the creator's text if it exists
+            if (creator.text) {
+              creator.text = JSON.stringify(validSurveyJson, null, 2);
+            }
+
+            console.log("Survey data loaded successfully");
+          } catch (error) {
+            console.error("Error setting creator JSON:", error);
+            setError("Failed to load survey data into creator");
+          }
+        }, 50);
+
+        setLocalSurvey(survey);
+      } catch (error) {
+        console.error("Error loading survey into creator:", error);
+        setError("Failed to load survey data");
+      }
     }
-  }, [survey, creator]);
+  }, [survey, creator, isCreatorReady]);
+
+  // Note: Title and description are now managed entirely by the SurveyJS Creator
+  // No need to sync these fields since they're removed from Survey Settings
+
+  // Note: No reverse sync needed since title and description are managed entirely by SurveyJS Creator
 
   const handleSave = async () => {
     if (!creator) return;
@@ -93,9 +243,10 @@ export default function AdminCreator() {
       const surveyJson = creator.JSON;
 
       const surveyData = {
-        title: surveyJson.title || "Untitled Survey",
-        description: survey?.description || "",
-        canTakeMultiple: survey?.canTakeMultiple ?? false,
+        title: surveyJson.title || localSurvey?.title || "Untitled Survey",
+        description: surveyJson.description || localSurvey?.description || "",
+        canTakeMultiple:
+          localSurvey?.canTakeMultiple ?? newSurveySettings.canTakeMultiple,
         adminId: adminData.id,
         json: surveyJson,
       };
@@ -122,7 +273,9 @@ export default function AdminCreator() {
       }
 
       if (response.ok) {
-        await response.json();
+        const result = await response.json();
+        // Trigger revalidation of all survey data
+        await mutate(`/api/surveys/${idParam || result.id}`);
         router.push("/admin/dashboard");
       } else {
         setError("Failed to save survey");
@@ -134,12 +287,16 @@ export default function AdminCreator() {
     }
   };
 
-  if (loading) {
+  if ((isLoading && idParam) || !isCreatorReady) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <div className="text-xl">Loading survey creator...</div>
       </div>
     );
+  }
+
+  if (fetchError) {
+    setError(fetchError.message);
   }
 
   return (
@@ -181,61 +338,42 @@ export default function AdminCreator() {
         )}
 
         {/* Survey Settings */}
-        {survey && (
-          <div className="mb-6 px-4 sm:px-0">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Survey Settings
-              </h3>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    value={survey.title}
-                    onChange={(e) =>
-                      setSurvey({ ...survey, title: e.target.value })
+        <div className="mb-6 px-4 sm:px-0">
+          <div className="bg-white shadow rounded-lg p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Survey Settings
+            </h3>
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={
+                    localSurvey
+                      ? localSurvey.canTakeMultiple
+                      : newSurveySettings.canTakeMultiple
+                  }
+                  onChange={(e) => {
+                    if (localSurvey) {
+                      setLocalSurvey({
+                        ...localSurvey,
+                        canTakeMultiple: e.target.checked,
+                      });
+                    } else {
+                      setNewSurveySettings({
+                        ...newSurveySettings,
+                        canTakeMultiple: e.target.checked,
+                      });
                     }
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Description
-                  </label>
-                  <input
-                    type="text"
-                    value={survey.description}
-                    onChange={(e) =>
-                      setSurvey({ ...survey, description: e.target.value })
-                    }
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={survey.canTakeMultiple}
-                      onChange={(e) =>
-                        setSurvey({
-                          ...survey,
-                          canTakeMultiple: e.target.checked,
-                        })
-                      }
-                      className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">
-                      Allow multiple submissions per user
-                    </span>
-                  </label>
-                </div>
-              </div>
+                  }}
+                  className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
+                />
+                <span className="ml-2 text-sm text-gray-700">
+                  Allow multiple submissions per user
+                </span>
+              </label>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Survey Creator */}
         <div className="px-4 sm:px-0">
@@ -243,8 +381,27 @@ export default function AdminCreator() {
             className="bg-white shadow rounded-lg"
             style={{ height: "70vh" }}
           >
-            {creator && (!idParam || (idParam && survey)) && (
-              <SurveyCreatorComponent creator={creator} />
+            {creator &&
+            isCreatorReady &&
+            (!idParam || (idParam && localSurvey)) ? (
+              <SurveyCreatorErrorBoundary>
+                <SurveyCreatorComponent
+                  creator={creator}
+                  key={`creator-${localSurvey?.id || "new"}-${isCreatorReady}`}
+                />
+              </SurveyCreatorErrorBoundary>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <div className="text-gray-500 text-lg">
+                    {!creator || !isCreatorReady
+                      ? "Initializing survey creator..."
+                      : idParam && !localSurvey
+                      ? "Loading survey data..."
+                      : "Survey creator ready"}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { Survey } from "survey-react-ui";
 import { Model } from "survey-core";
+import useSWR from "swr";
 import "survey-core/survey-core.css";
+import UserNavbar from "@/components/shared/UserNavbar";
 
 interface User {
   id: string;
@@ -12,6 +14,7 @@ interface User {
   phone: string;
   assignedSurvey: string;
   hasSubmitted: boolean;
+  loginTime?: string;
 }
 
 interface SurveyData {
@@ -23,13 +26,18 @@ interface SurveyData {
   json: any;
 }
 
+// Fetcher function for SWR
+const fetcher = (url: string) =>
+  fetch(url).then((res) => {
+    if (!res.ok) throw new Error("Failed to fetch survey");
+    return res.json();
+  });
+
 export default function UserSurvey() {
-  const [survey, setSurvey] = useState<SurveyData | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [showContactForm, setShowContactForm] = useState(true);
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -42,6 +50,32 @@ export default function UserSurvey() {
   const params = useParams();
   const surveyId = params.surveyId as string;
 
+  // Use SWR for live survey data fetching - only when user is authenticated
+  const {
+    data: survey,
+    error: fetchError,
+    isLoading,
+  } = useSWR<SurveyData>(
+    user && surveyId ? `/api/surveys/${surveyId}` : null,
+    fetcher,
+    {
+      refreshInterval: 5000, // Refresh every 5 seconds
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
+    }
+  );
+
+  // Create survey model from the latest data
+  const surveyModel = useMemo(() => {
+    if (!survey?.json) return null;
+    // Ensure canTakeMultiple defaults to false if not present
+    const surveyData = {
+      ...survey,
+      canTakeMultiple: survey.canTakeMultiple ?? false,
+    };
+    return new Model(surveyData.json);
+  }, [survey?.json]);
+
   useEffect(() => {
     // Check if user is already authenticated
     const userData = localStorage.getItem("user");
@@ -49,23 +83,21 @@ export default function UserSurvey() {
       const user = JSON.parse(userData);
       setUser(user);
 
-      // Check if user is trying to access their assigned survey
-      // Special case for user1 - they can access all surveys
-      if (user.id !== "user1" && surveyId !== user.assignedSurvey) {
-        setError("You can only access your assigned survey");
-        setLoading(false);
-        return;
-      }
-
       // Check if user has no assigned survey
-      if (user.id !== "user1" && !user.assignedSurvey) {
+      if (!user.assignedSurvey) {
         setError("You are not assigned to any survey at the moment.");
         setLoading(false);
         return;
       }
 
+      // Check if user is trying to access their assigned survey
+      if (surveyId !== user.assignedSurvey) {
+        setError("You don't have access to this survey");
+        setLoading(false);
+        return;
+      }
+
       setShowContactForm(false);
-      fetchSurvey(surveyId);
 
       // Check if user has already submitted this survey (for one-time surveys)
       if (user.hasSubmitted && user.assignedSurvey === surveyId) {
@@ -78,30 +110,23 @@ export default function UserSurvey() {
     }
   }, [surveyId]);
 
-  const fetchSurvey = async (id: string) => {
-    try {
-      const response = await fetch(`/api/surveys/${id}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Ensure canTakeMultiple defaults to false if not present
-        const surveyData = {
-          ...data,
-          canTakeMultiple: data.canTakeMultiple ?? false,
-        };
-        setSurvey(surveyData);
-
-        // Create survey model with the fetched JSON
-        const model = new Model(data.json);
-        setSurveyModel(model);
-      } else {
-        setError("Failed to load survey");
-      }
-    } catch (error) {
-      setError("An error occurred while loading the survey");
-    } finally {
+  // Set loading state based on authentication and data fetching
+  useEffect(() => {
+    if (user && isLoading) {
+      setLoading(true);
+    } else if (user && !isLoading) {
+      setLoading(false);
+    } else if (!user && !loading) {
       setLoading(false);
     }
-  };
+  }, [user, isLoading, loading]);
+
+  // Handle fetch errors
+  useEffect(() => {
+    if (fetchError) {
+      setError(fetchError.message || "Failed to load survey");
+    }
+  }, [fetchError]);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,13 +196,16 @@ export default function UserSurvey() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in localStorage
-        localStorage.setItem("user", JSON.stringify(data.user));
+        // Store user data in localStorage with login timestamp
+        const userWithLoginTime = {
+          ...data.user,
+          loginTime: new Date().toISOString(),
+        };
+        localStorage.setItem("user", JSON.stringify(userWithLoginTime));
         // Clear sessionStorage
         sessionStorage.removeItem("userContact");
-        setUser(data.user);
+        setUser(userWithLoginTime);
         setShowContactForm(false);
-        fetchSurvey(surveyId);
       } else {
         setOtpError(data.error || "Invalid OTP");
       }
@@ -224,6 +252,7 @@ export default function UserSurvey() {
         const data = await response.json();
         setError(data.error || "Failed to submit survey");
       }
+      handleExitSurvey();
     } catch (error) {
       setError("An error occurred while submitting the survey");
     } finally {
@@ -233,18 +262,15 @@ export default function UserSurvey() {
 
   const handleRetakeSurvey = () => {
     setSurveySubmitted(false);
-    // Reset the survey model to allow retaking
-    if (survey) {
-      const model = new Model(survey.json);
-      setSurveyModel(model);
-      // Clear any previous survey data
-      model.clear();
+    // The survey model will be recreated automatically via useMemo when survey data changes
+    // or we can trigger a manual clear if the model exists
+    if (surveyModel) {
+      surveyModel.clear();
     }
   };
 
   const handleExitSurvey = () => {
     localStorage.removeItem("user");
-    router.push("/");
   };
 
   if (loading) {
@@ -260,12 +286,6 @@ export default function UserSurvey() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-600 text-xl mb-4">{error}</div>
-          <button
-            onClick={() => router.push("/")}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            Back to Home
-          </button>
         </div>
       </div>
     );
@@ -448,12 +468,6 @@ export default function UserSurvey() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-600 text-xl mb-4">Survey not found</div>
-          <button
-            onClick={() => router.push("/")}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            Back to Home
-          </button>
         </div>
       </div>
     );
@@ -467,12 +481,6 @@ export default function UserSurvey() {
           <div className="text-red-600 text-xl mb-4">
             You have already submitted this survey
           </div>
-          <button
-            onClick={() => router.push("/")}
-            className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-          >
-            Back to Home
-          </button>
         </div>
       </div>
     );
@@ -480,27 +488,11 @@ export default function UserSurvey() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <UserNavbar />
       <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                {survey.title}
-              </h1>
-              {survey.description && (
-                <p className="mt-1 text-sm text-gray-600">
-                  {survey.description}
-                </p>
-              )}
-            </div>
-            <button
-              onClick={handleExitSurvey}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-            >
-              Exit Survey
-            </button>
-          </div>
+          <div className="flex justify-between items-center"></div>
         </div>
 
         {submitting && (

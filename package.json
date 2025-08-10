@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "ace-builds": "latest",
     "jspdf-autotable": "^3.8.2",
     "next": "14.1.0",
     "react": "^18",
@@ -19,7 +20,7 @@
     "survey-creator-react": "latest",
     "survey-pdf": "latest",
     "survey-react-ui": "latest",
-    "ace-builds": "latest",
+    "swr": "^2.3.4",
     "wordcloud": "^1.2.2"
   },
   "devDependencies": {
