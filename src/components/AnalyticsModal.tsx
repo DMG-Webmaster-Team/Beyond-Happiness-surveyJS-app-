@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { Model } from "survey-core";
 import dynamic from "next/dynamic";
 import "survey-analytics/survey.analytics.css";
+import "survey-analytics/survey.analytics.tabulator.css";
 
 // Dynamically import VisualizationPanel to avoid SSR issues
 const DynamicVisualizationPanel = dynamic(
@@ -58,6 +59,9 @@ export default function AnalyticsModal({
   const [mounted, setMounted] = useState(false);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [visualizationPanel, setVisualizationPanel] = useState<any>(null);
+  const [showPercentages, setShowPercentages] = useState(true);
+  const [layoutMode, setLayoutMode] = useState<"list" | "compact">("list");
+  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const analyticsContainerRef = useRef<HTMLDivElement>(null);
 
   // Ensure component is mounted before rendering
@@ -80,15 +84,13 @@ export default function AnalyticsModal({
     data: surveyData,
     error: surveyError,
     isLoading: surveyLoading,
-  } = useSWR<Survey>(
-    isOpen ? `/api/surveys/${surveyId}` : null,
-    fetcher
-  );
+  } = useSWR<Survey>(isOpen ? `/api/surveys/${surveyId}` : null, fetcher);
 
   // Filter results by search term (User ID)
-  const filteredResults = resultsData?.results.filter((result) =>
-    result.userId.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredResults =
+    resultsData?.results.filter((result) =>
+      result.userId.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
   // Transform results data for analytics (filter out invalid entries)
   const analyticsData = filteredResults
@@ -121,32 +123,105 @@ export default function AnalyticsModal({
 
     const initializeAnalytics = async () => {
       try {
-        const { VisualizationPanel } = await import("survey-analytics");
-        
+        // Import and configure chart libraries
+        const [
+          { VisualizationPanel },
+          plotly,
+          Chart
+        ] = await Promise.all([
+          import("survey-analytics"),
+          import("plotly.js-dist-min"),
+          import("chart.js/auto")
+        ]);
+
+        // Configure global chart settings
+        if (typeof window !== "undefined") {
+          (window as any).Plotly = plotly;
+          (window as any).Chart = Chart;
+        }
+
         // Clear previous panel
         if (visualizationPanel) {
           visualizationPanel.destroy();
         }
 
-        // Create new visualization panel
+        // Create new visualization panel with enhanced options
         const questions = surveyModel.getAllQuestions();
+        
+        // Enhanced options for better interactivity
         const options = {
-          allowHideQuestions: false,
+          // Basic options
+          allowHideQuestions: true,
           allowShowPercentages: true,
           allowTopNAnswers: true,
           allowChangeChartType: true,
           allowDynamicLayout: true,
+          
+          // Advanced options
+          allowSearch: true,
+          allowMakePrivate: false,
+          allowSetFilter: true,
+          allowTransposeData: true,
+          
+          // Chart specific options
+          seriesValues: ["count", "percentage"],
+          seriesLabels: ["Count", "Percentage"],
+          
+          // Layout options
+          layoutEngine: "advanced",
+          haveCommercialLicense: false,
+          
+          // Export options
+          allowDataExport: true,
+          
+          // UI customization
+          showHeader: true,
+          showToolbar: true,
         };
 
-        const panel = new VisualizationPanel(
-          questions,
-          analyticsData,
-          options
-        );
+        const panel = new VisualizationPanel(questions, analyticsData, options);
+        
+        // Enable additional features and customizations
+        panel.showHeader = true;
+        panel.allowDynamicLayout = true;
+        
+        // Add custom event handlers for better interactivity
+        panel.onVisibilityChanged.add((sender: any, options: any) => {
+          console.log("Question visibility changed:", options);
+        });
+        
+        // Customize chart types per question type
+        questions.forEach((question: any) => {
+          const questionVisualizer = panel.getVisualizer(question.name);
+          if (questionVisualizer) {
+            // Enable specific chart types based on question type
+            switch (question.getType()) {
+              case "radiogroup":
+              case "dropdown":
+                questionVisualizer.chartTypes = ["bar", "pie", "doughnut"];
+                break;
+              case "checkbox":
+                questionVisualizer.chartTypes = ["bar", "pie", "doughnut"];
+                break;
+              case "rating":
+                questionVisualizer.chartTypes = ["bar", "line"];
+                break;
+              case "text":
+              case "comment":
+                questionVisualizer.chartTypes = ["wordcloud", "text"];
+                break;
+              case "matrix":
+                questionVisualizer.chartTypes = ["bar", "stackedbar"];
+                break;
+              default:
+                questionVisualizer.chartTypes = ["bar", "pie", "table"];
+            }
+          }
+        });
 
         // Render panel
         if (analyticsContainerRef.current) {
-          analyticsContainerRef.current.innerHTML = '';
+          analyticsContainerRef.current.innerHTML = "";
           panel.render(analyticsContainerRef.current);
           setVisualizationPanel(panel);
         }
@@ -164,7 +239,25 @@ export default function AnalyticsModal({
         setVisualizationPanel(null);
       }
     };
-  }, [mounted, surveyModel, analyticsData, isOpen]);
+  }, [mounted, surveyModel, analyticsData, isOpen, showPercentages, layoutMode]);
+
+  // Update panel settings when filters change
+  useEffect(() => {
+    if (visualizationPanel) {
+      // Update percentage display
+      visualizationPanel.showPercentages = showPercentages;
+      
+      // Update layout mode
+      if (layoutMode === "compact") {
+        visualizationPanel.layoutEngine = "compact";
+      } else {
+        visualizationPanel.layoutEngine = "advanced";
+      }
+      
+      // Refresh the panel
+      visualizationPanel.refresh();
+    }
+  }, [visualizationPanel, showPercentages, layoutMode]);
 
   // Cleanup on unmount or close
   useEffect(() => {
@@ -178,7 +271,8 @@ export default function AnalyticsModal({
 
   const isLoading = resultsLoading || surveyLoading;
   const hasError = resultsError || surveyError;
-  const surveyName = resultsData?.surveyName || surveyData?.title || "Unknown Survey";
+  const surveyName =
+    resultsData?.surveyName || surveyData?.title || "Unknown Survey";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -198,20 +292,60 @@ export default function AnalyticsModal({
 
         {/* Content */}
         <div className="flex flex-col h-[calc(90vh-5rem)]">
-          {/* Filter Bar */}
+          {/* Enhanced Filter Bar */}
           <div className="p-4 border-b bg-gray-50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <input
                   type="text"
                   placeholder="Search by User ID..."
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent text-sm"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <span className="text-sm text-gray-600">
-                  {filteredResults.length} of {resultsData?.results.length || 0} submissions
+                <span className="text-sm text-gray-600 whitespace-nowrap">
+                  {filteredResults.length} of {resultsData?.results.length || 0}{" "}
+                  submissions
                 </span>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="flex items-center space-x-2">
+                  <label className="flex items-center space-x-1 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={showPercentages}
+                      onChange={(e) => setShowPercentages(e.target.checked)}
+                      className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                    />
+                    <span>Show %</span>
+                  </label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm text-gray-600">Layout:</label>
+                  <select
+                    value={layoutMode}
+                    onChange={(e) => setLayoutMode(e.target.value as "list" | "compact")}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  >
+                    <option value="list">List View</option>
+                    <option value="compact">Compact View</option>
+                  </select>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    // Reset all filters
+                    setSearchTerm("");
+                    setShowPercentages(true);
+                    setLayoutMode("list");
+                    setSelectedQuestions([]);
+                  }}
+                  className="text-sm px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 transition-colors"
+                >
+                  Reset Filters
+                </button>
               </div>
             </div>
           </div>
@@ -262,16 +396,59 @@ export default function AnalyticsModal({
                 </div>
               </div>
             ) : (
-              <div 
-                ref={analyticsContainerRef} 
-                className="w-full h-full sa-analytics" 
+              <div
+                ref={analyticsContainerRef}
+                className="w-full h-full sa-analytics"
               />
             )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-gray-50 flex justify-end">
+        <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
+          <div className="flex space-x-2">
+            {/* Export Options */}
+            {analyticsData.length > 0 && (
+              <>
+                <button
+                  onClick={() => {
+                    if (visualizationPanel) {
+                      // Export raw data as CSV
+                      const csvContent = [
+                        Object.keys(analyticsData[0]).join(','),
+                        ...analyticsData.map(row => 
+                          Object.values(row).map(val => 
+                            typeof val === 'string' && val.includes(',') ? `"${val}"` : val
+                          ).join(',')
+                        )
+                      ].join('\n');
+                      
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = window.URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `${surveyName.replace(/[^a-z0-9]/gi, '_')}_analytics.csv`;
+                      a.click();
+                      window.URL.revokeObjectURL(url);
+                    }
+                  }}
+                  className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => {
+                    // Copy analytics data as JSON
+                    navigator.clipboard.writeText(JSON.stringify(analyticsData, null, 2));
+                  }}
+                  className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  Copy JSON
+                </button>
+              </>
+            )}
+          </div>
+          
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"

@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useState, useEffect } from "react";
 import { ICreatorOptions } from "survey-creator-core";
@@ -10,18 +10,24 @@ import { json as defaultJson } from "../../data/survey_json";
 
 // Dynamically import SurveyCreatorComponent to avoid SSR issues
 const DynamicSurveyCreatorComponent = dynamic(
-  () => import("survey-creator-react").then((mod) => mod.SurveyCreatorComponent),
+  () =>
+    import("survey-creator-react").then((mod) => mod.SurveyCreatorComponent),
   {
     ssr: false,
-    loading: () => <div className="text-center py-8">Loading survey creator...</div>,
+    loading: () => (
+      <div className="text-center py-8">Loading survey creator...</div>
+    ),
   }
 );
 
 const defaultCreatorOptions: ICreatorOptions = {
-  showTranslationTab: true
+  showTranslationTab: true,
 };
 
-export default function SurveyCreatorWidget(props: { json?: Object, options?: ICreatorOptions }) {
+export default function SurveyCreatorWidget(props: {
+  json?: Object;
+  options?: ICreatorOptions;
+}) {
   const [creator, setCreator] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
@@ -35,13 +41,18 @@ export default function SurveyCreatorWidget(props: { json?: Object, options?: IC
     const initCreator = async () => {
       try {
         const { SurveyCreator } = await import("survey-creator-react");
-        
-        const newCreator = new SurveyCreator(props.options || defaultCreatorOptions);
-        newCreator.saveSurveyFunc = (no: number, callback: (num: number, status: boolean) => void) => {
+
+        const newCreator = new SurveyCreator(
+          props.options || defaultCreatorOptions
+        );
+        newCreator.saveSurveyFunc = (
+          no: number,
+          callback: (num: number, status: boolean) => void
+        ) => {
           console.log(JSON.stringify(newCreator?.JSON));
           callback(no, true);
         };
-        
+
         newCreator.JSON = props.json || defaultJson;
         setCreator(newCreator);
       } catch (error) {

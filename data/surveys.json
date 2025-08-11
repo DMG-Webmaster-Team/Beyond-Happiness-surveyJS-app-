@@ -6,7 +6,7 @@
     "description": "A comprehensive survey to gather product feedback from customers",
     "canTakeMultiple": true,
     "createdAt": "2024-01-10T09:00:00Z",
-    "updatedAt": "2025-08-11T08:04:51.775Z",
+    "updatedAt": "2025-08-11T08:14:39.341Z",
     "json": {
       "title": "survey 1 updated",
       "pages": [
@@ -16,7 +16,7 @@
             {
               "type": "rating",
               "name": "question1",
-              "title": "test 4 updated"
+              "title": "test 6 updated"
             }
           ]
         }
@@ -187,5 +187,36 @@
     "id": "survey1754892546222",
     "createdAt": "2025-08-11T06:09:06.222Z",
     "updatedAt": "2025-08-11T06:09:06.222Z"
+  },
+  {
+    "title": "test 2 - 11/8",
+    "description": "",
+    "canTakeMultiple": true,
+    "adminId": "admin1",
+    "json": {
+      "title": "test 2 - 11/8",
+      "pages": [
+        {
+          "name": "page1",
+          "elements": [
+            {
+              "type": "rating",
+              "name": "question1",
+              "title": "ahmed 222222222222222"
+            },
+            {
+              "type": "rating",
+              "name": "question2",
+              "visibleIf": "{question1} = 3",
+              "title": "hassan"
+            }
+          ]
+        }
+      ],
+      "headerView": "advanced"
+    },
+    "id": "survey1754899879387",
+    "createdAt": "2025-08-11T08:11:19.387Z",
+    "updatedAt": "2025-08-11T08:17:06.843Z"
   }
 ]
