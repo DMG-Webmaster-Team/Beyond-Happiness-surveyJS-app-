@@ -5,7 +5,6 @@ import useSWR from "swr";
 import { Model } from "survey-core";
 import dynamic from "next/dynamic";
 import "survey-analytics/survey.analytics.css";
-import "survey-analytics/survey.analytics.tabulator.css";
 
 // Dynamically import VisualizationPanel to avoid SSR issues
 const DynamicVisualizationPanel = dynamic(
@@ -55,13 +54,8 @@ export default function AnalyticsModal({
   isOpen,
   onClose,
 }: AnalyticsModalProps) {
-  const [searchTerm, setSearchTerm] = useState("");
   const [mounted, setMounted] = useState(false);
-  const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [visualizationPanel, setVisualizationPanel] = useState<any>(null);
-  const [showPercentages, setShowPercentages] = useState(true);
-  const [layoutMode, setLayoutMode] = useState<"list" | "compact">("list");
-  const [selectedQuestions, setSelectedQuestions] = useState<string[]>([]);
   const analyticsContainerRef = useRef<HTMLDivElement>(null);
 
   // Ensure component is mounted before rendering
@@ -86,76 +80,14 @@ export default function AnalyticsModal({
     isLoading: surveyLoading,
   } = useSWR<Survey>(isOpen ? `/api/surveys/${surveyId}` : null, fetcher);
 
-  // Debug logging
-  console.log("Analytics Modal Debug:", {
-    isOpen,
-    surveyId,
-    resultsData,
-    surveyData,
-    resultsError,
-    surveyError,
-    isLoading: resultsLoading || surveyLoading
-  });
+  // Simple data transformation for analytics
+  const analyticsData = resultsData?.results.map((result) => result.data) || [];
 
-  // Filter results by search term (User ID)
-  const filteredResults =
-    resultsData?.results.filter((result) =>
-      result.userId.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
-
-  // Transform results data for analytics (filter out invalid entries and flatten nested objects)
-  const analyticsData = filteredResults
-    .map((result) => {
-      if (!result.data || Object.keys(result.data).length === 0) return null;
-      
-      // Flatten nested objects for analytics compatibility
-      const flattenedData: Record<string, any> = {};
-      
-      Object.entries(result.data).forEach(([key, value]) => {
-        if (value && typeof value === 'object' && !Array.isArray(value)) {
-          // Handle nested objects (like Quality ratings)
-          Object.entries(value).forEach(([subKey, subValue]) => {
-            flattenedData[`${key}.${subKey}`] = subValue;
-          });
-        } else {
-          flattenedData[key] = value;
-        }
-      });
-      
-      return flattenedData;
-    })
-    .filter((data) => data !== null) as Record<string, any>[];
-
-  // Debug analytics data
-  console.log("Analytics Data Debug:", {
-    filteredResults: filteredResults?.length || 0,
-    analyticsData: analyticsData?.length || 0,
-    sampleData: analyticsData?.[0],
-    allKeys: analyticsData.length > 0 ? Object.keys(analyticsData[0]) : [],
-    searchTerm
-  });
-
-  // Initialize survey model and analytics panel
-  useEffect(() => {
-    if (!mounted || !surveyData || !isOpen) return;
-
-    try {
-      console.log("Creating survey model with data:", surveyData.json);
-      const model = new Model(surveyData.json);
-      console.log("Survey model created successfully:", {
-        questions: model.getAllQuestions().map(q => ({ name: q.name, title: q.title, type: q.getType() }))
-      });
-      setSurveyModel(model);
-    } catch (error) {
-      console.error("Error creating survey model:", error, surveyData);
-    }
-  }, [mounted, surveyData, isOpen]);
-
-  // Initialize visualization panel when data is ready
+  // Initialize analytics when data is ready
   useEffect(() => {
     if (
       !mounted ||
-      !surveyModel ||
+      !surveyData ||
       !analyticsData.length ||
       !analyticsContainerRef.current ||
       !isOpen
@@ -165,187 +97,62 @@ export default function AnalyticsModal({
 
     const initializeAnalytics = async () => {
       try {
-        // Import and configure chart libraries
-        const [
-          { VisualizationPanel },
-          plotly,
-          Chart
-        ] = await Promise.all([
-          import("survey-analytics"),
-          import("plotly.js-dist-min"),
-          import("chart.js/auto")
-        ]);
-
-        // Configure global chart settings
-        if (typeof window !== "undefined") {
-          (window as any).Plotly = plotly;
-          (window as any).Chart = Chart;
-        }
+        // Import SurveyJS analytics
+        const { VisualizationPanel } = await import("survey-analytics");
 
         // Clear previous panel
         if (visualizationPanel) {
           visualizationPanel.destroy();
         }
 
-        // Create new visualization panel with enhanced options
+        // Create survey model
+        const surveyModel = new Model(surveyData.json);
         const questions = surveyModel.getAllQuestions();
-        
-        console.log("Initializing visualization panel:", {
+
+        console.log("Analytics Setup:", {
           questionsCount: questions.length,
           dataCount: analyticsData.length,
-          questions: questions.map(q => ({ name: q.name, title: q.title, type: q.getType() })),
-          sampleData: analyticsData[0]
+          surveyTitle: surveyData.title
         });
-        
-        // Enhanced options for better interactivity
-        const options = {
-          // Basic options
-          allowHideQuestions: true,
-          allowShowPercentages: true,
-          allowTopNAnswers: true,
-          allowChangeChartType: true,
-          allowDynamicLayout: true,
-          
-          // Advanced options
-          allowSearch: true,
-          allowMakePrivate: false,
-          allowSetFilter: true,
-          allowTransposeData: true,
-          
-          // Chart specific options
-          seriesValues: ["count", "percentage"],
-          seriesLabels: ["Count", "Percentage"],
-          
-          // Layout options
-          layoutEngine: "advanced",
-          haveCommercialLicense: false,
-          
-          // Export options
-          allowDataExport: true,
-          
-          // UI customization
-          showHeader: true,
-          showToolbar: true,
-        };
 
-        // If no questions found in survey model, create them from the data
-        let effectiveQuestions = questions;
-        if (questions.length === 0 && analyticsData.length > 0) {
-          console.log("No questions found in model, creating from data keys");
-          const dataKeys = Object.keys(analyticsData[0]);
-          effectiveQuestions = dataKeys.map(key => ({
-            name: key,
-            title: key,
-            getType: () => 'text' // Default type
-          }));
-        }
-
-        console.log("Creating panel with effective questions:", effectiveQuestions);
-        const panel = new VisualizationPanel(effectiveQuestions, analyticsData, options);
-        
-        // Enable additional features and customizations
-        panel.showHeader = true;
-        panel.allowDynamicLayout = true;
-        
-        // Add custom event handlers for better interactivity
-        panel.onVisibilityChanged.add((sender: any, options: any) => {
-          console.log("Question visibility changed:", options);
-        });
-        
-        // Customize chart types per question type
-        effectiveQuestions.forEach((question: any) => {
-          const questionVisualizer = panel.getVisualizer(question.name);
-          if (questionVisualizer) {
-            // Enable specific chart types based on question type
-            const questionType = typeof question.getType === 'function' ? question.getType() : 'text';
-            switch (questionType) {
-              case "radiogroup":
-              case "dropdown":
-                questionVisualizer.chartTypes = ["bar", "pie", "doughnut"];
-                break;
-              case "checkbox":
-                questionVisualizer.chartTypes = ["bar", "pie", "doughnut"];
-                break;
-              case "rating":
-                questionVisualizer.chartTypes = ["bar", "line"];
-                break;
-              case "text":
-              case "comment":
-                questionVisualizer.chartTypes = ["wordcloud", "text"];
-                break;
-              case "matrix":
-                questionVisualizer.chartTypes = ["bar", "stackedbar"];
-                break;
-              default:
-                questionVisualizer.chartTypes = ["bar", "pie", "table"];
-            }
-          }
-        });
+        // Create visualization panel with basic options
+        const panel = new VisualizationPanel(questions, analyticsData);
 
         // Render panel
         if (analyticsContainerRef.current) {
           analyticsContainerRef.current.innerHTML = "";
-          
-          try {
-            console.log("Attempting to render panel...");
-            panel.render(analyticsContainerRef.current);
-            setVisualizationPanel(panel);
-            console.log("Panel rendered successfully!");
-          } catch (renderError) {
-            console.error("Error rendering panel:", renderError);
-            
-            // Fallback: Create a simple chart manually
-            analyticsContainerRef.current.innerHTML = `
-              <div class="p-4">
-                <h3 class="text-lg font-semibold mb-4">Survey Analytics Data</h3>
-                <div class="space-y-4">
-                  <div class="bg-gray-50 p-4 rounded">
-                    <h4 class="font-medium mb-2">Data Summary</h4>
-                    <p>Total Responses: ${analyticsData.length}</p>
-                    <p>Questions: ${effectiveQuestions.map(q => q.name).join(', ')}</p>
-                  </div>
-                  <div class="bg-blue-50 p-4 rounded">
-                    <h4 class="font-medium mb-2">Sample Response Data</h4>
-                    <pre class="text-sm overflow-auto">${JSON.stringify(analyticsData[0] || {}, null, 2)}</pre>
-                  </div>
-                </div>
-              </div>
-            `;
-          }
+          panel.render(analyticsContainerRef.current);
+          setVisualizationPanel(panel);
+          console.log("Analytics panel rendered successfully!");
         }
       } catch (error) {
         console.error("Error initializing analytics:", error);
+        // Show error message
+        if (analyticsContainerRef.current) {
+          analyticsContainerRef.current.innerHTML = `
+            <div class="p-8 text-center">
+              <div class="text-red-600 text-lg mb-4">Unable to load analytics</div>
+              <div class="text-gray-600">${error}</div>
+              <div class="mt-4 p-4 bg-gray-100 rounded">
+                <div class="text-sm">Data available: ${analyticsData.length} responses</div>
+                <div class="text-sm">Survey: ${surveyData?.title || 'Unknown'}</div>
+              </div>
+            </div>
+          `;
+        }
       }
     };
 
     initializeAnalytics();
 
-    // Cleanup function
+    // Cleanup
     return () => {
       if (visualizationPanel) {
         visualizationPanel.destroy();
         setVisualizationPanel(null);
       }
     };
-  }, [mounted, surveyModel, analyticsData, isOpen, showPercentages, layoutMode]);
-
-  // Update panel settings when filters change
-  useEffect(() => {
-    if (visualizationPanel) {
-      // Update percentage display
-      visualizationPanel.showPercentages = showPercentages;
-      
-      // Update layout mode
-      if (layoutMode === "compact") {
-        visualizationPanel.layoutEngine = "compact";
-      } else {
-        visualizationPanel.layoutEngine = "advanced";
-      }
-      
-      // Refresh the panel
-      visualizationPanel.refresh();
-    }
-  }, [visualizationPanel, showPercentages, layoutMode]);
+  }, [mounted, surveyData, analyticsData, isOpen]);
 
   // Cleanup on unmount or close
   useEffect(() => {
@@ -359,8 +166,7 @@ export default function AnalyticsModal({
 
   const isLoading = resultsLoading || surveyLoading;
   const hasError = resultsError || surveyError;
-  const surveyName =
-    resultsData?.surveyName || surveyData?.title || "Unknown Survey";
+  const surveyName = resultsData?.surveyName || surveyData?.title || "Unknown Survey";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -380,61 +186,10 @@ export default function AnalyticsModal({
 
         {/* Content */}
         <div className="flex flex-col h-[calc(90vh-5rem)]">
-          {/* Enhanced Filter Bar */}
+          {/* Simple Info Bar */}
           <div className="p-4 border-b bg-gray-50">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-3 lg:space-y-0">
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                <input
-                  type="text"
-                  placeholder="Search by User ID..."
-                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <span className="text-sm text-gray-600 whitespace-nowrap">
-                  {filteredResults.length} of {resultsData?.results.length || 0}{" "}
-                  submissions
-                </span>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-                <div className="flex items-center space-x-2">
-                  <label className="flex items-center space-x-1 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={showPercentages}
-                      onChange={(e) => setShowPercentages(e.target.checked)}
-                      className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
-                    />
-                    <span>Show %</span>
-                  </label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm text-gray-600">Layout:</label>
-                  <select
-                    value={layoutMode}
-                    onChange={(e) => setLayoutMode(e.target.value as "list" | "compact")}
-                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  >
-                    <option value="list">List View</option>
-                    <option value="compact">Compact View</option>
-                  </select>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    // Reset all filters
-                    setSearchTerm("");
-                    setShowPercentages(true);
-                    setLayoutMode("list");
-                    setSelectedQuestions([]);
-                  }}
-                  className="text-sm px-3 py-1 border border-gray-300 rounded hover:bg-gray-100 transition-colors"
-                >
-                  Reset Filters
-                </button>
-              </div>
+            <div className="text-sm text-gray-600">
+              {analyticsData.length} response{analyticsData.length !== 1 ? 's' : ''} available for analysis
             </div>
           </div>
 
@@ -486,58 +241,15 @@ export default function AnalyticsModal({
             ) : (
               <div
                 ref={analyticsContainerRef}
-                className="w-full h-full sa-analytics"
-                style={{ minHeight: '400px' }}
+                className="w-full h-full"
+                style={{ minHeight: "500px" }}
               />
             )}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
-          <div className="flex space-x-2">
-            {/* Export Options */}
-            {analyticsData.length > 0 && (
-              <>
-                <button
-                  onClick={() => {
-                    if (visualizationPanel) {
-                      // Export raw data as CSV
-                      const csvContent = [
-                        Object.keys(analyticsData[0]).join(','),
-                        ...analyticsData.map(row => 
-                          Object.values(row).map(val => 
-                            typeof val === 'string' && val.includes(',') ? `"${val}"` : val
-                          ).join(',')
-                        )
-                      ].join('\n');
-                      
-                      const blob = new Blob([csvContent], { type: 'text/csv' });
-                      const url = window.URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = `${surveyName.replace(/[^a-z0-9]/gi, '_')}_analytics.csv`;
-                      a.click();
-                      window.URL.revokeObjectURL(url);
-                    }
-                  }}
-                  className="px-3 py-1 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Export CSV
-                </button>
-                <button
-                  onClick={() => {
-                    // Copy analytics data as JSON
-                    navigator.clipboard.writeText(JSON.stringify(analyticsData, null, 2));
-                  }}
-                  className="px-3 py-1 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  Copy JSON
-                </button>
-              </>
-            )}
-          </div>
-          
+        <div className="p-4 border-t bg-gray-50 flex justify-end">
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
