@@ -10,12 +10,15 @@
     "db:gen": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx scripts/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:setup": "tsx scripts/setup-sqlite.ts"
   },
   "dependencies": {
     "@paralleldrive/cuid2": "^2.2.2",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/pg": "^8.15.5",
     "ace-builds": "latest",
+    "better-sqlite3": "^12.2.0",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.4",
     "jspdf-autotable": "^3.8.2",

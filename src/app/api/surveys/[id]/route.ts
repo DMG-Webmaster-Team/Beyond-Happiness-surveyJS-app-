@@ -1,5 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSurveyById, updateSurvey, deleteSurvey } from '../../../../db/queries/surveys';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getSurveyById,
+  updateSurvey,
+  deleteSurvey,
+} from "../../../../db/queries/surveys";
 
 // GET - Fetch a specific survey
 export async function GET(
@@ -8,34 +12,33 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    
+
     const survey = await getSurveyById(id);
-    
+
     if (!survey) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
-    
+
     // Transform to match existing API response format
     const response = {
       id: survey.id,
       title: survey.title,
       description: survey.description,
       canTakeMultiple: survey.canTakeMultiple,
-      createdAt: survey.createdAt?.toISOString(),
-      updatedAt: survey.updatedAt?.toISOString(),
+      createdAt: survey.createdAt, // Already ISO string format
+      updatedAt: survey.updatedAt, // Already ISO string format
       adminId: survey.createdBy,
-      json: survey.definition,
+      json:
+        typeof survey.definition === "string"
+          ? JSON.parse(survey.definition)
+          : survey.definition,
     };
-    
+
     return NextResponse.json(response);
-    
   } catch (error) {
-    console.error('Error fetching survey:', error);
+    console.error("Error fetching survey:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -49,39 +52,38 @@ export async function PUT(
   try {
     const { id } = params;
     const updateData = await request.json();
-    
+
     const updatedSurvey = await updateSurvey(id, {
       title: updateData.title,
       description: updateData.description,
       definition: updateData.json,
       canTakeMultiple: updateData.canTakeMultiple,
     });
-    
+
     if (!updatedSurvey) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
-    
+
     // Transform response to match existing API format
     const response = {
       id: updatedSurvey.id,
       title: updatedSurvey.title,
       description: updatedSurvey.description,
       canTakeMultiple: updatedSurvey.canTakeMultiple,
-      createdAt: updatedSurvey.createdAt?.toISOString(),
-      updatedAt: updatedSurvey.updatedAt?.toISOString(),
+      createdAt: updatedSurvey.createdAt, // Already ISO string format
+      updatedAt: updatedSurvey.updatedAt, // Already ISO string format
       adminId: updatedSurvey.createdBy,
-      json: updatedSurvey.definition,
+      json:
+        typeof updatedSurvey.definition === "string"
+          ? JSON.parse(updatedSurvey.definition)
+          : updatedSurvey.definition,
     };
-    
+
     return NextResponse.json(response);
-    
   } catch (error) {
-    console.error('Error updating survey:', error);
+    console.error("Error updating survey:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -94,23 +96,19 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    
+
     const deleted = await deleteSurvey(id);
-    
+
     if (!deleted) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
-    
+
     return NextResponse.json({ success: true });
-    
   } catch (error) {
-    console.error('Error deleting survey:', error);
+    console.error("Error deleting survey:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
-} 
+}

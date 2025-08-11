@@ -7,36 +7,113 @@ import { z } from "zod";
 export const createSurveySchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  definition: z.record(z.any()), // SurveyJS JSON
-  canTakeMultiple: z.boolean().default(false),
+  definition: z.union([z.string(), z.record(z.any())]).optional(), // SurveyJS JSON as string or object
+  json: z.union([z.string(), z.record(z.any())]).optional(), // Alternative field name for frontend compatibility
+  canTakeMultiple: z.union([z.boolean(), z.number()]).default(false), // Accept both boolean and number
   createdBy: z.string(),
 });
 
-export const updateSurveySchema = createSurveySchema.partial().omit({ createdBy: true });
+export const updateSurveySchema = z
+  .object({
+    title: z.string().min(1).optional(),
+    description: z.string().optional(),
+    definition: z.union([z.string(), z.record(z.any())]).optional(),
+    json: z.union([z.string(), z.record(z.any())]).optional(),
+    canTakeMultiple: z.union([z.boolean(), z.number()]).optional(),
+  })
+  .strict();
 
 // Query functions
 export async function getSurveyById(id: string): Promise<Survey | undefined> {
-  const result = await db.select().from(surveys).where(eq(surveys.id, id)).limit(1);
+  const result = await db
+    .select()
+    .from(surveys)
+    .where(eq(surveys.id, id))
+    .limit(1);
   return result[0];
 }
 
-export async function createSurvey(surveyData: z.infer<typeof createSurveySchema>): Promise<Survey> {
+export async function createSurvey(
+  surveyData: z.infer<typeof createSurveySchema>
+): Promise<Survey> {
   const validatedData = createSurveySchema.parse(surveyData);
-  const result = await db.insert(surveys).values(validatedData).returning();
+
+  // Map json field to definition if needed and ensure it's a string
+  const definition = validatedData.definition || validatedData.json || {};
+  const definitionString =
+    typeof definition === "string" ? definition : JSON.stringify(definition);
+
+  // Convert boolean to integer for canTakeMultiple
+  const canTakeMultiple =
+    typeof validatedData.canTakeMultiple === "boolean"
+      ? validatedData.canTakeMultiple
+        ? 1
+        : 0
+      : validatedData.canTakeMultiple;
+
+  const dataToInsert = {
+    ...validatedData,
+    definition: definitionString,
+    canTakeMultiple,
+  };
+
+  const result = await db.insert(surveys).values(dataToInsert).returning();
   return result[0];
 }
 
-export async function updateSurvey(id: string, surveyData: z.infer<typeof updateSurveySchema>): Promise<Survey | undefined> {
-  const validatedData = updateSurveySchema.parse(surveyData);
+export async function updateSurvey(
+  id: string,
+  surveyData: any
+): Promise<Survey | undefined> {
+  console.log("Update data received:", surveyData);
+
+  // Only include fields that are actually provided
+  const dataToUpdate: any = {};
+
+  // Map json field to definition if needed and ensure it's a string
+  if (surveyData.definition || surveyData.json) {
+    const definition = surveyData.definition || surveyData.json;
+    dataToUpdate.definition =
+      typeof definition === "string" ? definition : JSON.stringify(definition);
+  }
+
+  // Only include title if provided
+  if (surveyData.title !== undefined) {
+    dataToUpdate.title = surveyData.title;
+  }
+
+  // Only include description if provided
+  if (surveyData.description !== undefined) {
+    dataToUpdate.description = surveyData.description;
+  }
+
+  // Convert boolean to integer for canTakeMultiple if present
+  if (surveyData.canTakeMultiple !== undefined) {
+    dataToUpdate.canTakeMultiple =
+      typeof surveyData.canTakeMultiple === "boolean"
+        ? surveyData.canTakeMultiple
+          ? 1
+          : 0
+        : surveyData.canTakeMultiple;
+  }
+
+  // Always update the updatedAt timestamp
+  dataToUpdate.updatedAt = new Date().toISOString();
+
+  console.log("Data to update:", dataToUpdate);
+
   const result = await db
     .update(surveys)
-    .set(validatedData)
+    .set(dataToUpdate)
     .where(eq(surveys.id, id))
     .returning();
   return result[0];
 }
 
-export async function updateSurveyTitle(id: string, title: string): Promise<Survey | undefined> {
+export async function updateSurveyTitle(
+  id: string,
+  title: string
+): Promise<Survey | undefined> {
   const result = await db
     .update(surveys)
     .set({ title })

@@ -19,10 +19,7 @@ export async function GET(
     ]);
 
     if (!survey) {
-      return NextResponse.json(
-        { error: "Survey not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
     const surveyName = survey.title || "Untitled Survey";
@@ -30,7 +27,7 @@ export async function GET(
     // Create a map of question IDs to their titles from survey definition
     const questionMap: Record<string, QuestionInfo> = {};
     const surveyDefinition = survey.definition as any;
-    
+
     if (surveyDefinition?.pages) {
       surveyDefinition.pages.forEach((page: any) => {
         page.elements?.forEach((element: any) => {
@@ -49,7 +46,7 @@ export async function GET(
       userId: result.userId,
       adminId: result.adminId,
       data: result.data,
-      submittedAt: result.submittedAt?.toISOString(),
+      submittedAt: result.submittedAt, // Already ISO string format
     }));
 
     return NextResponse.json({

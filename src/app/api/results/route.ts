@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listResultsBySurvey, listResultsBySurveyPaged } from "../../../db/queries/results";
+import {
+  listResultsBySurvey,
+  listResultsBySurveyPaged,
+} from "../../../db/queries/results";
 
 // GET - Fetch results for a specific survey
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const surveyId = searchParams.get("surveyId");
-    const adminId = searchParams.get("adminId");
-    const limit = searchParams.get("limit");
-    const cursor = searchParams.get("cursor");
+  const { searchParams } = new URL(request.url);
+  const surveyId = searchParams.get("surveyId");
+  const adminId = searchParams.get("adminId");
+  const limit = searchParams.get("limit");
+  const cursor = searchParams.get("cursor");
 
+  try {
     let results;
-    
+
     if (surveyId) {
       if (limit || cursor) {
         // Use paginated query
         const paginatedResults = await listResultsBySurveyPaged({
           surveyId,
-          limit: limit ? parseInt(limit) : undefined,
-          cursor: cursor || undefined,
+          limit: limit ? parseInt(limit) : 100,
+          ...(cursor && { cursor }),
         });
         return NextResponse.json(paginatedResults);
       } else {
@@ -28,8 +31,8 @@ export async function GET(request: NextRequest) {
     } else {
       // Get all results with pagination
       const paginatedResults = await listResultsBySurveyPaged({
-        limit: limit ? parseInt(limit) : undefined,
-        cursor: cursor || undefined,
+        limit: limit ? parseInt(limit) : 100,
+        ...(cursor && { cursor }),
       });
       results = paginatedResults.results;
     }
@@ -46,16 +49,44 @@ export async function GET(request: NextRequest) {
       userId: result.userId,
       adminId: result.adminId,
       data: result.data,
-      submittedAt: result.submittedAt?.toISOString(),
+      submittedAt: result.submittedAt, // Already ISO string format
     }));
 
     return NextResponse.json(transformedResults);
   } catch (error) {
-    console.error("Error fetching results:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Database error, falling back to JSON:", error);
+
+    // Fallback to JSON files when database is not available
+    try {
+      const fs = await import("fs");
+      const path = await import("path");
+
+      const resultsPath = path.join(process.cwd(), "data", "results.json");
+      const resultsData = fs.readFileSync(resultsPath, "utf8");
+      const results = JSON.parse(resultsData);
+
+      let filteredResults = results;
+
+      if (surveyId) {
+        filteredResults = filteredResults.filter(
+          (r: any) => r.surveyId === surveyId
+        );
+      }
+
+      if (adminId) {
+        filteredResults = filteredResults.filter(
+          (r: any) => r.adminId === adminId
+        );
+      }
+
+      return NextResponse.json(filteredResults);
+    } catch (fallbackError) {
+      console.error("Fallback also failed:", fallbackError);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
   }
 }
 
@@ -65,24 +96,26 @@ export async function POST(request: NextRequest) {
     const resultData = await request.json();
 
     // Import functions here to avoid dependency issues
-    const { createResult, hasUserSubmittedSurvey } = await import("../../../db/queries/results");
+    const { createResult, hasUserSubmittedSurvey } = await import(
+      "../../../db/queries/results"
+    );
     const { getSurveyById } = await import("../../../db/queries/surveys");
     const { markUserAsSubmitted } = await import("../../../db/queries/users");
 
     // Check if survey exists and get its configuration
     const survey = await getSurveyById(resultData.surveyId);
     if (!survey) {
-      return NextResponse.json(
-        { error: "Survey not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
     const canTakeMultiple = Boolean(survey.canTakeMultiple);
 
     // Block duplicates only for one-time surveys
     if (!canTakeMultiple && resultData.userId) {
-      const hasSubmitted = await hasUserSubmittedSurvey(resultData.userId, resultData.surveyId);
+      const hasSubmitted = await hasUserSubmittedSurvey(
+        resultData.userId,
+        resultData.surveyId
+      );
       if (hasSubmitted) {
         return NextResponse.json(
           { error: "Survey already submitted by this user" },
@@ -111,7 +144,7 @@ export async function POST(request: NextRequest) {
       userId: newResult.userId,
       adminId: newResult.adminId,
       data: newResult.data,
-      submittedAt: newResult.submittedAt?.toISOString(),
+      submittedAt: newResult.submittedAt, // Already ISO string format
     };
 
     return NextResponse.json(response);

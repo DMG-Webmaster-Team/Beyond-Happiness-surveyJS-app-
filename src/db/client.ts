@@ -1,39 +1,41 @@
-import { drizzle } from "drizzle-orm/mysql2";
-import mysql from "mysql2/promise";
+import { drizzle } from "drizzle-orm/better-sqlite3";
+import Database from "better-sqlite3";
 import * as schema from "./schema";
+import fs from "fs";
+import path from "path";
 
-// Singleton connection pool for serverless environments
-let connection: mysql.Pool | undefined;
+// SQLite database instance
+let sqlite: Database | undefined;
 
 function createConnection() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL environment variable is required");
-  }
-
   // Guard against Edge runtime
   if (typeof window !== "undefined") {
     throw new Error("Database client cannot be used in browser environment");
   }
 
-  if (!connection) {
-    connection = mysql.createPool({
-      uri: process.env.DATABASE_URL,
-      // Connection pool settings for serverless
-      connectionLimit: 10,
-      acquireTimeout: 60000,
-      timeout: 60000,
-      // Prevent connections from hanging
-      idleTimeout: 300000,
-      // SSL configuration (adjust based on provider)
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : false,
-    });
+  if (!sqlite) {
+    // Always use local SQLite file for now, ignore DATABASE_URL
+    const dbPath = path.join(process.cwd(), "surveyjs.db");
+
+    // Ensure the directory exists
+    const dbDir = path.dirname(dbPath);
+    if (!fs.existsSync(dbDir)) {
+      fs.mkdirSync(dbDir, { recursive: true });
+    }
+
+    sqlite = new Database(dbPath);
+
+    // Enable foreign keys
+    sqlite.pragma("foreign_keys = ON");
+
+    console.log("📊 SQLite database connected:", dbPath);
   }
 
-  return connection;
+  return sqlite;
 }
 
-// Initialize Drizzle with the connection pool
-export const db = drizzle(createConnection(), { schema, mode: "default" });
+// Initialize Drizzle with SQLite
+export const db = drizzle(createConnection(), { schema });
 
 // Export types for use in other parts of the application
 export type Database = typeof db;
