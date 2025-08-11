@@ -5,8 +5,18 @@ import { useRouter, useParams } from "next/navigation";
 import { Survey } from "survey-react-ui";
 import { Model } from "survey-core";
 import useSWR from "swr";
+import dynamic from "next/dynamic";
 import "survey-core/survey-core.css";
 import UserNavbar from "@/components/shared/UserNavbar";
+
+// Dynamically import Survey component to avoid SSR issues
+const DynamicSurvey = dynamic(
+  () => import("survey-react-ui").then((mod) => mod.Survey),
+  {
+    ssr: false,
+    loading: () => <div className="text-center py-8">Loading survey...</div>,
+  }
+);
 
 interface User {
   id: string;
@@ -39,17 +49,23 @@ export default function UserSurvey() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [surveySubmitted, setSurveySubmitted] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
 
-    // Check user session
+  // Ensure component is mounted before rendering survey
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Check user session
   useEffect(() => {
     const checkSession = async () => {
       try {
         const response = await fetch("/api/auth/check-session");
         const data = await response.json();
-        
+
         if (!data.isAuthenticated) {
           router.push(`/user/login?redirect=${surveyId}`);
           return;
@@ -93,14 +109,27 @@ export default function UserSurvey() {
 
   // Create survey model from the latest data
   const surveyModel = useMemo(() => {
-    if (!survey?.json) return null;
-    // Ensure canTakeMultiple defaults to false if not present
-    const surveyData = {
-      ...survey,
-      canTakeMultiple: survey.canTakeMultiple ?? false,
-    };
-    return new Model(surveyData.json);
-  }, [survey?.json]);
+    if (!survey?.json || !mounted) return null;
+    
+    try {
+      // Ensure canTakeMultiple defaults to false if not present
+      const surveyData = {
+        ...survey,
+        canTakeMultiple: survey.canTakeMultiple ?? false,
+      };
+      const model = new Model(surveyData.json);
+      
+      // Add error handling for survey rendering
+      model.onAfterRenderSurvey.add(() => {
+        console.log("Survey rendered successfully");
+      });
+      
+      return model;
+    } catch (error) {
+      console.error("Error creating survey model:", error);
+      return null;
+    }
+  }, [survey?.json, mounted]);
 
   // Handle fetch errors and check submission status
   useEffect(() => {
@@ -111,7 +140,12 @@ export default function UserSurvey() {
 
   // Check if user has already submitted this survey after survey data is loaded
   useEffect(() => {
-    if (user && survey && user.hasSubmitted && user.assignedSurvey === surveyId) {
+    if (
+      user &&
+      survey &&
+      user.hasSubmitted &&
+      user.assignedSurvey === surveyId
+    ) {
       setSurveySubmitted(true);
     }
   }, [user, survey, surveyId]);
@@ -324,7 +358,8 @@ export default function UserSurvey() {
               You have already submitted this survey
             </div>
             <p className="text-gray-600">
-              This survey can only be completed once and you have already submitted it.
+              This survey can only be completed once and you have already
+              submitted it.
             </p>
           </div>
         </div>
@@ -350,7 +385,11 @@ export default function UserSurvey() {
         {/* Survey */}
         <div className="px-4 sm:px-0">
           <div className="bg-white shadow rounded-lg p-6">
-            <Survey model={surveyModel} onComplete={handleSurveyComplete} />
+            {mounted && surveyModel ? (
+              <DynamicSurvey model={surveyModel} onComplete={handleSurveyComplete} />
+            ) : (
+              <div className="text-center py-8">Loading survey...</div>
+            )}
           </div>
         </div>
       </div>
