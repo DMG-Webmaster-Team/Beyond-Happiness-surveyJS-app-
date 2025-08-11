@@ -86,26 +86,68 @@ export default function AnalyticsModal({
     isLoading: surveyLoading,
   } = useSWR<Survey>(isOpen ? `/api/surveys/${surveyId}` : null, fetcher);
 
+  // Debug logging
+  console.log("Analytics Modal Debug:", {
+    isOpen,
+    surveyId,
+    resultsData,
+    surveyData,
+    resultsError,
+    surveyError,
+    isLoading: resultsLoading || surveyLoading
+  });
+
   // Filter results by search term (User ID)
   const filteredResults =
     resultsData?.results.filter((result) =>
       result.userId.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
-  // Transform results data for analytics (filter out invalid entries)
+  // Transform results data for analytics (filter out invalid entries and flatten nested objects)
   const analyticsData = filteredResults
-    .map((result) => result.data)
-    .filter((data) => data && Object.keys(data).length > 0);
+    .map((result) => {
+      if (!result.data || Object.keys(result.data).length === 0) return null;
+      
+      // Flatten nested objects for analytics compatibility
+      const flattenedData: Record<string, any> = {};
+      
+      Object.entries(result.data).forEach(([key, value]) => {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          // Handle nested objects (like Quality ratings)
+          Object.entries(value).forEach(([subKey, subValue]) => {
+            flattenedData[`${key}.${subKey}`] = subValue;
+          });
+        } else {
+          flattenedData[key] = value;
+        }
+      });
+      
+      return flattenedData;
+    })
+    .filter((data) => data !== null) as Record<string, any>[];
+
+  // Debug analytics data
+  console.log("Analytics Data Debug:", {
+    filteredResults: filteredResults?.length || 0,
+    analyticsData: analyticsData?.length || 0,
+    sampleData: analyticsData?.[0],
+    allKeys: analyticsData.length > 0 ? Object.keys(analyticsData[0]) : [],
+    searchTerm
+  });
 
   // Initialize survey model and analytics panel
   useEffect(() => {
     if (!mounted || !surveyData || !isOpen) return;
 
     try {
+      console.log("Creating survey model with data:", surveyData.json);
       const model = new Model(surveyData.json);
+      console.log("Survey model created successfully:", {
+        questions: model.getAllQuestions().map(q => ({ name: q.name, title: q.title, type: q.getType() }))
+      });
       setSurveyModel(model);
     } catch (error) {
-      console.error("Error creating survey model:", error);
+      console.error("Error creating survey model:", error, surveyData);
     }
   }, [mounted, surveyData, isOpen]);
 
@@ -148,6 +190,13 @@ export default function AnalyticsModal({
         // Create new visualization panel with enhanced options
         const questions = surveyModel.getAllQuestions();
         
+        console.log("Initializing visualization panel:", {
+          questionsCount: questions.length,
+          dataCount: analyticsData.length,
+          questions: questions.map(q => ({ name: q.name, title: q.title, type: q.getType() })),
+          sampleData: analyticsData[0]
+        });
+        
         // Enhanced options for better interactivity
         const options = {
           // Basic options
@@ -179,7 +228,20 @@ export default function AnalyticsModal({
           showToolbar: true,
         };
 
-        const panel = new VisualizationPanel(questions, analyticsData, options);
+        // If no questions found in survey model, create them from the data
+        let effectiveQuestions = questions;
+        if (questions.length === 0 && analyticsData.length > 0) {
+          console.log("No questions found in model, creating from data keys");
+          const dataKeys = Object.keys(analyticsData[0]);
+          effectiveQuestions = dataKeys.map(key => ({
+            name: key,
+            title: key,
+            getType: () => 'text' // Default type
+          }));
+        }
+
+        console.log("Creating panel with effective questions:", effectiveQuestions);
+        const panel = new VisualizationPanel(effectiveQuestions, analyticsData, options);
         
         // Enable additional features and customizations
         panel.showHeader = true;
@@ -191,11 +253,12 @@ export default function AnalyticsModal({
         });
         
         // Customize chart types per question type
-        questions.forEach((question: any) => {
+        effectiveQuestions.forEach((question: any) => {
           const questionVisualizer = panel.getVisualizer(question.name);
           if (questionVisualizer) {
             // Enable specific chart types based on question type
-            switch (question.getType()) {
+            const questionType = typeof question.getType === 'function' ? question.getType() : 'text';
+            switch (questionType) {
               case "radiogroup":
               case "dropdown":
                 questionVisualizer.chartTypes = ["bar", "pie", "doughnut"];
