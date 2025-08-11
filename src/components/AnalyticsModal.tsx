@@ -90,8 +90,10 @@ export default function AnalyticsModal({
     result.userId.toLowerCase().includes(searchTerm.toLowerCase())
   ) || [];
 
-  // Transform results data for analytics
-  const analyticsData = filteredResults.map((result) => result.data);
+  // Transform results data for analytics (filter out invalid entries)
+  const analyticsData = filteredResults
+    .map((result) => result.data)
+    .filter((data) => data && Object.keys(data).length > 0);
 
   // Initialize survey model and analytics panel
   useEffect(() => {
@@ -128,16 +130,18 @@ export default function AnalyticsModal({
 
         // Create new visualization panel
         const questions = surveyModel.getAllQuestions();
+        const options = {
+          allowHideQuestions: false,
+          allowShowPercentages: true,
+          allowTopNAnswers: true,
+          allowChangeChartType: true,
+          allowDynamicLayout: true,
+        };
+
         const panel = new VisualizationPanel(
           questions,
           analyticsData,
-          {
-            allowHideQuestions: false,
-            allowShowPercentages: true,
-            allowTopNAnswers: true,
-            allowChangeChartType: true,
-            allowDynamicLayout: true,
-          }
+          options
         );
 
         // Render panel
@@ -258,7 +262,10 @@ export default function AnalyticsModal({
                 </div>
               </div>
             ) : (
-              <div ref={analyticsContainerRef} className="w-full h-full" />
+              <div 
+                ref={analyticsContainerRef} 
+                className="w-full h-full sa-analytics" 
+              />
             )}
           </div>
         </div>

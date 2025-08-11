@@ -2,6 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Survey Analytics Styling */
+.sa-analytics {
+  font-family: inherit;
+}
+
+.sa-analytics .sa-toolbar {
+  margin-bottom: 1rem;
+}
+
+.sa-analytics .sa-visualization {
+  margin-bottom: 2rem;
+}
+
+.sa-analytics .sa-question {
+  margin-bottom: 2rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.sa-analytics .sa-question__title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.sa-analytics .sa-question__content {
+  position: relative;
+}
+
+.sa-analytics .sv-action-bar {
+  margin-bottom: 1rem;
+}
+
 :root {
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
