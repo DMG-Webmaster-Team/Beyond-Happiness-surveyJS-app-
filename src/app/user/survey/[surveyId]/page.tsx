@@ -38,17 +38,38 @@ export default function UserSurvey() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [showContactForm, setShowContactForm] = useState(true);
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
-  const [otpStep, setOtpStep] = useState(false);
-  const [otpError, setOtpError] = useState("");
-  const [otpLoading, setOtpLoading] = useState(false);
   const [surveySubmitted, setSurveySubmitted] = useState(false);
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
+
+  // Check user session
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch("/api/auth/check-session");
+        const data = await response.json();
+        
+        if (!data.isAuthenticated) {
+          router.push(`/user/login?redirect=${surveyId}`);
+          return;
+        }
+
+        setUser(data.user);
+        setLoading(false);
+
+        // Check if user has already submitted this survey
+        if (data.user.hasSubmitted && data.user.assignedSurvey === surveyId) {
+          setSurveySubmitted(true);
+        }
+      } catch (error) {
+        console.error("Session check error:", error);
+        router.push(`/user/login?redirect=${surveyId}`);
+      }
+    };
+
+    checkSession();
+  }, [surveyId, router]);
 
   // Use SWR for live survey data fetching - only when user is authenticated AND assigned to this survey
   const {
@@ -78,145 +99,12 @@ export default function UserSurvey() {
     return new Model(surveyData.json);
   }, [survey?.json]);
 
-  useEffect(() => {
-    // Check if user is already authenticated (using sessionStorage)
-    const userData = sessionStorage.getItem("user");
-    if (userData) {
-      const user = JSON.parse(userData);
-      setUser(user);
-
-      // Check if user has no assigned survey
-      if (!user.assignedSurvey) {
-        setError("You are not assigned to any survey at the moment.");
-        setLoading(false);
-        return;
-      }
-
-      // Check if user is trying to access their assigned survey
-      if (surveyId !== user.assignedSurvey) {
-        setError("You don't have access to this survey");
-        setLoading(false);
-        return;
-      }
-
-      setShowContactForm(false);
-
-      // Check if user has already submitted this survey (for one-time surveys)
-      if (user.hasSubmitted && user.assignedSurvey === surveyId) {
-        setSurveySubmitted(true);
-      }
-    } else {
-      // User not authenticated, show contact form
-      setShowContactForm(true);
-      setLoading(false);
-    }
-  }, [surveyId]);
-
-  // Set loading state based on authentication and data fetching
-  useEffect(() => {
-    if (user && isLoading) {
-      setLoading(true);
-    } else if (user && !isLoading) {
-      setLoading(false);
-    } else if (!user && !loading) {
-      setLoading(false);
-    }
-  }, [user, isLoading, loading]);
-
   // Handle fetch errors
   useEffect(() => {
     if (fetchError) {
       setError(fetchError.message || "Failed to load survey");
     }
   }, [fetchError]);
-
-  const handleContactSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email && !phone) {
-      setOtpError("Please enter either email or phone number");
-      return;
-    }
-
-    setOtpLoading(true);
-    setOtpError("");
-
-    // Store contact info in sessionStorage for OTP verification
-    sessionStorage.setItem("userContact", JSON.stringify({ email, phone }));
-
-    // Simulate OTP sending - in real app, this would send OTP
-    setTimeout(() => {
-      setOtpStep(true);
-      setOtpLoading(false);
-    }, 1000);
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return; // Only allow single digit
-
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Move to next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(
-        `otp-${index + 1}`
-      ) as HTMLInputElement;
-      if (nextInput) nextInput.focus();
-    }
-  };
-
-  const handleOtpSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpString = otp.join("");
-
-    if (otpString.length !== 6) {
-      setOtpError("Please enter the complete 6-digit OTP");
-      return;
-    }
-
-    setOtpLoading(true);
-    setOtpError("");
-
-    try {
-      const userContact = JSON.parse(
-        sessionStorage.getItem("userContact") || "{}"
-      );
-
-      const response = await fetch("/api/users/otp", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: userContact.email || undefined,
-          phone: userContact.phone || undefined,
-          otp: otpString,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store user data in sessionStorage with login timestamp
-        const userWithLoginTime = {
-          ...data.user,
-          loginTime: new Date().toISOString(),
-        };
-        sessionStorage.setItem("user", JSON.stringify(userWithLoginTime));
-        // Clear sessionStorage
-        sessionStorage.removeItem("userContact");
-        setUser(userWithLoginTime);
-        setShowContactForm(false);
-      } else {
-        setOtpError(data.error || "Invalid OTP");
-      }
-    } catch (error) {
-      setOtpError("An error occurred during verification");
-    } finally {
-      setOtpLoading(false);
-    }
-  };
 
   const handleSurveyComplete = async (sender: any) => {
     if (!user || !survey) return;
@@ -242,24 +130,24 @@ export default function UserSurvey() {
         // Immediately show completion without refresh
         setSurveySubmitted(true);
 
-        // Update user data in sessionStorage to reflect submission
+        // Update user data to reflect submission
         const updatedUser = {
           ...user,
           hasSubmitted: true,
           submittedAt: new Date().toISOString(),
         };
-        sessionStorage.setItem("user", JSON.stringify(updatedUser));
         setUser(updatedUser);
 
-        // Auto-clear session after 5 seconds for completed surveys
+        // Auto-logout after 5 seconds for completed surveys
         setTimeout(() => {
-          sessionStorage.removeItem("user");
+          fetch("/api/auth/logout", { method: "POST" })
+            .then(() => router.push("/user/login"))
+            .catch(console.error);
         }, 5000);
       } else {
         const data = await response.json();
         setError(data.error || "Failed to submit survey");
       }
-      handleExitSurvey();
     } catch (error) {
       setError("An error occurred while submitting the survey");
     } finally {
@@ -276,23 +164,25 @@ export default function UserSurvey() {
     }
   };
 
-  const handleExitSurvey = () => {
-    sessionStorage.removeItem("user");
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading survey...</div>
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-xl">Loading survey...</div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-xl mb-4">{error}</div>
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">{error}</div>
+          </div>
         </div>
       </div>
     );
@@ -300,178 +190,47 @@ export default function UserSurvey() {
 
   if (surveySubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <svg
-                className="h-6 w-6 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              ✅ Survey submitted successfully.
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              {survey?.canTakeMultiple
-                ? "You can retake this survey if needed."
-                : "Thank you for completing the survey."}
-            </p>
-          </div>
-
-          {survey?.canTakeMultiple && (
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="max-w-md w-full space-y-8">
             <div className="text-center">
-              <button
-                onClick={handleRetakeSurvey}
-                className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                Retake Survey
-              </button>
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
+                <svg
+                  className="h-6 w-6 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                ✅ Survey submitted successfully.
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600">
+                {survey?.canTakeMultiple
+                  ? "You can retake this survey if needed."
+                  : "Thank you for completing the survey."}
+              </p>
             </div>
-          )}
-        </div>
-      </div>
-    );
-  }
 
-  if (showContactForm) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="flex justify-center">
-            <img
-              src="/beyond-happiness-logo.svg"
-              alt="logo"
-              className="w-100 h-100 "
-            />
+            {survey?.canTakeMultiple && (
+              <div className="text-center">
+                <button
+                  onClick={handleRetakeSurvey}
+                  className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
+                >
+                  Retake Survey
+                </button>
+              </div>
+            )}
           </div>
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              {otpStep ? "Verify OTP" : "Access Survey"}
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              {otpStep
-                ? "Enter the 6-digit OTP sent to your contact"
-                : "Enter your contact information to access the survey"}
-            </p>
-          </div>
-
-          {!otpStep ? (
-            <form className="mt-8 space-y-6" onSubmit={handleContactSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Phone Number
-                  </label>
-                  <input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    autoComplete="tel"
-                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                    placeholder="Enter your phone number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {otpError && (
-                <div className="text-red-600 text-sm text-center">
-                  {otpError}
-                </div>
-              )}
-
-              <div>
-                <button
-                  type="submit"
-                  disabled={otpLoading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {otpLoading ? "Sending OTP..." : "Send OTP"}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <form className="mt-8 space-y-6" onSubmit={handleOtpSubmit}>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Enter 6-digit OTP
-                </label>
-                <div className="flex justify-center space-x-2">
-                  {otp.map((digit, index) => (
-                    <input
-                      key={index}
-                      id={`otp-${index}`}
-                      type="text"
-                      maxLength={1}
-                      className="w-12 h-12 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-lg font-semibold"
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {otpError && (
-                <div className="text-red-600 text-sm text-center">
-                  {otpError}
-                </div>
-              )}
-
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpStep(false);
-                    setOtp(["", "", "", "", "", ""]);
-                    setOtpError("");
-                  }}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Back
-                </button>
-                <button
-                  type="submit"
-                  disabled={otpLoading}
-                  className="flex-1 py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                >
-                  {otpLoading ? "Verifying..." : "Verify OTP"}
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       </div>
     );
@@ -499,7 +258,6 @@ export default function UserSurvey() {
 
   // SECURITY CHECK: Ensure user is authenticated and assigned to this survey
   if (!user) {
-    // User not authenticated - this should not happen if contact form logic works correctly
     return (
       <div className="min-h-screen bg-gray-50">
         <UserNavbar />
