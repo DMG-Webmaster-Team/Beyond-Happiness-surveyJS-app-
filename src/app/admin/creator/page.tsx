@@ -88,6 +88,7 @@ export default function AdminCreator() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [isCreatorReady, setIsCreatorReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [newSurveySettings, setNewSurveySettings] = useState({
     canTakeMultiple: false,
   });
@@ -107,6 +108,10 @@ export default function AdminCreator() {
   });
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     // Check if admin is logged in
     const adminData = localStorage.getItem("admin");
     if (!adminData) {
@@ -117,8 +122,8 @@ export default function AdminCreator() {
     // Initialize creator only on client side
     const initCreator = async () => {
       try {
-        // Check if we're in the browser
-        if (typeof window === "undefined") return;
+        // Check if we're in the browser and component is mounted
+        if (typeof window === "undefined" || !mounted) return;
 
         const { SurveyCreator } = await import("survey-creator-react");
 
@@ -171,7 +176,7 @@ export default function AdminCreator() {
     };
 
     initCreator();
-  }, [router]);
+  }, [router, mounted]);
 
   // Initialize local survey state from SWR data (only once per survey)
   useEffect(() => {
@@ -385,6 +390,7 @@ export default function AdminCreator() {
           >
             {creator &&
             isCreatorReady &&
+            mounted &&
             (!idParam || (idParam && localSurvey)) ? (
               <SurveyCreatorErrorBoundary>
                 <SurveyCreatorComponent
