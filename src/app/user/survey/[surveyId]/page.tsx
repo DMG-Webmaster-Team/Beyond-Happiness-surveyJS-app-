@@ -43,7 +43,7 @@ export default function UserSurvey() {
   const params = useParams();
   const surveyId = params.surveyId as string;
 
-  // Check user session
+    // Check user session
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -56,12 +56,15 @@ export default function UserSurvey() {
         }
 
         setUser(data.user);
-        setLoading(false);
 
-        // Check if user has already submitted this survey
-        if (data.user.hasSubmitted && data.user.assignedSurvey === surveyId) {
-          setSurveySubmitted(true);
+        // Check if user is assigned to this survey
+        if (data.user.assignedSurvey !== surveyId) {
+          setError("You are not assigned to this survey");
+          setLoading(false);
+          return;
         }
+
+        setLoading(false);
       } catch (error) {
         console.error("Session check error:", error);
         router.push(`/user/login?redirect=${surveyId}`);
@@ -99,12 +102,19 @@ export default function UserSurvey() {
     return new Model(surveyData.json);
   }, [survey?.json]);
 
-  // Handle fetch errors
+  // Handle fetch errors and check submission status
   useEffect(() => {
     if (fetchError) {
       setError(fetchError.message || "Failed to load survey");
     }
   }, [fetchError]);
+
+  // Check if user has already submitted this survey after survey data is loaded
+  useEffect(() => {
+    if (user && survey && user.hasSubmitted && user.assignedSurvey === surveyId) {
+      setSurveySubmitted(true);
+    }
+  }, [user, survey, surveyId]);
 
   const handleSurveyComplete = async (sender: any) => {
     if (!user || !survey) return;
@@ -211,7 +221,7 @@ export default function UserSurvey() {
                 </svg>
               </div>
               <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                ✅ Survey submitted successfully.
+                ✅ Survey completed successfully!
               </h2>
               <p className="mt-2 text-center text-sm text-gray-600">
                 {survey?.canTakeMultiple
@@ -220,7 +230,7 @@ export default function UserSurvey() {
               </p>
             </div>
 
-            {survey?.canTakeMultiple && (
+            {survey?.canTakeMultiple ? (
               <div className="text-center">
                 <button
                   onClick={handleRetakeSurvey}
@@ -228,6 +238,12 @@ export default function UserSurvey() {
                 >
                   Retake Survey
                 </button>
+              </div>
+            ) : (
+              <div className="text-center">
+                <p className="text-gray-500 text-sm">
+                  This survey can only be completed once.
+                </p>
               </div>
             )}
           </div>
@@ -298,7 +314,7 @@ export default function UserSurvey() {
   }
 
   // Check if user has already submitted (for one-time surveys)
-  if (!survey.canTakeMultiple && user?.hasSubmitted) {
+  if (survey && !survey.canTakeMultiple && user?.hasSubmitted) {
     return (
       <div className="min-h-screen bg-gray-50">
         <UserNavbar />
@@ -307,6 +323,9 @@ export default function UserSurvey() {
             <div className="text-red-600 text-xl mb-4">
               You have already submitted this survey
             </div>
+            <p className="text-gray-600">
+              This survey can only be completed once and you have already submitted it.
+            </p>
           </div>
         </div>
       </div>

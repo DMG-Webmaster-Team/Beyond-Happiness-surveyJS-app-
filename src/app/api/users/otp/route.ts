@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       // Check if user has already submitted a one-time survey
       if (user.hasSubmitted && !survey.canTakeMultiple) {
         return NextResponse.json(
-          { error: "You have already submitted this survey" },
+          { error: "You have already submitted this survey. This survey can only be completed once." },
           { status: 403 }
         );
       }
