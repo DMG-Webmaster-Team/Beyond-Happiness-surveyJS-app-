@@ -4,6 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
+interface User {
+  id: string;
+  email: string;
+  phone: string;
+  assignedSurvey: string;
+  hasSubmitted: boolean;
+  loginTime?: string;
+}
+
 export default function UserLogin() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -13,12 +22,11 @@ export default function UserLogin() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const surveyId = searchParams.get("redirect");
 
-  // Check if user is already logged in - this will be handled by middleware
+  // Clear any existing session when arriving at login
   useEffect(() => {
-    // Clear any existing session storage when arriving at login
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("userContact");
+    fetch("/api/auth/logout", { method: "POST" }).catch(console.error);
   }, []);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
@@ -31,7 +39,7 @@ export default function UserLogin() {
     setLoading(true);
     setError("");
 
-    // Store contact info in sessionStorage for OTP verification
+    // Store contact info temporarily
     sessionStorage.setItem("userContact", JSON.stringify({ email, phone }));
 
     // Simulate OTP sending - in real app, this would send OTP
@@ -79,6 +87,7 @@ export default function UserLogin() {
           email: userContact.email || undefined,
           phone: userContact.phone || undefined,
           otp: otpString,
+          surveyId, // Pass the requested survey ID
         }),
       });
 
@@ -88,11 +97,16 @@ export default function UserLogin() {
         // Clear contact storage
         sessionStorage.removeItem("userContact");
 
-        // The server will set the user_session cookie
-        // Redirect to assigned survey or back to the survey they were trying to access
-        const redirectSurveyId = searchParams.get("redirect") || data.user.assignedSurvey;
-        if (redirectSurveyId) {
-          router.push(`/user/survey/${redirectSurveyId}`);
+        // Check if user has already submitted a one-time survey
+        if (data.user.hasSubmitted && !data.survey?.canTakeMultiple) {
+          setError("You have already submitted this survey");
+          return;
+        }
+
+        // Redirect to the appropriate survey
+        const targetSurveyId = surveyId || data.user.assignedSurvey;
+        if (targetSurveyId) {
+          router.push(`/user/survey/${targetSurveyId}`);
         } else {
           setError("No survey assigned to this user");
         }
