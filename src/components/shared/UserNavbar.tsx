@@ -1,16 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 export default function UserNavbar() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const user = sessionStorage.getItem("user");
+    setIsLoggedIn(!!user);
+  }, []);
 
   // Check session expiration every minute
   useEffect(() => {
     const checkSession = () => {
-      const userData = localStorage.getItem("user");
+      const userData = sessionStorage.getItem("user");
       if (!userData) return;
 
       const user = JSON.parse(userData);
@@ -32,8 +39,10 @@ export default function UserNavbar() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    router.push("/");
+    sessionStorage.removeItem("user");
+    setIsLoggedIn(false);
+    const surveyId = window.location.pathname.split("/").pop();
+    router.push(`/user/survey/${surveyId}`);
   };
 
   return (
@@ -43,14 +52,24 @@ export default function UserNavbar() {
           <div className="flex-shrink-0 flex items-center">
             {/* Logo */}
             <Image
-              src="/next.svg"
-              alt="Logo"
-              width={32}
-              height={32}
-              className="h-8 w-auto"
+              src="/beyond-happiness-logo.svg"
+              alt="Beyond Happiness"
+              width={200}
+              height={80}
+              className="h-12 w-auto"
+              priority
             />
           </div>
-          <div className="flex items-center"></div>
+          <div className="flex items-center">
+            {isLoggedIn && (
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
+              >
+                Logout
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </nav>
