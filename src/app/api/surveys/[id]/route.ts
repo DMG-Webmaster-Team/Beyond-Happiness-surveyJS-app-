@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { getSurveyById, updateSurvey, deleteSurvey } from '../../../../db/queries/surveys';
 
 // GET - Fetch a specific survey
 export async function GET(
@@ -10,11 +9,7 @@ export async function GET(
   try {
     const { id } = params;
     
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
-    
-    const survey = surveys.find((s: any) => s.id === id);
+    const survey = await getSurveyById(id);
     
     if (!survey) {
       return NextResponse.json(
@@ -23,7 +18,19 @@ export async function GET(
       );
     }
     
-    return NextResponse.json(survey);
+    // Transform to match existing API response format
+    const response = {
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      canTakeMultiple: survey.canTakeMultiple,
+      createdAt: survey.createdAt?.toISOString(),
+      updatedAt: survey.updatedAt?.toISOString(),
+      adminId: survey.createdBy,
+      json: survey.definition,
+    };
+    
+    return NextResponse.json(response);
     
   } catch (error) {
     console.error('Error fetching survey:', error);
@@ -43,28 +50,33 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
     
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
+    const updatedSurvey = await updateSurvey(id, {
+      title: updateData.title,
+      description: updateData.description,
+      definition: updateData.json,
+      canTakeMultiple: updateData.canTakeMultiple,
+    });
     
-    const surveyIndex = surveys.findIndex((s: any) => s.id === id);
-    
-    if (surveyIndex === -1) {
+    if (!updatedSurvey) {
       return NextResponse.json(
         { error: 'Survey not found' },
         { status: 404 }
       );
     }
     
-    surveys[surveyIndex] = {
-      ...surveys[surveyIndex],
-      ...updateData,
-      updatedAt: new Date().toISOString()
+    // Transform response to match existing API format
+    const response = {
+      id: updatedSurvey.id,
+      title: updatedSurvey.title,
+      description: updatedSurvey.description,
+      canTakeMultiple: updatedSurvey.canTakeMultiple,
+      createdAt: updatedSurvey.createdAt?.toISOString(),
+      updatedAt: updatedSurvey.updatedAt?.toISOString(),
+      adminId: updatedSurvey.createdBy,
+      json: updatedSurvey.definition,
     };
     
-    fs.writeFileSync(surveysPath, JSON.stringify(surveys, null, 2));
-    
-    return NextResponse.json(surveys[surveyIndex]);
+    return NextResponse.json(response);
     
   } catch (error) {
     console.error('Error updating survey:', error);
@@ -83,21 +95,14 @@ export async function DELETE(
   try {
     const { id } = params;
     
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
+    const deleted = await deleteSurvey(id);
     
-    const surveyIndex = surveys.findIndex((s: any) => s.id === id);
-    
-    if (surveyIndex === -1) {
+    if (!deleted) {
       return NextResponse.json(
         { error: 'Survey not found' },
         { status: 404 }
       );
     }
-    
-    surveys.splice(surveyIndex, 1);
-    fs.writeFileSync(surveysPath, JSON.stringify(surveys, null, 2));
     
     return NextResponse.json({ success: true });
     

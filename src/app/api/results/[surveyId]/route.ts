@@ -1,30 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
-
-interface SurveyResult {
-  surveyId: string;
-  userId: string;
-  adminId: string;
-  data: Record<string, any>;
-  id: string;
-  submittedAt: string;
-}
-
-interface Survey {
-  id: string;
-  title: string;
-  json: {
-    title: string;
-    pages: Array<{
-      elements?: Array<{
-        name: string;
-        title?: string;
-        type: string;
-      }>;
-    }>;
-  };
-}
+import { listResultsBySurvey } from "../../../../db/queries/results";
+import { getSurveyById } from "../../../../db/queries/surveys";
 
 interface QuestionInfo {
   title: string;
@@ -36,49 +12,50 @@ export async function GET(
   { params }: { params: { surveyId: string } }
 ) {
   try {
-    // Read results from JSON file
-    const resultsPath = path.join(process.cwd(), "data", "results.json");
-    const surveysPath = path.join(process.cwd(), "data", "surveys.json");
-
-    const [resultsData, surveysData] = await Promise.all([
-      fs.promises.readFile(resultsPath, "utf8"),
-      fs.promises.readFile(surveysPath, "utf8"),
+    // Get survey and results from database
+    const [survey, results] = await Promise.all([
+      getSurveyById(params.surveyId),
+      listResultsBySurvey(params.surveyId),
     ]);
 
-    const allResults: SurveyResult[] = JSON.parse(resultsData);
-    const surveys: Survey[] = JSON.parse(surveysData);
+    if (!survey) {
+      return NextResponse.json(
+        { error: "Survey not found" },
+        { status: 404 }
+      );
+    }
 
-    // Find survey and get its name and questions
-    const survey = surveys.find((s) => s.id === params.surveyId);
-    const surveyName = survey?.title || "Untitled Survey";
+    const surveyName = survey.title || "Untitled Survey";
 
-    // Create a map of question IDs to their titles
+    // Create a map of question IDs to their titles from survey definition
     const questionMap: Record<string, QuestionInfo> = {};
-    survey?.json.pages.forEach((page) => {
-      page.elements?.forEach((element) => {
-        questionMap[element.name] = {
-          title: element.title || element.name,
-          type: element.type,
-        };
+    const surveyDefinition = survey.definition as any;
+    
+    if (surveyDefinition?.pages) {
+      surveyDefinition.pages.forEach((page: any) => {
+        page.elements?.forEach((element: any) => {
+          questionMap[element.name] = {
+            title: element.title || element.name,
+            type: element.type,
+          };
+        });
       });
-    });
+    }
 
-    // Filter results by surveyId if provided
-    const filteredResults =
-      params.surveyId !== "all"
-        ? allResults.filter((result) => result.surveyId === params.surveyId)
-        : allResults;
-
-    // Sort by submittedAt descending
-    const sortedResults = filteredResults.sort(
-      (a, b) =>
-        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-    );
+    // Transform results to match existing API format
+    const transformedResults = results.map((result) => ({
+      id: result.id,
+      surveyId: result.surveyId,
+      userId: result.userId,
+      adminId: result.adminId,
+      data: result.data,
+      submittedAt: result.submittedAt?.toISOString(),
+    }));
 
     return NextResponse.json({
       surveyName,
       questionMap,
-      results: sortedResults,
+      results: transformedResults,
     });
   } catch (error) {
     console.error("Error reading results:", error);

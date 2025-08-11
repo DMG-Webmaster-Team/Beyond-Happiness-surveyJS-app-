@@ -6,12 +6,22 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:gen": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
+    "@types/pg": "^8.15.5",
     "ace-builds": "latest",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.44.4",
     "jspdf-autotable": "^3.8.2",
+    "mysql2": "^3.14.3",
     "next": "14.1.0",
+    "pg": "^8.16.3",
     "react": "^18",
     "react-dom": "^18",
     "survey-analytics": "latest",
@@ -21,7 +31,8 @@
     "survey-pdf": "latest",
     "survey-react-ui": "latest",
     "swr": "^2.3.4",
-    "wordcloud": "^1.2.2"
+    "wordcloud": "^1.2.2",
+    "zod": "^4.0.17"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -33,6 +44,7 @@
     "eslint-config-next": "14.1.0",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

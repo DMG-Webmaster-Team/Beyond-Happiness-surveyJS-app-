@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { listSurveys, listSurveysByAdmin, createSurvey } from '../../../db/queries/surveys';
 
 // GET - Fetch surveys for a specific admin
 export async function GET(request: NextRequest) {
@@ -8,16 +7,25 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const adminId = searchParams.get('adminId');
     
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
-    
+    let surveys;
     if (adminId) {
-      const adminSurveys = surveys.filter((survey: any) => survey.adminId === adminId);
-      return NextResponse.json(adminSurveys);
+      surveys = await listSurveysByAdmin(adminId);
+    } else {
+      surveys = await listSurveys();
     }
     
-    return NextResponse.json(surveys);
+    // Transform to match existing API response format
+    const transformedSurveys = surveys.map(survey => ({
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      canTakeMultiple: survey.canTakeMultiple,
+      createdAt: survey.createdAt?.toISOString(),
+      updatedAt: survey.updatedAt?.toISOString(),
+      adminId: survey.createdBy, // Map createdBy to adminId for backwards compatibility
+    }));
+    
+    return NextResponse.json(transformedSurveys);
     
   } catch (error) {
     console.error('Error fetching surveys:', error);
@@ -33,22 +41,28 @@ export async function POST(request: NextRequest) {
   try {
     const surveyData = await request.json();
     
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
+    // Create survey in database
+    const newSurvey = await createSurvey({
+      title: surveyData.title,
+      description: surveyData.description,
+      definition: surveyData.json || {},
+      canTakeMultiple: surveyData.canTakeMultiple || false,
+      createdBy: surveyData.adminId,
+    });
     
-    // Generate new survey ID
-    const newSurvey = {
-      ...surveyData,
-      id: `survey${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // Transform response to match existing API format
+    const response = {
+      id: newSurvey.id,
+      title: newSurvey.title,
+      description: newSurvey.description,
+      canTakeMultiple: newSurvey.canTakeMultiple,
+      createdAt: newSurvey.createdAt?.toISOString(),
+      updatedAt: newSurvey.updatedAt?.toISOString(),
+      adminId: newSurvey.createdBy,
+      json: newSurvey.definition,
     };
     
-    surveys.push(newSurvey);
-    fs.writeFileSync(surveysPath, JSON.stringify(surveys, null, 2));
-    
-    return NextResponse.json(newSurvey);
+    return NextResponse.json(response);
     
   } catch (error) {
     console.error('Error creating survey:', error);
