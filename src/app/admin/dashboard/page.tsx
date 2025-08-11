@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ResultsModal from "@/components/ResultsModal";
+import AnalyticsModal from "@/components/AnalyticsModal";
 import AdminNavbar from "@/components/shared/AdminNavbar";
 
 interface Survey {
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
   const [copiedSurveyId, setCopiedSurveyId] = useState<string | null>(null);
   const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
+  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -213,6 +215,15 @@ export default function AdminDashboard() {
                           >
                             Results
                           </button>
+                          <button
+                            onClick={() => {
+                              setSelectedSurveyId(survey.id);
+                              setIsAnalyticsModalOpen(true);
+                            }}
+                            className="inline-flex items-center px-3 py-1 border border-blue-300 text-sm font-medium rounded text-blue-700 bg-white hover:bg-blue-50"
+                          >
+                            Analytics
+                          </button>
                           <Link
                             href={`/pdf-export?surveyId=${survey.id}`}
                             className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
@@ -243,6 +254,18 @@ export default function AdminDashboard() {
           isOpen={isResultsModalOpen}
           onClose={() => {
             setIsResultsModalOpen(false);
+            setSelectedSurveyId(null);
+          }}
+        />
+      )}
+
+      {/* Analytics Modal */}
+      {selectedSurveyId && (
+        <AnalyticsModal
+          surveyId={selectedSurveyId}
+          isOpen={isAnalyticsModalOpen}
+          onClose={() => {
+            setIsAnalyticsModalOpen(false);
             setSelectedSurveyId(null);
           }}
         />
