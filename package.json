@@ -12,6 +12,7 @@
     "ace-builds": "latest",
     "chart.js": "^4.5.0",
     "jspdf-autotable": "^3.8.2",
+    "motion": "^12.23.12",
     "next": "14.1.0",
     "plotly.js-dist-min": "^3.1.0",
     "react": "^18",

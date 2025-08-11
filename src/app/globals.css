@@ -5,8 +5,148 @@
 /* Survey Analytics Enhanced Styling */
 .sa-analytics {
   font-family: inherit;
-  --primary-color: #00A3E0;
+  --primary-color: #00a3e0;
   --secondary-color: #000000;
+}
+
+/* Survey Creator Brand Colors */
+.svc-creator {
+  --primary-color: #00a3e0;
+  --primary-color-dark: #0088b8;
+  --primary-color-light: #33b5e8;
+  --secondary-color: #000000;
+  --accent-color: #00a3e0;
+}
+
+/* Override SurveyJS Creator primary colors */
+.svc-creator .sv-action-bar-item--pressed,
+.svc-creator .sv-action-bar-item:hover {
+  background-color: #00a3e0 !important;
+  color: white !important;
+}
+
+.svc-creator .svc-tab-designer.svc-tab-designer--selected,
+.svc-creator .svc-tab-test.svc-tab-test--selected,
+.svc-creator .svc-tab-embed.svc-tab-embed--selected {
+  background-color: #00a3e0 !important;
+  color: white !important;
+}
+
+.svc-creator .svc-toolbox__tool.svc-toolbox__tool--pressed,
+.svc-creator .svc-toolbox__tool:hover {
+  background-color: #00a3e0 !important;
+  color: white !important;
+}
+
+.svc-creator .svc-property-panel__header {
+  background-color: #00a3e0 !important;
+  color: white !important;
+}
+
+.svc-creator .svc-question__content--selected {
+  border-color: #00a3e0 !important;
+}
+
+.svc-creator .sv-ranking-item.sv-ranking-item--ghost {
+  background-color: rgba(0, 163, 224, 0.1) !important;
+}
+
+.svc-creator .sv-popup__container {
+  border: 2px solid #00a3e0 !important;
+}
+
+.svc-creator .sv-popup__button--primary {
+  background-color: #00a3e0 !important;
+  border-color: #00a3e0 !important;
+}
+
+.svc-creator .sv-popup__button--primary:hover {
+  background-color: #0088b8 !important;
+}
+
+.svc-creator .svc-string-editor.svc-string-editor--editing {
+  border-color: #00a3e0 !important;
+}
+
+.svc-creator .sv-action--primary {
+  background-color: #00a3e0 !important;
+  border-color: #00a3e0 !important;
+}
+
+.svc-creator .sv-action--primary:hover {
+  background-color: #0088b8 !important;
+}
+
+.svc-creator .svc-element-selector {
+  border-color: #00a3e0 !important;
+}
+
+.svc-creator .svc-element-selector:hover {
+  background-color: rgba(0, 163, 224, 0.1) !important;
+}
+
+/* Survey Creator buttons and controls */
+.svc-creator .sv-dropdown__filter-string input:focus,
+.svc-creator .sv-text-input:focus {
+  border-color: #00a3e0 !important;
+  box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.2) !important;
+}
+
+.svc-creator .sv-checkbox__svg {
+  fill: #00a3e0 !important;
+}
+
+.svc-creator .sv-radio__svg {
+  fill: #00a3e0 !important;
+}
+
+.svc-creator .sv-progress__progress {
+  background-color: #00a3e0 !important;
+}
+
+.svc-creator .sv-header__text {
+  color: #000000 !important;
+}
+
+/* Change toolbox sidebar teal/green colors to brand colors */
+.svc-creator .svc-toolbox__tool {
+  color: #00a3e0 !important;
+}
+
+.svc-creator .svc-toolbox__tool.svc-toolbox__tool--active,
+.svc-creator .svc-toolbox__tool.svc-toolbox__tool--pressed {
+  background-color: #00a3e0 !important;
+  color: white !important;
+}
+
+.svc-creator .svc-toolbox__tool:hover {
+  background-color: rgba(0, 163, 224, 0.1) !important;
+  color: #00a3e0 !important;
+}
+
+.svc-creator .svc-toolbox__tool:hover.svc-toolbox__tool--pressed {
+  background-color: #00a3e0 !important;
+  color: white !important;
+}
+
+.svc-creator .svc-toolbox__tool svg {
+  fill: #00a3e0 !important;
+}
+
+.svc-creator .svc-toolbox__tool--pressed svg,
+.svc-creator .svc-toolbox__tool--active svg {
+  fill: white !important;
+}
+
+/* Change the "Add Question" button color */
+.svc-creator .svc-element-wrapper__question-convert {
+  color: #00a3e0 !important;
+  border-color: #00a3e0 !important;
+}
+
+.svc-creator .svc-element-wrapper__question-convert:hover {
+  background-color: #00a3e0 !important;
+  color: white !important;
 }
 
 /* Toolbar and controls */
@@ -128,11 +268,11 @@
   .sa-analytics .sa-question {
     padding: 1rem;
   }
-  
+
   .sa-analytics .sa-toolbar {
     padding: 0.5rem;
   }
-  
+
   .sa-analytics .sa-toolbar button {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;

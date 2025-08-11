@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 interface Admin {
   id: string;
@@ -44,12 +45,14 @@ export default function AdminNavbar() {
           </div>
           <div className="flex items-center">
             {admin && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={handleLogout}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
               >
                 Logout
-              </button>
+              </motion.button>
             )}
           </div>
         </div>

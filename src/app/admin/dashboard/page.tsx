@@ -6,6 +6,7 @@ import Link from "next/link";
 import ResultsModal from "@/components/ResultsModal";
 import AnalyticsModal from "@/components/AnalyticsModal";
 import AdminNavbar from "@/components/shared/AdminNavbar";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Survey {
   id: string;
@@ -128,12 +129,14 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex  space-x-4">
-              <Link
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 href="/admin/creator"
                 className="inline-flex  items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
               >
                 Create New Survey
-              </Link>
+              </motion.a>
             </div>
           </div>
         </div>
@@ -146,104 +149,142 @@ export default function AdminDashboard() {
 
         {/* Surveys List */}
         <div className="px-4 sm:px-0">
-          {surveys.length === 0 ? (
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                No surveys yet
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Create your first survey to get started
-              </p>
-              <Link
-                href="/admin/creator"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+          <AnimatePresence mode="wait">
+            {surveys.length === 0 ? (
+              <motion.div className="text-center py-12">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No surveys yet
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  Create your first survey to get started
+                </p>
+                <Link
+                  href="/admin/creator"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                >
+                  Create Survey
+                </Link>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="surveys-list"
+                className="bg-white shadow overflow-hidden sm:rounded-md"
               >
-                Create Survey
-              </Link>
-            </div>
-          ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {surveys.map((survey) => (
-                  <li key={survey.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-lg font-medium text-gray-900 truncate">
-                            {survey.title}
-                          </h3>
-                          <p className="mt-1 text-sm text-gray-600">
-                            {survey.description}
-                          </p>
-                          <div className="mt-2 flex items-center text-sm text-gray-500">
-                            <span className="mr-4">
-                              Type:{" "}
-                              {survey.canTakeMultiple ? "Multiple" : "One-time"}
-                            </span>
-                            <span>
-                              Created:{" "}
-                              {new Date(survey.createdAt).toLocaleDateString()}
-                            </span>
+                <ul className="divide-y divide-gray-200">
+                  {surveys.map((survey, index) => (
+                    <motion.li
+                      key={survey.id}
+                      whileHover={{ scale: 0.98 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <div className="px-4 py-4 sm:px-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-medium text-gray-900 truncate">
+                              {survey.title}
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-600">
+                              {survey.description}
+                            </p>
+                            <div className="mt-2 flex items-center text-sm text-gray-500">
+                              <span className="mr-4">
+                                Type:{" "}
+                                {survey.canTakeMultiple
+                                  ? "Multiple"
+                                  : "One-time"}
+                              </span>
+                              <span>
+                                Created:{" "}
+                                {new Date(
+                                  survey.createdAt
+                                ).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex space-x-2">
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Link
+                                href={`/admin/creator?surveyId=${survey.id}`}
+                                className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                              >
+                                Edit
+                              </Link>
+                            </motion.div>
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Link
+                                href={`/admin/preview/${survey.id}`}
+                                target="_blank"
+                                className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                              >
+                                Preview
+                              </Link>
+                            </motion.div>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => copySurveyLink(survey.id)}
+                              className="inline-flex items-center px-3 py-1 border border-green-300 text-sm font-medium rounded text-green-700 bg-white hover:bg-green-50"
+                            >
+                              {copiedSurveyId === survey.id
+                                ? "Copied!"
+                                : "Share"}
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setSelectedSurveyId(survey.id);
+                                setIsResultsModalOpen(true);
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                              Results
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setSelectedSurveyId(survey.id);
+                                setIsAnalyticsModalOpen(true);
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-blue-300 text-sm font-medium rounded text-blue-700 bg-white hover:bg-blue-50"
+                            >
+                              Analytics
+                            </motion.button>
+                            <motion.div
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Link
+                                href={`/pdf-export?surveyId=${survey.id}`}
+                                className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                              >
+                                PDF
+                              </Link>
+                            </motion.div>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleDeleteSurvey(survey.id)}
+                              className="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded text-red-700 bg-white hover:bg-red-50"
+                            >
+                              Delete
+                            </motion.button>
                           </div>
                         </div>
-                        <div className="flex space-x-2">
-                          <Link
-                            href={`/admin/creator?surveyId=${survey.id}`}
-                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            Edit
-                          </Link>
-                          <Link
-                            href={`/admin/preview/${survey.id}`}
-                            target="_blank"
-                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            Preview
-                          </Link>
-                          <button
-                            onClick={() => copySurveyLink(survey.id)}
-                            className="inline-flex items-center px-3 py-1 border border-green-300 text-sm font-medium rounded text-green-700 bg-white hover:bg-green-50"
-                          >
-                            {copiedSurveyId === survey.id ? "Copied!" : "Share"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedSurveyId(survey.id);
-                              setIsResultsModalOpen(true);
-                            }}
-                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            Results
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedSurveyId(survey.id);
-                              setIsAnalyticsModalOpen(true);
-                            }}
-                            className="inline-flex items-center px-3 py-1 border border-blue-300 text-sm font-medium rounded text-blue-700 bg-white hover:bg-blue-50"
-                          >
-                            Analytics
-                          </button>
-                          <Link
-                            href={`/pdf-export?surveyId=${survey.id}`}
-                            className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                          >
-                            PDF
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteSurvey(survey.id)}
-                            className="inline-flex items-center px-3 py-1 border border-red-300 text-sm font-medium rounded text-red-700 bg-white hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
 

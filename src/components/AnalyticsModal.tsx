@@ -3,17 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import useSWR from "swr";
 import { Model } from "survey-core";
-import dynamic from "next/dynamic";
 import "survey-analytics/survey.analytics.css";
-
-// Dynamically import VisualizationPanel to avoid SSR issues
-const DynamicVisualizationPanel = dynamic(
-  () => import("survey-analytics").then((mod) => mod.VisualizationPanel),
-  {
-    ssr: false,
-    loading: () => <div className="text-center py-8">Loading analytics...</div>,
-  }
-);
 
 interface SurveyResult {
   surveyId: string;
@@ -112,7 +102,7 @@ export default function AnalyticsModal({
         console.log("Analytics Setup:", {
           questionsCount: questions.length,
           dataCount: analyticsData.length,
-          surveyTitle: surveyData.title
+          surveyTitle: surveyData.title,
         });
 
         // Create visualization panel with basic options
@@ -134,8 +124,12 @@ export default function AnalyticsModal({
               <div class="text-red-600 text-lg mb-4">Unable to load analytics</div>
               <div class="text-gray-600">${error}</div>
               <div class="mt-4 p-4 bg-gray-100 rounded">
-                <div class="text-sm">Data available: ${analyticsData.length} responses</div>
-                <div class="text-sm">Survey: ${surveyData?.title || 'Unknown'}</div>
+                <div class="text-sm">Data available: ${
+                  analyticsData.length
+                } responses</div>
+                <div class="text-sm">Survey: ${
+                  surveyData?.title || "Unknown"
+                }</div>
               </div>
             </div>
           `;
@@ -166,7 +160,8 @@ export default function AnalyticsModal({
 
   const isLoading = resultsLoading || surveyLoading;
   const hasError = resultsError || surveyError;
-  const surveyName = resultsData?.surveyName || surveyData?.title || "Unknown Survey";
+  const surveyName =
+    resultsData?.surveyName || surveyData?.title || "Unknown Survey";
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -189,7 +184,8 @@ export default function AnalyticsModal({
           {/* Simple Info Bar */}
           <div className="p-4 border-b bg-gray-50">
             <div className="text-sm text-gray-600">
-              {analyticsData.length} response{analyticsData.length !== 1 ? 's' : ''} available for analysis
+              {analyticsData.length} response
+              {analyticsData.length !== 1 ? "s" : ""} available for analysis
             </div>
           </div>
 
@@ -224,17 +220,6 @@ export default function AnalyticsModal({
                   </div>
                   <p className="text-gray-400">
                     Analytics will appear once users start submitting responses.
-                  </p>
-                </div>
-              </div>
-            ) : !filteredResults.length ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <div className="text-gray-500 text-xl mb-4">
-                    No submissions match your search
-                  </div>
-                  <p className="text-gray-400">
-                    Try adjusting your search criteria.
                   </p>
                 </div>
               </div>

@@ -330,7 +330,7 @@ export default function AdminCreator() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Survey"}
               </button>
