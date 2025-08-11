@@ -133,5 +133,43 @@
     },
     "id": "result1754893085063",
     "submittedAt": "2025-08-11T06:18:05.063Z"
+  },
+  {
+    "surveyId": "survey1754892546222",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 3,
+      "question2": [
+        "Item 2"
+      ],
+      "question3": "Item 2"
+    },
+    "id": "result1754898452693",
+    "submittedAt": "2025-08-11T07:47:32.693Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 4
+    },
+    "id": "result1754898926514",
+    "submittedAt": "2025-08-11T07:55:26.514Z"
+  },
+  {
+    "surveyId": "survey1754892546222",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {
+      "question1": 3,
+      "question2": [
+        "Item 2"
+      ],
+      "question3": "Item 2"
+    },
+    "id": "result1754899351439",
+    "submittedAt": "2025-08-11T08:02:31.439Z"
   }
 ]

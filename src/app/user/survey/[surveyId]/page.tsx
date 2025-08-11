@@ -341,7 +341,9 @@ export default function UserSurvey() {
             <p className="text-gray-600">
               You are not authorized to access this survey.
               {user.assignedSurveys.length > 0
-                ? ` You are assigned to surveys: ${user.assignedSurveys.join(", ")}`
+                ? ` You are assigned to surveys: ${user.assignedSurveys.join(
+                    ", "
+                  )}`
                 : " You have no survey assignments."}
             </p>
           </div>
