@@ -50,13 +50,15 @@ export default function UserSurvey() {
   const params = useParams();
   const surveyId = params.surveyId as string;
 
-  // Use SWR for live survey data fetching - only when user is authenticated
+  // Use SWR for live survey data fetching - only when user is authenticated AND assigned to this survey
   const {
     data: survey,
     error: fetchError,
     isLoading,
   } = useSWR<SurveyData>(
-    user && surveyId ? `/api/surveys/${surveyId}` : null,
+    user && surveyId && user.assignedSurvey === surveyId
+      ? `/api/surveys/${surveyId}`
+      : null,
     fetcher,
     {
       refreshInterval: 5000, // Refresh every 5 seconds
@@ -77,8 +79,8 @@ export default function UserSurvey() {
   }, [survey?.json]);
 
   useEffect(() => {
-    // Check if user is already authenticated
-    const userData = localStorage.getItem("user");
+    // Check if user is already authenticated (using sessionStorage)
+    const userData = sessionStorage.getItem("user");
     if (userData) {
       const user = JSON.parse(userData);
       setUser(user);
@@ -196,12 +198,12 @@ export default function UserSurvey() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store user data in localStorage with login timestamp
+        // Store user data in sessionStorage with login timestamp
         const userWithLoginTime = {
           ...data.user,
           loginTime: new Date().toISOString(),
         };
-        localStorage.setItem("user", JSON.stringify(userWithLoginTime));
+        sessionStorage.setItem("user", JSON.stringify(userWithLoginTime));
         // Clear sessionStorage
         sessionStorage.removeItem("userContact");
         setUser(userWithLoginTime);
@@ -240,14 +242,19 @@ export default function UserSurvey() {
         // Immediately show completion without refresh
         setSurveySubmitted(true);
 
-        // Update user data in localStorage to reflect submission
+        // Update user data in sessionStorage to reflect submission
         const updatedUser = {
           ...user,
           hasSubmitted: true,
           submittedAt: new Date().toISOString(),
         };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+        sessionStorage.setItem("user", JSON.stringify(updatedUser));
         setUser(updatedUser);
+
+        // Auto-clear session after 5 seconds for completed surveys
+        setTimeout(() => {
+          sessionStorage.removeItem("user");
+        }, 5000);
       } else {
         const data = await response.json();
         setError(data.error || "Failed to submit survey");
@@ -270,7 +277,7 @@ export default function UserSurvey() {
   };
 
   const handleExitSurvey = () => {
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
   };
 
   if (loading) {
@@ -340,6 +347,13 @@ export default function UserSurvey() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
+          <div className="flex justify-center">
+            <img
+              src="/beyond-happiness-logo.svg"
+              alt="logo"
+              className="w-100 h-100 "
+            />
+          </div>
           <div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
               {otpStep ? "Verify OTP" : "Access Survey"}
@@ -402,7 +416,7 @@ export default function UserSurvey() {
                 <button
                   type="submit"
                   disabled={otpLoading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
                   {otpLoading ? "Sending OTP..." : "Send OTP"}
                 </button>
@@ -451,7 +465,7 @@ export default function UserSurvey() {
                 <button
                   type="submit"
                   disabled={otpLoading}
-                  className="flex-1 py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                  className="flex-1 py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
                   {otpLoading ? "Verifying..." : "Verify OTP"}
                 </button>
@@ -465,9 +479,61 @@ export default function UserSurvey() {
 
   if (!survey || !surveyModel) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-xl mb-4">Survey not found</div>
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex flex-col gap-10 items-center justify-center h-[calc(100vh-64px)]">
+          <img
+            src="/beyond-happiness-logo.svg"
+            alt="logo"
+            className="w-100 h-100"
+          />
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">
+              You dont have access for this survey
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SECURITY CHECK: Ensure user is authenticated and assigned to this survey
+  if (!user) {
+    // User not authenticated - this should not happen if contact form logic works correctly
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">
+              Access Denied: Authentication required
+            </div>
+            <p className="text-gray-600">
+              Please authenticate to access this survey.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // SECURITY CHECK: Ensure user is assigned to this specific survey
+  if (!user.assignedSurvey || user.assignedSurvey !== surveyId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">
+              Access Denied: Survey not assigned
+            </div>
+            <p className="text-gray-600">
+              You are not authorized to access this survey.
+              {user.assignedSurvey
+                ? ` You are assigned to survey: ${user.assignedSurvey}`
+                : " You have no survey assignment."}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -476,10 +542,13 @@ export default function UserSurvey() {
   // Check if user has already submitted (for one-time surveys)
   if (!survey.canTakeMultiple && user?.hasSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-xl mb-4">
-            You have already submitted this survey
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <div className="text-center">
+            <div className="text-red-600 text-xl mb-4">
+              You have already submitted this survey
+            </div>
           </div>
         </div>
       </div>

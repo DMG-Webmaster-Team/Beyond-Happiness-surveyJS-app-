@@ -4,9 +4,9 @@
     "title": "survey 1 updated",
     "adminId": "admin1",
     "description": "A comprehensive survey to gather product feedback from customers",
-    "canTakeMultiple": false,
+    "canTakeMultiple": true,
     "createdAt": "2024-01-10T09:00:00Z",
-    "updatedAt": "2025-08-10T11:48:33.006Z",
+    "updatedAt": "2025-08-10T12:31:00.348Z",
     "json": {
       "title": "survey 1 updated",
       "pages": [
@@ -63,9 +63,10 @@
   {
     "title": "Untitled Survey",
     "description": "",
-    "canTakeMultiple": true,
+    "canTakeMultiple": false,
     "adminId": "admin1",
     "json": {
+      "title": "Untitled Survey",
       "pages": [
         {
           "name": "page1",
@@ -110,42 +111,7 @@
     },
     "id": "survey1754405802017",
     "createdAt": "2025-08-05T14:56:42.017Z",
-    "updatedAt": "2025-08-08T18:45:42.567Z"
-  },
-  {
-    "title": "test 1.1",
-    "description": "AAAAAAAAAAAA",
-    "canTakeMultiple": false,
-    "adminId": "admin1",
-    "json": {
-      "title": "test 1.1",
-      "pages": [
-        {
-          "name": "page1",
-          "elements": [
-            {
-              "type": "rating",
-              "name": "question1",
-              "title": "Q1"
-            },
-            {
-              "type": "checkbox",
-              "name": "question2",
-              "title": "Q2",
-              "choices": [
-                "Item 1",
-                "Item 2",
-                "Item 3"
-              ]
-            }
-          ]
-        }
-      ],
-      "headerView": "advanced"
-    },
-    "id": "survey1754573024154",
-    "createdAt": "2025-08-07T13:23:44.154Z",
-    "updatedAt": "2025-08-08T20:02:04.383Z"
+    "updatedAt": "2025-08-10T13:05:30.790Z"
   },
   {
     "title": "test 2 , admin 2",
@@ -176,5 +142,50 @@
     "id": "survey1754684945039",
     "createdAt": "2025-08-08T20:29:05.039Z",
     "updatedAt": "2025-08-08T20:42:50.626Z"
+  },
+  {
+    "title": "test 11/8",
+    "description": "",
+    "canTakeMultiple": true,
+    "adminId": "admin1",
+    "json": {
+      "title": "test 11/8",
+      "pages": [
+        {
+          "name": "page1",
+          "elements": [
+            {
+              "type": "rating",
+              "name": "question1",
+              "title": "test 1"
+            },
+            {
+              "type": "checkbox",
+              "name": "question2",
+              "title": "test 2",
+              "choices": [
+                "Item 1",
+                "Item 2",
+                "Item 3"
+              ]
+            },
+            {
+              "type": "dropdown",
+              "name": "question3",
+              "title": "test 3",
+              "choices": [
+                "Item 1",
+                "Item 2",
+                "Item 3"
+              ]
+            }
+          ]
+        }
+      ],
+      "headerView": "advanced"
+    },
+    "id": "survey1754892546222",
+    "createdAt": "2025-08-11T06:09:06.222Z",
+    "updatedAt": "2025-08-11T06:09:06.222Z"
   }
 ]

@@ -4,6 +4,7 @@ import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR, { mutate } from "swr";
+import AdminNavbar from "@/components/shared/AdminNavbar";
 import "survey-core/survey-core.css";
 import "survey-creator-core/survey-creator-core.css";
 
@@ -301,6 +302,7 @@ export default function AdminCreator() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdminNavbar />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="px-4 py-6 sm:px-0">

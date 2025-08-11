@@ -80,6 +80,62 @@
     "submittedAt": "2025-08-08T18:21:22.342Z"
   },
   {
+    "surveyId": "survey1754405802017",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754678786479",
+    "submittedAt": "2025-08-08T18:46:26.479Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754691405137",
+    "submittedAt": "2025-08-08T22:16:45.137Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754691853940",
+    "submittedAt": "2025-08-08T22:24:13.940Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754691872729",
+    "submittedAt": "2025-08-08T22:24:32.729Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754691872730",
+    "submittedAt": "2025-08-08T22:24:32.730Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754825171152",
+    "submittedAt": "2025-08-10T11:26:11.152Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user1",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754825524052",
+    "submittedAt": "2025-08-10T11:32:04.052Z"
+  },
+  {
     "surveyId": "survey1",
     "userId": "user1",
     "adminId": "admin1",
@@ -120,18 +176,27 @@
     "submittedAt": "2025-08-10T12:46:24.181Z"
   },
   {
-    "surveyId": "survey1754892546222",
-    "userId": "user1",
+    "surveyId": "survey1754573024154",
+    "userId": "user4",
     "adminId": "admin1",
-    "data": {
-      "question1": 3,
-      "question2": [
-        "Item 1",
-        "Item 3"
-      ],
-      "question3": "Item 2"
-    },
-    "id": "result1754893085063",
-    "submittedAt": "2025-08-11T06:18:05.063Z"
+    "data": {},
+    "id": "result1754830023594",
+    "submittedAt": "2025-08-10T12:47:03.594Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user3",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754831118244",
+    "submittedAt": "2025-08-10T13:05:18.244Z"
+  },
+  {
+    "surveyId": "survey1",
+    "userId": "user3",
+    "adminId": "admin1",
+    "data": {},
+    "id": "result1754831165827",
+    "submittedAt": "2025-08-10T13:06:05.827Z"
   }
 ]

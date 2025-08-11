@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import ResultsModal from "@/components/ResultsModal";
+import AdminNavbar from "@/components/shared/AdminNavbar";
 
 interface Survey {
   id: string;
@@ -25,6 +27,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedSurveyId, setCopiedSurveyId] = useState<string | null>(null);
+  const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null);
+  const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -108,6 +112,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <AdminNavbar />
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="px-4 py-6 sm:px-0">
@@ -120,19 +125,13 @@ export default function AdminDashboard() {
                 Welcome back, {admin?.name}
               </p>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex  space-x-4">
               <Link
                 href="/admin/creator"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                className="inline-flex  items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
               >
                 Create New Survey
               </Link>
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Logout
-              </button>
             </div>
           </div>
         </div>
@@ -205,12 +204,15 @@ export default function AdminDashboard() {
                           >
                             {copiedSurveyId === survey.id ? "Copied!" : "Share"}
                           </button>
-                          <Link
-                            href={`/dashboard?surveyId=${survey.id}`}
+                          <button
+                            onClick={() => {
+                              setSelectedSurveyId(survey.id);
+                              setIsResultsModalOpen(true);
+                            }}
                             className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
                           >
                             Results
-                          </Link>
+                          </button>
                           <Link
                             href={`/pdf-export?surveyId=${survey.id}`}
                             className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
@@ -233,6 +235,18 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Results Modal */}
+      {selectedSurveyId && (
+        <ResultsModal
+          surveyId={selectedSurveyId}
+          isOpen={isResultsModalOpen}
+          onClose={() => {
+            setIsResultsModalOpen(false);
+            setSelectedSurveyId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

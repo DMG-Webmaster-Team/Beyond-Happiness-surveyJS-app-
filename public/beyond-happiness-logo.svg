@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="80" xmlns="http://www.w3.org/2000/svg">
+  <text x="10" y="35" font-family="Arial" font-size="30" font-weight="bold">
+    <tspan fill="#000">Be</tspan><tspan fill="#00A3E0">yond</tspan>
+  </text>
+  <text x="10" y="70" font-family="Arial" font-size="30" font-weight="bold">
+    <tspan fill="#000">Happ</tspan><tspan fill="#00A3E0">iness</tspan>
+  </text>
+</svg>
