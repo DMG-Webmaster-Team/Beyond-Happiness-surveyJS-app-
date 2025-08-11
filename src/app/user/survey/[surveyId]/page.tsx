@@ -22,8 +22,11 @@ interface User {
   id: string;
   email: string;
   phone: string;
-  assignedSurvey: string;
-  hasSubmitted: boolean;
+  assignedSurveys: string[];
+  submittedSurveys: {
+    surveyId: string;
+    submittedAt: string;
+  }[];
   loginTime?: string;
 }
 
@@ -74,7 +77,7 @@ export default function UserSurvey() {
         setUser(data.user);
 
         // Check if user is assigned to this survey
-        if (data.user.assignedSurvey !== surveyId) {
+        if (!data.user.assignedSurveys.includes(surveyId)) {
           setError("You are not assigned to this survey");
           setLoading(false);
           return;
@@ -96,7 +99,7 @@ export default function UserSurvey() {
     error: fetchError,
     isLoading,
   } = useSWR<SurveyData>(
-    user && surveyId && user.assignedSurvey === surveyId
+    user && surveyId && user.assignedSurveys.includes(surveyId)
       ? `/api/surveys/${surveyId}`
       : null,
     fetcher,
@@ -110,7 +113,7 @@ export default function UserSurvey() {
   // Create survey model from the latest data
   const surveyModel = useMemo(() => {
     if (!survey?.json || !mounted) return null;
-    
+
     try {
       // Ensure canTakeMultiple defaults to false if not present
       const surveyData = {
@@ -118,12 +121,12 @@ export default function UserSurvey() {
         canTakeMultiple: survey.canTakeMultiple ?? false,
       };
       const model = new Model(surveyData.json);
-      
+
       // Add error handling for survey rendering
       model.onAfterRenderSurvey.add(() => {
         console.log("Survey rendered successfully");
       });
-      
+
       return model;
     } catch (error) {
       console.error("Error creating survey model:", error);
@@ -140,13 +143,13 @@ export default function UserSurvey() {
 
   // Check if user has already submitted this survey after survey data is loaded
   useEffect(() => {
-    if (
-      user &&
-      survey &&
-      user.hasSubmitted &&
-      user.assignedSurvey === surveyId
-    ) {
-      setSurveySubmitted(true);
+    if (user && survey && user.assignedSurveys.includes(surveyId)) {
+      const hasSubmittedThisSurvey = user.submittedSurveys.some(
+        (submission) => submission.surveyId === surveyId
+      );
+      if (hasSubmittedThisSurvey) {
+        setSurveySubmitted(true);
+      }
     }
   }, [user, survey, surveyId]);
 
@@ -326,7 +329,7 @@ export default function UserSurvey() {
   }
 
   // SECURITY CHECK: Ensure user is assigned to this specific survey
-  if (!user.assignedSurvey || user.assignedSurvey !== surveyId) {
+  if (!user.assignedSurveys.includes(surveyId)) {
     return (
       <div className="min-h-screen bg-gray-50">
         <UserNavbar />
@@ -337,9 +340,9 @@ export default function UserSurvey() {
             </div>
             <p className="text-gray-600">
               You are not authorized to access this survey.
-              {user.assignedSurvey
-                ? ` You are assigned to survey: ${user.assignedSurvey}`
-                : " You have no survey assignment."}
+              {user.assignedSurveys.length > 0
+                ? ` You are assigned to surveys: ${user.assignedSurveys.join(", ")}`
+                : " You have no survey assignments."}
             </p>
           </div>
         </div>
@@ -348,23 +351,28 @@ export default function UserSurvey() {
   }
 
   // Check if user has already submitted (for one-time surveys)
-  if (survey && !survey.canTakeMultiple && user?.hasSubmitted) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <div className="text-red-600 text-xl mb-4">
-              You have already submitted this survey
+  if (survey && !survey.canTakeMultiple && user) {
+    const hasSubmittedThisSurvey = user.submittedSurveys.some(
+      (submission) => submission.surveyId === surveyId
+    );
+    if (hasSubmittedThisSurvey) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <UserNavbar />
+          <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+            <div className="text-center">
+              <div className="text-red-600 text-xl mb-4">
+                You have already submitted this survey
+              </div>
+              <p className="text-gray-600">
+                This survey can only be completed once and you have already
+                submitted it.
+              </p>
             </div>
-            <p className="text-gray-600">
-              This survey can only be completed once and you have already
-              submitted it.
-            </p>
           </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
   return (
@@ -386,7 +394,10 @@ export default function UserSurvey() {
         <div className="px-4 sm:px-0">
           <div className="bg-white shadow rounded-lg p-6">
             {mounted && surveyModel ? (
-              <DynamicSurvey model={surveyModel} onComplete={handleSurveyComplete} />
+              <DynamicSurvey
+                model={surveyModel}
+                onComplete={handleSurveyComplete}
+              />
             ) : (
               <div className="text-center py-8">Loading survey...</div>
             )}

@@ -8,8 +8,11 @@ interface User {
   id: string;
   email: string;
   phone: string;
-  assignedSurvey: string;
-  hasSubmitted: boolean;
+  assignedSurveys: string[];
+  submittedSurveys: {
+    surveyId: string;
+    submittedAt: string;
+  }[];
   loginTime?: string;
 }
 
@@ -58,7 +61,9 @@ export default function UserLogin() {
 
     // Move to next input
     if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`) as HTMLInputElement;
+      const nextInput = document.getElementById(
+        `otp-${index + 1}`
+      ) as HTMLInputElement;
       if (nextInput) nextInput.focus();
     }
   };
@@ -76,7 +81,9 @@ export default function UserLogin() {
     setError("");
 
     try {
-      const userContact = JSON.parse(sessionStorage.getItem("userContact") || "{}");
+      const userContact = JSON.parse(
+        sessionStorage.getItem("userContact") || "{}"
+      );
 
       const response = await fetch("/api/users/otp", {
         method: "POST",
@@ -104,7 +111,7 @@ export default function UserLogin() {
         }
 
         // Redirect to the appropriate survey
-        const targetSurveyId = surveyId || data.user.assignedSurvey;
+        const targetSurveyId = surveyId || data.user.assignedSurveys[0];
         if (targetSurveyId) {
           router.push(`/user/survey/${targetSurveyId}`);
         } else {

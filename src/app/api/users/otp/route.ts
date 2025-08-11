@@ -6,8 +6,11 @@ interface User {
   id: string;
   email: string;
   phone: string;
-  assignedSurvey: string;
-  hasSubmitted: boolean;
+  assignedSurveys: string[];
+  submittedSurveys: {
+    surveyId: string;
+    submittedAt: string;
+  }[];
   otp: string;
 }
 
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user is assigned to this survey
-      if (user.assignedSurvey !== surveyId) {
+      if (!user.assignedSurveys.includes(surveyId)) {
         return NextResponse.json(
           { error: "You are not assigned to this survey" },
           { status: 403 }
@@ -63,9 +66,15 @@ export async function POST(request: NextRequest) {
       }
 
       // Check if user has already submitted a one-time survey
-      if (user.hasSubmitted && !survey.canTakeMultiple) {
+      const hasSubmittedThisSurvey = user.submittedSurveys.some(
+        (submission) => submission.surveyId === surveyId
+      );
+      if (hasSubmittedThisSurvey && !survey.canTakeMultiple) {
         return NextResponse.json(
-          { error: "You have already submitted this survey. This survey can only be completed once." },
+          {
+            error:
+              "You have already submitted this survey. This survey can only be completed once.",
+          },
           { status: 403 }
         );
       }
