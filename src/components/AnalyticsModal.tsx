@@ -285,8 +285,33 @@ export default function AnalyticsModal({
         // Render panel
         if (analyticsContainerRef.current) {
           analyticsContainerRef.current.innerHTML = "";
-          panel.render(analyticsContainerRef.current);
-          setVisualizationPanel(panel);
+          
+          try {
+            console.log("Attempting to render panel...");
+            panel.render(analyticsContainerRef.current);
+            setVisualizationPanel(panel);
+            console.log("Panel rendered successfully!");
+          } catch (renderError) {
+            console.error("Error rendering panel:", renderError);
+            
+            // Fallback: Create a simple chart manually
+            analyticsContainerRef.current.innerHTML = `
+              <div class="p-4">
+                <h3 class="text-lg font-semibold mb-4">Survey Analytics Data</h3>
+                <div class="space-y-4">
+                  <div class="bg-gray-50 p-4 rounded">
+                    <h4 class="font-medium mb-2">Data Summary</h4>
+                    <p>Total Responses: ${analyticsData.length}</p>
+                    <p>Questions: ${effectiveQuestions.map(q => q.name).join(', ')}</p>
+                  </div>
+                  <div class="bg-blue-50 p-4 rounded">
+                    <h4 class="font-medium mb-2">Sample Response Data</h4>
+                    <pre class="text-sm overflow-auto">${JSON.stringify(analyticsData[0] || {}, null, 2)}</pre>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
         }
       } catch (error) {
         console.error("Error initializing analytics:", error);
@@ -462,6 +487,7 @@ export default function AnalyticsModal({
               <div
                 ref={analyticsContainerRef}
                 className="w-full h-full sa-analytics"
+                style={{ minHeight: '400px' }}
               />
             )}
           </div>
