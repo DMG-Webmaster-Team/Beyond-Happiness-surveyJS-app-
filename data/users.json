@@ -5,9 +5,8 @@
     "phone": "+1234567890",
     "otp": "123456",
     "assignedSurvey": "survey1754892546222",
-    "assignedSurvey": "survey1754405802017",
-    "hasSubmitted": true,
-    "submittedAt": "2025-08-07T12:50:48.612Z"
+    "hasSubmitted": false,
+    "submittedAt": null
   },
   {
     "id": "user2",
