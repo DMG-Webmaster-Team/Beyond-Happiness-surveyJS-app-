@@ -48,7 +48,14 @@ export async function GET(request: NextRequest) {
       surveyId: result.surveyId,
       userId: result.userId,
       adminId: result.adminId,
-      data: result.data,
+      data: (() => {
+        try {
+          return typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+        } catch (error) {
+          console.error('Error parsing result data:', error);
+          return result.data; // Return original data if parsing fails
+        }
+      })(),
       submittedAt: result.submittedAt, // Already ISO string format
     }));
 
