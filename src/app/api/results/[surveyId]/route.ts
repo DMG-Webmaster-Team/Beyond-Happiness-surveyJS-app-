@@ -47,9 +47,11 @@ export async function GET(
       adminId: result.adminId,
       data: (() => {
         try {
-          return typeof result.data === 'string' ? JSON.parse(result.data) : result.data;
+          return typeof result.data === "string"
+            ? JSON.parse(result.data)
+            : result.data;
         } catch (error) {
-          console.error('Error parsing result data:', error);
+          console.error("Error parsing result data:", error);
           return result.data; // Return original data if parsing fails
         }
       })(),
