@@ -18,21 +18,16 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/pg": "^8.15.5",
     "ace-builds": "latest",
-<<<<<<< HEAD
-    "chart.js": "^4.5.0",
-    "jspdf-autotable": "^3.8.2",
-    "motion": "^12.23.12",
-    "next": "14.1.0",
-    "plotly.js-dist-min": "^3.1.0",
-=======
     "better-sqlite3": "^12.2.0",
+    "chart.js": "^4.5.0",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.4",
     "jspdf-autotable": "^3.8.2",
+    "motion": "^12.23.12",
     "mysql2": "^3.14.3",
     "next": "14.1.0",
     "pg": "^8.16.3",
->>>>>>> feature/database-integration
+    "plotly.js-dist-min": "^3.1.0",
     "react": "^18",
     "react-dom": "^18",
     "survey-analytics": "latest",
@@ -42,12 +37,8 @@
     "survey-pdf": "latest",
     "survey-react-ui": "latest",
     "swr": "^2.3.4",
-<<<<<<< HEAD
-    "wordcloud": "^1.2.3"
-=======
-    "wordcloud": "^1.2.2",
+    "wordcloud": "^1.2.3",
     "zod": "^4.0.17"
->>>>>>> feature/database-integration
   },
   "devDependencies": {
     "@types/node": "^20",

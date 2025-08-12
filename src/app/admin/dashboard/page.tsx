@@ -6,7 +6,7 @@ import Link from "next/link";
 import ResultsModal from "@/components/ResultsModal";
 import AnalyticsModal from "@/components/AnalyticsModal";
 import AdminNavbar from "@/components/shared/AdminNavbar";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Survey {
   id: string;
