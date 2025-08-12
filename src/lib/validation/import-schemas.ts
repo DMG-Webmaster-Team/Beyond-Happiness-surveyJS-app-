@@ -5,13 +5,6 @@ export const importRowSchema = z.object({
   email: z.string().email().toLowerCase().trim(),
   name: z.string().trim().optional(),
   surveyId: z.string().trim().min(1),
-  surveyTitle: z.string().trim().optional(),
-  status: z.enum(["active", "inactive", "pending"]).default("active"),
-  dueAt: z.string().optional().transform((val) => {
-    if (!val || val.trim() === "") return null;
-    const date = new Date(val);
-    return isNaN(date.getTime()) ? null : date.getTime();
-  }),
 });
 
 // Schema for import request

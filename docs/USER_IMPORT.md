@@ -20,10 +20,10 @@ The User Import & Management System allows administrators to bulk import users f
 Download the template from the admin interface or use this format:
 
 ```csv
-email,name,surveyId,surveyTitle,status,dueAt
-user1@example.com,John Doe,survey1,Employee Survey,active,2025-09-01
-user2@example.com,Jane Smith,survey1,Employee Survey,active,2025-09-01
-user3@example.com,Bob Johnson,survey2,Customer Feedback,active,2025-10-01
+email,name,surveyId
+user1@example.com,John Doe,survey1
+user2@example.com,Jane Smith,survey1
+user3@example.com,Bob Johnson,survey2
 ```
 
 ### Column Descriptions
@@ -33,16 +33,12 @@ user3@example.com,Bob Johnson,survey2,Customer Feedback,active,2025-10-01
 | `email` | ✅ | User's email address (unique) | `user@example.com` |
 | `name` | ❌ | User's full name | `John Doe` |
 | `surveyId` | ✅ | Survey identifier | `survey1` |
-| `surveyTitle` | ❌ | Survey title (creates survey if not exists) | `Employee Survey` |
-| `status` | ❌ | User status (default: active) | `active`, `inactive`, `pending` |
-| `dueAt` | ❌ | Assignment due date | `2025-09-01` |
 
-### Supported Date Formats
+### Default Values
 
-- `YYYY-MM-DD` (ISO format)
-- `MM/DD/YYYY`
-- `DD/MM/YYYY`
-- Empty (no due date)
+- **User Status**: Automatically set to "active"
+- **Assignment Status**: Automatically set to "pending"
+- **Survey Creation**: Surveys must exist before import (not auto-created)
 
 ## Usage
 

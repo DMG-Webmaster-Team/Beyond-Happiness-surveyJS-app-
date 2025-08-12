@@ -71,10 +71,10 @@ export default function UserImport() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `email,name,surveyId,surveyTitle,status,dueAt
-user1@example.com,John Doe,survey1,Employee Survey,active,2025-09-01
-user2@example.com,Jane Smith,survey1,Employee Survey,active,2025-09-01
-user3@example.com,Bob Johnson,survey2,Customer Feedback,active,2025-10-01`;
+    const csvContent = `email,name,surveyId
+user1@example.com,John Doe,survey1
+user2@example.com,Jane Smith,survey1
+user3@example.com,Bob Johnson,survey2`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);

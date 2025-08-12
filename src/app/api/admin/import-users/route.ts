@@ -114,9 +114,6 @@ export async function POST(request: NextRequest) {
           email: (row.email || row.Email || "").toString().trim(),
           name: (row.name || row.Name || "").toString().trim(),
           surveyId: (row.surveyId || row.survey_id || row["Survey ID"] || "").toString().trim(),
-          surveyTitle: (row.surveyTitle || row.survey_title || row["Survey Title"] || "").toString().trim(),
-          status: (row.status || row.Status || "").toString().trim(),
-          dueAt: (row.dueAt || row.due_at || row["Due Date"] || "").toString().trim(),
         };
 
         // Validate row
@@ -179,8 +176,6 @@ async function processImport(validRows: any[]) {
   const stats = {
     insertedUsers: 0,
     updatedUsers: 0,
-    insertedSurveys: 0,
-    updatedSurveys: 0,
     insertedAssignments: 0,
     updatedAssignments: 0,
     skipped: 0,
@@ -215,7 +210,7 @@ async function processImport(validRows: any[]) {
           const userResult = await upsertUser({
             email: row.email,
             name: row.name || undefined,
-            status: row.status,
+            status: "active", // Default status
           });
 
           if (userResult.created) {
@@ -224,28 +219,11 @@ async function processImport(validRows: any[]) {
             stats.updatedUsers++;
           }
 
-          // Upsert survey if title provided
-          let surveyId = row.surveyId;
-          if (row.surveyTitle && !existingSurveysMap.has(row.surveyId)) {
-            const surveyResult = await upsertSurvey({
-              id: row.surveyId,
-              title: row.surveyTitle,
-              createdBy: "admin1", // Default admin
-            });
-
-            if (surveyResult.created) {
-              stats.insertedSurveys++;
-            } else {
-              stats.updatedSurveys++;
-            }
-          }
-
           // Upsert user assignment
           const assignmentResult = await upsertUserAssignment({
             userId: userResult.user.id,
-            surveyId: surveyId,
-            dueAt: row.dueAt,
-            status: row.status,
+            surveyId: row.surveyId,
+            status: "pending", // Default status
           });
 
           if (assignmentResult) {

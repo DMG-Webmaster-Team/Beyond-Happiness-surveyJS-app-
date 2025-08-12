@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { motion } from "motion/react";
 
 interface Admin {
@@ -14,6 +14,7 @@ interface Admin {
 export default function AdminNavbar() {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // Check if admin is logged in
@@ -43,33 +44,43 @@ export default function AdminNavbar() {
               priority
             />
           </div>
-          
+
           {/* Navigation Links */}
           <div className="hidden md:ml-6 md:flex md:space-x-8">
-            <motion.a
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              href="/admin/dashboard"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-primary"
-            >
-              Dashboard
-            </motion.a>
-            <motion.a
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              href="/admin/users"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-primary"
-            >
-              Users
-            </motion.a>
-            <motion.a
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              href="/admin/creator"
-              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-primary"
-            >
-              Create Survey
-            </motion.a>
+            <div className="relative">
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href="/admin/dashboard"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
+                  pathname === "/admin/dashboard"
+                    ? "text-brand-primary"
+                    : "text-gray-700 hover:text-brand-primary"
+                }`}
+              >
+                Dashboard
+              </motion.a>
+              {pathname === "/admin/dashboard" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
+              )}
+            </div>
+            <div className="relative">
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href="/admin/users"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
+                  pathname === "/admin/users"
+                    ? "text-brand-primary"
+                    : "text-gray-700 hover:text-brand-primary"
+                }`}
+              >
+                Users
+              </motion.a>
+              {pathname === "/admin/users" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
+              )}
+            </div>
           </div>
           <div className="flex items-center">
             {admin && (
