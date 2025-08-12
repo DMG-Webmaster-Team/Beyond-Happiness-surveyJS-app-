@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import ResultsModal from "@/components/ResultsModal";
@@ -34,20 +34,8 @@ export default function AdminDashboard() {
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check if admin is logged in
-    const adminData = localStorage.getItem("admin");
-    if (!adminData) {
-      router.push("/admin/login");
-      return;
-    }
-
-    const admin = JSON.parse(adminData);
-    setAdmin(admin);
-    fetchSurveys(admin.id);
-  }, [router]);
-
-  const fetchSurveys = async (adminId: string) => {
+  // Memoize the fetch function to prevent recreation
+  const fetchSurveys = useCallback(async (adminId: string) => {
     try {
       const response = await fetch(`/api/surveys?adminId=${adminId}`);
       if (response.ok) {
@@ -61,7 +49,41 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeDashboard = async () => {
+      try {
+        // Check if admin is logged in
+        const adminData = localStorage.getItem("admin");
+        if (!adminData) {
+          if (mounted) {
+            router.push("/admin/login");
+          }
+          return;
+        }
+
+        const admin = JSON.parse(adminData);
+        if (mounted) {
+          setAdmin(admin);
+          await fetchSurveys(admin.id);
+        }
+      } catch (error) {
+        console.error("Error initializing dashboard:", error);
+        if (mounted) {
+          router.push("/admin/login");
+        }
+      }
+    };
+
+    initializeDashboard();
+
+    return () => {
+      mounted = false;
+    };
+  }, [fetchSurveys, router]);
 
   const handleLogout = () => {
     localStorage.removeItem("admin");
@@ -105,10 +127,28 @@ export default function AdminDashboard() {
     }
   };
 
-  if (loading) {
+  // Don't render anything if still loading or no admin
+  if (loading || !admin) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-xl">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render if there's an error
+  if (error && surveys.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-xl text-red-600 mb-4">Error: {error}</div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }

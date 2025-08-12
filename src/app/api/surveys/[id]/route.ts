@@ -1,6 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getSurveyById,
+  updateSurvey,
+  deleteSurvey,
+} from "../../../../db/queries/surveys";
 
 // GET - Fetch a specific survey
 export async function GET(
@@ -9,26 +12,33 @@ export async function GET(
 ) {
   try {
     const { id } = params;
-    
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
-    
-    const survey = surveys.find((s: any) => s.id === id);
-    
+
+    const survey = await getSurveyById(id);
+
     if (!survey) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
-    
-    return NextResponse.json(survey);
-    
+
+    // Transform to match existing API response format
+    const response = {
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      canTakeMultiple: survey.canTakeMultiple,
+      createdAt: survey.createdAt, // Already ISO string format
+      updatedAt: survey.updatedAt, // Already ISO string format
+      adminId: survey.createdBy,
+      json:
+        typeof survey.definition === "string"
+          ? JSON.parse(survey.definition)
+          : survey.definition,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Error fetching survey:', error);
+    console.error("Error fetching survey:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -42,34 +52,38 @@ export async function PUT(
   try {
     const { id } = params;
     const updateData = await request.json();
-    
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
-    
-    const surveyIndex = surveys.findIndex((s: any) => s.id === id);
-    
-    if (surveyIndex === -1) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      );
+
+    const updatedSurvey = await updateSurvey(id, {
+      title: updateData.title,
+      description: updateData.description,
+      definition: updateData.json,
+      canTakeMultiple: updateData.canTakeMultiple,
+    });
+
+    if (!updatedSurvey) {
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
-    
-    surveys[surveyIndex] = {
-      ...surveys[surveyIndex],
-      ...updateData,
-      updatedAt: new Date().toISOString()
+
+    // Transform response to match existing API format
+    const response = {
+      id: updatedSurvey.id,
+      title: updatedSurvey.title,
+      description: updatedSurvey.description,
+      canTakeMultiple: updatedSurvey.canTakeMultiple,
+      createdAt: updatedSurvey.createdAt, // Already ISO string format
+      updatedAt: updatedSurvey.updatedAt, // Already ISO string format
+      adminId: updatedSurvey.createdBy,
+      json:
+        typeof updatedSurvey.definition === "string"
+          ? JSON.parse(updatedSurvey.definition)
+          : updatedSurvey.definition,
     };
-    
-    fs.writeFileSync(surveysPath, JSON.stringify(surveys, null, 2));
-    
-    return NextResponse.json(surveys[surveyIndex]);
-    
+
+    return NextResponse.json(response);
   } catch (error) {
-    console.error('Error updating survey:', error);
+    console.error("Error updating survey:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -82,30 +96,19 @@ export async function DELETE(
 ) {
   try {
     const { id } = params;
-    
-    const surveysPath = path.join(process.cwd(), 'data', 'surveys.json');
-    const surveysData = fs.readFileSync(surveysPath, 'utf8');
-    const surveys = JSON.parse(surveysData);
-    
-    const surveyIndex = surveys.findIndex((s: any) => s.id === id);
-    
-    if (surveyIndex === -1) {
-      return NextResponse.json(
-        { error: 'Survey not found' },
-        { status: 404 }
-      );
+
+    const deleted = await deleteSurvey(id);
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
-    
-    surveys.splice(surveyIndex, 1);
-    fs.writeFileSync(surveysPath, JSON.stringify(surveys, null, 2));
-    
+
     return NextResponse.json({ success: true });
-    
   } catch (error) {
-    console.error('Error deleting survey:', error);
+    console.error("Error deleting survey:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
-} 
+}

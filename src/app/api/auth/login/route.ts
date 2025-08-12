@@ -1,20 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import fs from "fs";
-import path from "path";
+import { validateAdminCredentials } from "../../../../db/queries/admins";
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();
 
-    // Read admins from JSON file
-    const adminsPath = path.join(process.cwd(), "data", "admins.json");
-    const adminsData = fs.readFileSync(adminsPath, "utf8");
-    const admins = JSON.parse(adminsData);
-
-    // Find admin with matching credentials
-    const admin = admins.find(
-      (a: any) => a.email === email && a.password === password
-    );
+    // Validate admin credentials using database
+    const admin = await validateAdminCredentials(email, password);
 
     if (!admin) {
       return NextResponse.json(

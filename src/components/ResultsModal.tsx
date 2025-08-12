@@ -66,20 +66,19 @@ export default function ResultsModal({
     fetcher
   );
 
-  // Filter results by search term
-  const filteredResults = responseData?.results.filter((result) =>
-    result.userId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter results by search term - handle undefined data safely
+  const filteredResults =
+    responseData?.results?.filter((result) =>
+      result?.userId?.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
   // Paginate results
-  const paginatedResults = filteredResults?.slice(
+  const paginatedResults = filteredResults.slice(
     (page - 1) * itemsPerPage,
     page * itemsPerPage
   );
 
-  const totalPages = filteredResults
-    ? Math.ceil(filteredResults.length / itemsPerPage)
-    : 0;
+  const totalPages = Math.ceil(filteredResults.length / itemsPerPage);
 
   const handleCopyJson = (result: SurveyResult) => {
     navigator.clipboard.writeText(JSON.stringify(result, null, 2));
@@ -123,7 +122,7 @@ export default function ResultsModal({
               <div className="text-red-600 text-center py-4">
                 Error loading results
               </div>
-            ) : !responseData?.results.length ? (
+            ) : !responseData?.results?.length ? (
               <div className="text-center py-4">
                 No submissions yet for this survey.
               </div>
