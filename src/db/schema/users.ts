@@ -14,19 +14,17 @@ export const users = sqliteTable(
       .primaryKey()
       .$defaultFn(() => createId()),
     email: text("email").notNull().unique(),
-    phone: text("phone"),
     name: text("name"),
+    phone: text("phone"),
     otp: text("otp"),
-    assignedSurveyId: text("assigned_survey_id"),
-    hasSubmitted: integer("has_submitted", { mode: "boolean" }).default(false),
-    submittedAt: text("submitted_at"),
+    status: text("status").default("active"),
     companyId: integer("company_id"),
-    createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+    createdAt: integer("created_at").$defaultFn(() => Date.now()),
+    updatedAt: integer("updated_at").$defaultFn(() => Date.now()),
   },
   (table) => ({
     emailIdx: index("email_idx").on(table.email),
-    assignedSurveyIdx: index("assigned_survey_idx").on(table.assignedSurveyId),
+    statusIdx: index("status_idx").on(table.status),
   })
 );
 

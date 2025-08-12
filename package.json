@@ -38,6 +38,7 @@
     "survey-react-ui": "latest",
     "swr": "^2.3.4",
     "wordcloud": "^1.2.3",
+    "xlsx": "^0.18.5",
     "zod": "^4.0.17"
   },
   "devDependencies": {

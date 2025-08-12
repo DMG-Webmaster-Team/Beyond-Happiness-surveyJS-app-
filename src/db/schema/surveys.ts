@@ -17,8 +17,8 @@ export const surveys = sqliteTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => admins.id),
-    createdAt: text("created_at").$defaultFn(() => new Date().toISOString()),
-    updatedAt: text("updated_at").$defaultFn(() => new Date().toISOString()),
+    createdAt: integer("created_at").$defaultFn(() => Date.now()),
+    updatedAt: integer("updated_at").$defaultFn(() => Date.now()),
   },
   (table) => ({
     createdByIdx: index("survey_created_by_idx").on(table.createdBy),

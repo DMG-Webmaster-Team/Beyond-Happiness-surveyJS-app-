@@ -43,6 +43,34 @@ export default function AdminNavbar() {
               priority
             />
           </div>
+          
+          {/* Navigation Links */}
+          <div className="hidden md:ml-6 md:flex md:space-x-8">
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="/admin/dashboard"
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-primary"
+            >
+              Dashboard
+            </motion.a>
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="/admin/users"
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-primary"
+            >
+              Users
+            </motion.a>
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              href="/admin/creator"
+              className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-brand-primary"
+            >
+              Create Survey
+            </motion.a>
+          </div>
           <div className="flex items-center">
             {admin && (
               <motion.button

@@ -27,8 +27,16 @@ function createConnection() {
 
     // Enable foreign keys
     sqlite.pragma("foreign_keys = ON");
+    
+    // Performance optimizations for high-throughput imports
+    sqlite.pragma("journal_mode = WAL");
+    sqlite.pragma("synchronous = NORMAL");
+    sqlite.pragma("temp_store = MEMORY");
+    sqlite.pragma("cache_size = -64000"); // 64MB cache
+    sqlite.pragma("mmap_size = 268435456"); // 256MB mmap
 
     console.log("📊 SQLite database connected:", dbPath);
+    console.log("🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache");
   }
 
   return sqlite;

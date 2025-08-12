@@ -16,9 +16,7 @@ export const results = sqliteTable(
     userId: text("user_id").references(() => users.id),
     adminId: text("admin_id").references(() => admins.id),
     data: text("data").notNull(), // Survey response data as text
-    submittedAt: text("submitted_at").$defaultFn(() =>
-      new Date().toISOString()
-    ),
+    submittedAt: integer("submitted_at").$defaultFn(() => Date.now()),
   },
   (table) => ({
     surveyIdIdx: index("result_survey_id_idx").on(table.surveyId),

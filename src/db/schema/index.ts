@@ -3,3 +3,4 @@ export * from "./users";
 export * from "./admins";
 export * from "./surveys";
 export * from "./results";
+export * from "./user-assignments";
