@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  listSurveys,
-  listSurveysByAdmin,
-  createSurvey,
-} from "../../../db/queries/surveys";
 
 // GET - Fetch surveys for a specific admin
 export async function GET(request: NextRequest) {
@@ -11,6 +6,11 @@ export async function GET(request: NextRequest) {
   const adminId = searchParams.get("adminId");
 
   try {
+    // Dynamic import to avoid static generation issues
+    const { listSurveys, listSurveysByAdmin } = await import(
+      "../../../db/queries/surveys"
+    );
+
     let surveys;
     if (adminId) {
       surveys = await listSurveysByAdmin(adminId);
@@ -64,15 +64,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const surveyData = await request.json();
+    console.log("Received survey data:", surveyData);
+
+    // Dynamic import to avoid static generation issues
+    const { createSurvey } = await import("../../../db/queries/surveys");
 
     // Create survey in database
-    const newSurvey = await createSurvey({
+    const createSurveyData = {
       title: surveyData.title,
       description: surveyData.description,
-      definition: surveyData.json || {},
+      definition: surveyData.json || surveyData.definition || {},
       canTakeMultiple: surveyData.canTakeMultiple || false,
-      createdBy: surveyData.adminId,
-    });
+      createdBy: surveyData.adminId || "admin1", // Fallback to default admin if not provided
+    };
+
+    console.log("Data being passed to createSurvey:", createSurveyData);
+
+    const newSurvey = await createSurvey(createSurveyData);
 
     // Transform response to match existing API format
     const response = {

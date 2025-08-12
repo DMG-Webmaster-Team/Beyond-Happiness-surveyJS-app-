@@ -8,6 +8,7 @@ import useSWR from "swr";
 import dynamic from "next/dynamic";
 import "survey-core/survey-core.css";
 import UserNavbar from "@/components/shared/UserNavbar";
+import PDFExportButton from "@/components/PDFExportButton";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -266,6 +267,19 @@ export default function UserSurvey() {
                   : "Thank you for completing the survey."}
               </p>
             </div>
+
+            {/* PDF Export Option */}
+            {survey && (
+              <div className="text-center">
+                <PDFExportButton
+                  surveyJson={survey.json}
+                  surveyData={surveyModel?.data}
+                  className="w-full py-2 px-4 text-sm font-medium rounded-md"
+                >
+                  📄 Export Survey to PDF
+                </PDFExportButton>
+              </div>
+            )}
 
             {survey?.canTakeMultiple ? (
               <div className="text-center">

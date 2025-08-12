@@ -1,9 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getSurveyById,
-  updateSurvey,
-  deleteSurvey,
-} from "../../../../db/queries/surveys";
 
 // GET - Fetch a specific survey
 export async function GET(
@@ -13,6 +8,8 @@ export async function GET(
   try {
     const { id } = params;
 
+    // Dynamic import to avoid static generation issues
+    const { getSurveyById } = await import("../../../../db/queries/surveys");
     const survey = await getSurveyById(id);
 
     if (!survey) {
@@ -53,6 +50,8 @@ export async function PUT(
     const { id } = params;
     const updateData = await request.json();
 
+    // Dynamic import to avoid static generation issues
+    const { updateSurvey } = await import("../../../../db/queries/surveys");
     const updatedSurvey = await updateSurvey(id, {
       title: updateData.title,
       description: updateData.description,
@@ -97,6 +96,8 @@ export async function DELETE(
   try {
     const { id } = params;
 
+    // Dynamic import to avoid static generation issues
+    const { deleteSurvey } = await import("../../../../db/queries/surveys");
     const deleted = await deleteSurvey(id);
 
     if (!deleted) {

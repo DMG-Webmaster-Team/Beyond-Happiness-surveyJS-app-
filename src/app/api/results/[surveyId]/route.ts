@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listResultsBySurvey } from "../../../../db/queries/results";
-import { getSurveyById } from "../../../../db/queries/surveys";
 
 interface QuestionInfo {
   title: string;
@@ -12,6 +10,12 @@ export async function GET(
   { params }: { params: { surveyId: string } }
 ) {
   try {
+    // Dynamic import to avoid static generation issues
+    const { listResultsBySurvey } = await import(
+      "../../../../db/queries/results"
+    );
+    const { getSurveyById } = await import("../../../../db/queries/surveys");
+
     // Get survey and results from database
     const [survey, results] = await Promise.all([
       getSurveyById(params.surveyId),

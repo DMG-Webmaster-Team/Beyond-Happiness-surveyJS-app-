@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  listResultsBySurvey,
-  listResultsBySurveyPaged,
-} from "../../../db/queries/results";
 
 // GET - Fetch results for a specific survey
 export async function GET(request: NextRequest) {
@@ -13,6 +9,11 @@ export async function GET(request: NextRequest) {
   const cursor = searchParams.get("cursor");
 
   try {
+    // Dynamic import to avoid static generation issues
+    const { listResultsBySurvey, listResultsBySurveyPaged } = await import(
+      "../../../db/queries/results"
+    );
+
     let results;
 
     if (surveyId) {
