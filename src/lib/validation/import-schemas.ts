@@ -4,12 +4,12 @@ import { z } from "zod";
 export const importRowSchema = z.object({
   email: z.string().email().toLowerCase().trim(),
   name: z.string().trim().optional(),
-  surveyId: z.string().trim().min(1),
 });
 
 // Schema for import request
 export const importRequestSchema = z.object({
   dryRun: z.boolean().default(false),
+  surveyId: z.string().min(1, "Survey selection is required"),
   file: z.instanceof(File).refine(
     (file) => file.size <= 10 * 1024 * 1024, // 10MB limit
     "File size must be less than 10MB"
@@ -30,7 +30,9 @@ export const userAssignmentSchema = z.object({
   userId: z.string().min(1),
   surveyId: z.string().min(1),
   dueAt: z.number().optional(),
-  status: z.enum(["pending", "active", "completed", "overdue"]).default("pending"),
+  status: z
+    .enum(["pending", "active", "completed", "overdue"])
+    .default("pending"),
 });
 
 // Schema for survey creation/update

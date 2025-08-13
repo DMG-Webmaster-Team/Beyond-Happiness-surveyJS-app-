@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import useSWR from "swr";
 import { Model } from "survey-core";
 import "survey-analytics/survey.analytics.css";
@@ -45,8 +45,8 @@ export default function AnalyticsModal({
   onClose,
 }: AnalyticsModalProps) {
   const [mounted, setMounted] = useState(false);
-  const [visualizationPanel, setVisualizationPanel] = useState<any>(null);
-  const analyticsContainerRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Ensure component is mounted before rendering
   useEffect(() => {
@@ -70,62 +70,60 @@ export default function AnalyticsModal({
     isLoading: surveyLoading,
   } = useSWR<Survey>(isOpen ? `/api/surveys/${surveyId}` : null, fetcher);
 
-  // Simple data transformation for analytics
-  const analyticsData = resultsData?.results.map((result) => result.data) || [];
+  // Memoize props and inputs to avoid triggering the effect with new object references
+  const memoSurveyId = surveyData?.id;
+  const memoSurveyJson = useMemo(() => surveyData?.json ?? {}, [memoSurveyId]);
+  const memoData = useMemo(
+    () => resultsData?.results.map((result) => result.data) || [],
+    [memoSurveyId, resultsData?.results?.length]
+  );
+  const memoOptions = useMemo(() => ({ allowHideQuestions: true }), []);
 
-  // Initialize analytics when data is ready
+  // Only initialize the panel when the modal is open and data is ready, and if it's not already initialized
   useEffect(() => {
-    if (
-      !mounted ||
-      !surveyData ||
-      !analyticsData.length ||
-      !analyticsContainerRef.current ||
-      !isOpen
-    ) {
-      return;
-    }
+    if (!isOpen) return;
+    if (!containerRef.current) return;
+    if (panelRef.current) return;
+    if (!memoSurveyJson || memoData == null) return;
+
+    console.log("Analytics Setup:", {
+      questionsCount: Array.isArray(memoSurveyJson?.pages)
+        ? memoSurveyJson.pages.length
+        : 0,
+      dataCount: memoData.length,
+      surveyTitle: surveyData?.title,
+    });
 
     const initializeAnalytics = async () => {
       try {
         // Import SurveyJS analytics
         const { VisualizationPanel } = await import("survey-analytics");
 
-        // Clear previous panel
-        if (visualizationPanel) {
-          visualizationPanel.destroy();
-        }
-
         // Create survey model
-        const surveyModel = new Model(surveyData.json);
+        const surveyModel = new Model(memoSurveyJson);
         const questions = surveyModel.getAllQuestions();
 
-        console.log("Analytics Setup:", {
-          questionsCount: questions.length,
-          dataCount: analyticsData.length,
-          surveyTitle: surveyData.title,
-        });
-
         // Create visualization panel with basic options
-        const panel = new VisualizationPanel(questions, analyticsData);
+        const panel = new VisualizationPanel(questions, memoData, memoOptions);
 
         // Render panel
-        if (analyticsContainerRef.current) {
-          analyticsContainerRef.current.innerHTML = "";
-          panel.render(analyticsContainerRef.current);
-          setVisualizationPanel(panel);
+        if (containerRef.current) {
+          containerRef.current.innerHTML = "";
+          panel.render(containerRef.current);
+          panelRef.current = panel;
           console.log("Analytics panel rendered successfully!");
         }
       } catch (error) {
         console.error("Error initializing analytics:", error);
         // Show error message
-        if (analyticsContainerRef.current) {
-          analyticsContainerRef.current.innerHTML = `
+        if (containerRef.current) {
+          containerRef.current.innerHTML = `
             <div class="p-8 text-center">
               <div class="text-red-600 text-lg mb-4">Unable to load analytics</div>
               <div class="text-gray-600">${error}</div>
               <div class="mt-4 p-4 bg-gray-100 rounded">
                 <div class="text-sm">Data available: ${
-                  analyticsData.length
+                  memoData.length
                 } responses</div>
                 <div class="text-sm">Survey: ${
                   surveyData?.title || "Unknown"
@@ -141,20 +139,37 @@ export default function AnalyticsModal({
 
     // Cleanup
     return () => {
-      if (visualizationPanel) {
-        visualizationPanel.destroy();
-        setVisualizationPanel(null);
-      }
+      try {
+        if (panelRef.current?.destroy) panelRef.current.destroy();
+      } catch {}
+      try {
+        if (panelRef.current?.dispose) panelRef.current.dispose();
+      } catch {}
+      panelRef.current = null;
+      if (containerRef.current) containerRef.current.innerHTML = "";
     };
-  }, [mounted, surveyData, analyticsData, isOpen]);
+  }, [
+    isOpen,
+    memoSurveyId,
+    memoSurveyJson,
+    memoData,
+    memoOptions,
+    surveyData?.title,
+  ]);
 
   // Cleanup on unmount or close
   useEffect(() => {
-    if (!isOpen && visualizationPanel) {
-      visualizationPanel.destroy();
-      setVisualizationPanel(null);
+    if (!isOpen && panelRef.current) {
+      try {
+        if (panelRef.current?.destroy) panelRef.current.destroy();
+      } catch {}
+      try {
+        if (panelRef.current?.dispose) panelRef.current.dispose();
+      } catch {}
+      panelRef.current = null;
+      if (containerRef.current) containerRef.current.innerHTML = "";
     }
-  }, [isOpen, visualizationPanel]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -184,13 +199,13 @@ export default function AnalyticsModal({
           {/* Simple Info Bar */}
           <div className="p-4 border-b bg-gray-50">
             <div className="text-sm text-gray-600">
-              {analyticsData.length} response
-              {analyticsData.length !== 1 ? "s" : ""} available for analysis
+              {memoData.length} response
+              {memoData.length !== 1 ? "s" : ""} available for analysis
             </div>
           </div>
 
           {/* Analytics Content */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex flex-col h-full overflow-y-auto p-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
@@ -225,9 +240,8 @@ export default function AnalyticsModal({
               </div>
             ) : (
               <div
-                ref={analyticsContainerRef}
-                className="w-full h-full"
-                style={{ minHeight: "500px" }}
+                ref={containerRef}
+                style={{ width: "100%", height: 480, overflow: "auto" }}
               />
             )}
           </div>

@@ -20,25 +20,26 @@ The User Import & Management System allows administrators to bulk import users f
 Download the template from the admin interface or use this format:
 
 ```csv
-email,name,surveyId
-user1@example.com,John Doe,survey1
-user2@example.com,Jane Smith,survey1
-user3@example.com,Bob Johnson,survey2
+email,name
+user1@example.com,John Doe
+user2@example.com,Jane Smith
+user3@example.com,Bob Johnson
 ```
 
 ### Column Descriptions
 
-| Column | Required | Description | Example |
-|--------|----------|-------------|---------|
-| `email` | ✅ | User's email address (unique) | `user@example.com` |
-| `name` | ❌ | User's full name | `John Doe` |
-| `surveyId` | ✅ | Survey identifier | `survey1` |
+| Column  | Required | Description                   | Example            |
+| ------- | -------- | ----------------------------- | ------------------ |
+| `email` | ✅       | User's email address (unique) | `user@example.com` |
+| `name`  | ❌       | User's full name              | `John Doe`         |
+
+**Note:** Survey assignment is now handled through the UI dropdown selection. All users in the uploaded file will be assigned to the selected survey.
 
 ### Default Values
 
 - **User Status**: Automatically set to "active"
 - **Assignment Status**: Automatically set to "pending"
-- **Survey Creation**: Surveys must exist before import (not auto-created)
+- **Survey Assignment**: All users are assigned to the survey selected in the dropdown
 
 ## Usage
 
@@ -48,20 +49,32 @@ Navigate to `/admin/users` in your admin panel.
 
 ### 2. Import Users
 
-1. **Upload File**: Drag and drop or click to select an Excel/CSV file
-2. **Dry Run**: Check "Dry run" to validate without importing
-3. **Validate**: Click "Validate File" to check for errors
-4. **Review**: Check validation results and error details
-5. **Import**: Click "Confirm Import" to process valid rows
+1. **Select Survey**: Choose which survey to assign users to from the dropdown
+2. **Upload File**: Drag and drop or click to select an Excel/CSV file
+3. **Dry Run**: Check "Dry run" to validate without importing
+4. **Validate**: Click "Validate File" to check for errors
+5. **Review**: Check validation results and error details
+6. **Import**: Click "Confirm Import" to process valid rows
 
 ### 3. Manage Users
 
 Switch to the "Manage Users" tab to:
+
 - View all users with pagination
 - Search users by email or name
 - Filter by status
-- Edit user information
+- Edit user information and survey assignments
 - Delete users (soft delete)
+
+#### Editing User Survey Assignments
+
+When editing a user, you can:
+
+- Modify user name and status
+- **Select/Deselect Surveys**: Choose which surveys the user should be assigned to
+- **Multiple Selection**: Use checkboxes to assign multiple surveys to a single user
+- **Real-time Updates**: Changes are immediately reflected in the database
+- **Assignment Status**: New assignments default to "pending" status
 
 ## File Limits
 
@@ -109,6 +122,7 @@ PRAGMA foreign_keys = ON;
 ### Error Reporting
 
 Errors are displayed in a table showing:
+
 - Row number
 - Raw data
 - Specific error message
@@ -195,6 +209,7 @@ CREATE TABLE user_assignments (
 ## Support
 
 For issues or questions:
+
 1. Check the error messages in the UI
 2. Review the browser console for detailed logs
 3. Check server logs for backend errors

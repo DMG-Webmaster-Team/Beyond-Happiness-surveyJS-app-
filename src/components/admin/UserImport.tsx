@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 
 interface ImportResult {
@@ -14,11 +14,31 @@ interface ImportResult {
 
 export default function UserImport() {
   const [file, setFile] = useState<File | null>(null);
+  const [selectedSurveyId, setSelectedSurveyId] = useState<string>("");
+  const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
   const [dryRun, setDryRun] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch available surveys
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      try {
+        const response = await fetch("/api/surveys");
+        if (response.ok) {
+          const data = await response.json();
+          // The API returns an array directly, not wrapped in a surveys property
+          setSurveys(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch surveys:", error);
+      }
+    };
+
+    fetchSurveys();
+  }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -35,6 +55,11 @@ export default function UserImport() {
       return;
     }
 
+    if (!selectedSurveyId) {
+      setError("Please select a survey to assign users to");
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
     setResult(null);
@@ -42,6 +67,7 @@ export default function UserImport() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("surveyId", selectedSurveyId);
       formData.append("dryRun", dryRun ? "1" : "0");
 
       const response = await fetch("/api/admin/import-users", {
@@ -71,10 +97,10 @@ export default function UserImport() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `email,name,surveyId
-user1@example.com,John Doe,survey1
-user2@example.com,Jane Smith,survey1
-user3@example.com,Bob Johnson,survey2`;
+    const csvContent = `email,name
+user1@example.com,John Doe
+user2@example.com,Jane Smith
+user3@example.com,Bob Johnson`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -169,6 +195,34 @@ user3@example.com,Bob Johnson,survey2`;
             </div>
           )}
         </div>
+      </div>
+
+      {/* Survey Selection */}
+      <div className="mb-6">
+        <label
+          htmlFor="survey-select"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          Select Survey to Assign Users
+        </label>
+        <select
+          id="survey-select"
+          value={selectedSurveyId}
+          onChange={(e) => setSelectedSurveyId(e.target.value)}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary"
+          required
+        >
+          <option value="">Choose a survey...</option>
+          {surveys.map((survey) => (
+            <option key={survey.id} value={survey.id}>
+              {survey.title}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-sm text-gray-500">
+          All users in the uploaded file will be assigned to the selected
+          survey.
+        </p>
       </div>
 
       {/* Options */}

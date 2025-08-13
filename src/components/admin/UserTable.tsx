@@ -26,6 +26,7 @@ interface Pagination {
 
 export default function UserTable() {
   const [users, setUsers] = useState<User[]>([]);
+  const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
@@ -38,6 +39,7 @@ export default function UserTable() {
   const [error, setError] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedSurveys, setSelectedSurveys] = useState<string[]>([]);
 
   // Fetch users
   const fetchUsers = async (
@@ -72,9 +74,24 @@ export default function UserTable() {
     }
   };
 
-  // Load users on component mount and when filters change
+  // Fetch surveys
+  const fetchSurveys = async () => {
+    try {
+      const response = await fetch("/api/surveys");
+      if (response.ok) {
+        const data = await response.json();
+        // The API returns an array directly, not wrapped in a surveys property
+        setSurveys(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch surveys:", error);
+    }
+  };
+
+  // Load users and surveys on component mount and when filters change
   useEffect(() => {
     fetchUsers(1, searchQuery, statusFilter);
+    fetchSurveys();
   }, [searchQuery, statusFilter]);
 
   // Handle search
@@ -86,6 +103,22 @@ export default function UserTable() {
   // Handle page change
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, searchQuery, statusFilter);
+  };
+
+  // Handle survey selection change
+  const handleSurveySelectionChange = (surveyId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedSurveys((prev) => [...prev, surveyId]);
+    } else {
+      setSelectedSurveys((prev) => prev.filter((id) => id !== surveyId));
+    }
+  };
+
+  // Initialize selected surveys when editing user
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setSelectedSurveys(user.assignments?.map((a) => a.surveyId) || []);
+    setIsEditing(true);
   };
 
   // Handle user deletion
@@ -110,21 +143,46 @@ export default function UserTable() {
   };
 
   // Handle user update
-  const handleUpdateUser = async (userData: Partial<User>) => {
+  const handleUpdateUser = async (
+    userData: Partial<User> & { surveyAssignments?: string[] }
+  ) => {
     if (!editingUser) return;
 
     try {
+      // Extract survey assignments from userData
+      const { surveyAssignments, ...userUpdateData } = userData;
+
+      // Update user data
       const response = await fetch(`/api/users/${editingUser.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(userData),
+        body: JSON.stringify(userUpdateData),
       });
 
       if (!response.ok) {
         const data = await response.json();
         throw new Error(data.error || "Failed to update user");
+      }
+
+      // Update survey assignments if provided
+      if (surveyAssignments) {
+        const assignmentResponse = await fetch(
+          `/api/users/${editingUser.id}/assignments`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ surveyIds: surveyAssignments }),
+          }
+        );
+
+        if (!assignmentResponse.ok) {
+          const data = await assignmentResponse.json();
+          throw new Error(data.error || "Failed to update survey assignments");
+        }
       }
 
       // Refresh users list
@@ -280,10 +338,7 @@ export default function UserTable() {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                          setEditingUser(user);
-                          setIsEditing(true);
-                        }}
+                        onClick={() => handleEditUser(user)}
                         className="text-brand-primary hover:text-brand-primary/80"
                       >
                         Edit
@@ -355,6 +410,7 @@ export default function UserTable() {
                 handleUpdateUser({
                   name: formData.get("name") as string,
                   status: formData.get("status") as string,
+                  surveyAssignments: selectedSurveys,
                 });
               }}
             >
@@ -393,6 +449,39 @@ export default function UserTable() {
                   <option value="inactive">Inactive</option>
                   <option value="pending">Pending</option>
                 </select>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Survey Assignments
+                </label>
+                <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2">
+                  {surveys.map((survey) => (
+                    <label
+                      key={survey.id}
+                      className="flex items-center space-x-2 py-1"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedSurveys.includes(survey.id)}
+                        onChange={(e) =>
+                          handleSurveySelectionChange(
+                            survey.id,
+                            e.target.checked
+                          )
+                        }
+                        className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                      />
+                      <span className="text-sm text-gray-700">
+                        {survey.title}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Select surveys to assign to this user. Currently assigned
+                  surveys are pre-selected.
+                </p>
               </div>
               <div className="flex space-x-3">
                 <motion.button

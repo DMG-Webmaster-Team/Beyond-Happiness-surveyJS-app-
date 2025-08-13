@@ -8,7 +8,7 @@ import {
   upsertUserAssignment,
   getUsersByEmails,
 } from "../../../../db/queries/users";
-import { inArray } from "drizzle-orm";
+import { inArray, eq } from "drizzle-orm";
 
 // File size limit: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -19,7 +19,15 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const surveyId = formData.get("surveyId") as string;
     const dryRun = formData.get("dryRun") === "1";
+
+    if (!surveyId) {
+      return NextResponse.json(
+        { error: "Survey ID is required" },
+        { status: 400 }
+      );
+    }
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -121,9 +129,6 @@ export async function POST(request: NextRequest) {
         const normalizedRow = {
           email: (row.email || row.Email || "").toString().trim(),
           name: (row.name || row.Name || "").toString().trim(),
-          surveyId: (row.surveyId || row.survey_id || row["Survey ID"] || "")
-            .toString()
-            .trim(),
         };
 
         // Validate row
@@ -159,7 +164,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process valid rows in database transaction
-    const importResults = await processImport(validRows);
+    const importResults = await processImport(validRows, surveyId);
 
     return NextResponse.json({
       message: "Import completed successfully",
@@ -178,7 +183,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function processImport(validRows: any[]) {
+async function processImport(validRows: any[], surveyId: string) {
   const startTime = Date.now();
 
   // Statistics tracking
@@ -191,60 +196,35 @@ async function processImport(validRows: any[]) {
   };
 
   try {
-    // Extract unique emails and survey IDs for batch lookups
+    // Extract unique emails for batch lookups
     const uniqueEmails = Array.from(new Set(validRows.map((row) => row.email)));
-    const uniqueSurveyIds = Array.from(
-      new Set(validRows.map((row) => row.surveyId))
-    );
 
     console.log(
-      `🔍 Batch lookup: ${uniqueEmails.length} unique emails, ${uniqueSurveyIds.length} unique surveys`
+      `🔍 Batch lookup: ${uniqueEmails.length} unique emails, assigning to survey: ${surveyId}`
     );
 
-    // Batch lookup existing users and surveys
+    // Batch lookup existing users
     const existingUsers = await getUsersByEmails(uniqueEmails);
     const existingUsersMap = new Map(
       existingUsers.map((user) => [user.email, user])
     );
 
-    // Get existing surveys
-    console.log("🔍 Looking up existing surveys...");
+    // Validate that the survey exists
+    console.log("🔍 Validating survey exists...");
     const { surveys } = await import("../../../../db/schema");
-    console.log("📋 Surveys schema imported:", surveys ? "success" : "failed");
-
-    const existingSurveys = await db
+    const survey = await db
       .select()
       .from(surveys)
-      .where(inArray(surveys.id, uniqueSurveyIds));
-    console.log(
-      "📊 Survey lookup result:",
-      existingSurveys.length,
-      "surveys found"
-    );
+      .where(eq(surveys.id, surveyId))
+      .limit(1);
 
-    const existingSurveysMap = new Map(
-      existingSurveys.map((survey: any) => [survey.id, survey])
-    );
-    console.log(
-      "🗺️ Survey map created with keys:",
-      Array.from(existingSurveysMap.keys())
-    );
-
-    console.log(
-      `📊 Found ${existingUsers.length} existing users, ${existingSurveys.length} existing surveys`
-    );
-
-    // Validate that all survey IDs exist
-    const missingSurveys = uniqueSurveyIds.filter(
-      (id) => !existingSurveysMap.has(id)
-    );
-    if (missingSurveys.length > 0) {
-      throw new Error(
-        `The following surveys do not exist: ${missingSurveys.join(
-          ", "
-        )}. Please create them first.`
-      );
+    if (survey.length === 0) {
+      throw new Error(`Survey with ID ${surveyId} does not exist`);
     }
+
+    console.log(
+      `📊 Found ${existingUsers.length} existing users, survey: ${survey[0].title}`
+    );
 
     // Process rows sequentially (SQLite doesn't support async transactions well)
     console.log("🔄 Starting import process...");
@@ -256,9 +236,9 @@ async function processImport(validRows: any[]) {
       for (let i = 0; i < validRows.length; i++) {
         const row = validRows[i];
         console.log(
-          `📋 Processing row ${i + 1}/${validRows.length}: ${row.email} -> ${
-            row.surveyId
-          }`
+          `📋 Processing row ${i + 1}/${validRows.length}: ${
+            row.email
+          } -> ${surveyId}`
         );
 
         try {
@@ -280,11 +260,11 @@ async function processImport(validRows: any[]) {
 
           // Upsert user assignment
           console.log(
-            `🔗 Creating assignment: ${userResult.user.id} -> ${row.surveyId}`
+            `🔗 Creating assignment: ${userResult.user.id} -> ${surveyId}`
           );
           const assignmentResult = await upsertUserAssignment({
             userId: userResult.user.id,
-            surveyId: row.surveyId,
+            surveyId: surveyId,
             status: "pending", // Default status
           });
 
