@@ -1,15 +1,17 @@
 import { eq, like, desc, and, inArray } from "drizzle-orm";
 import { db } from "../client";
-import { users, userAssignments, surveys, type User, type NewUser } from "../schema";
+import {
+  users,
+  userAssignments,
+  surveys,
+  type User,
+  type NewUser,
+} from "../schema";
 import { createId } from "@paralleldrive/cuid2";
 
 // Get user by ID
 export async function getUserById(id: string): Promise<User | undefined> {
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
+  const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result[0];
 }
 
@@ -26,16 +28,15 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
 // Get users by emails (batch lookup)
 export async function getUsersByEmails(emails: string[]): Promise<User[]> {
   if (emails.length === 0) return [];
-  
-  const normalizedEmails = emails.map(email => email.toLowerCase());
-  return db
-    .select()
-    .from(users)
-    .where(inArray(users.email, normalizedEmails));
+
+  const normalizedEmails = emails.map((email) => email.toLowerCase());
+  return db.select().from(users).where(inArray(users.email, normalizedEmails));
 }
 
 // Create new user
-export async function createUser(userData: Omit<NewUser, "id" | "createdAt" | "updatedAt">): Promise<User> {
+export async function createUser(
+  userData: Omit<NewUser, "id" | "createdAt" | "updatedAt">
+): Promise<User> {
   const now = Date.now();
   const newUser: NewUser = {
     id: createId(),
@@ -49,7 +50,10 @@ export async function createUser(userData: Omit<NewUser, "id" | "createdAt" | "u
 }
 
 // Update user
-export async function updateUser(id: string, userData: Partial<Omit<NewUser, "id" | "createdAt">>): Promise<User | undefined> {
+export async function updateUser(
+  id: string,
+  userData: Partial<Omit<NewUser, "id" | "createdAt">>
+): Promise<User | undefined> {
   const updateData = {
     ...userData,
     updatedAt: Date.now(),
@@ -64,9 +68,11 @@ export async function updateUser(id: string, userData: Partial<Omit<NewUser, "id
 }
 
 // Upsert user (create if not exists, update if exists)
-export async function upsertUser(userData: Omit<NewUser, "id" | "createdAt" | "updatedAt">): Promise<{ user: User; created: boolean }> {
+export async function upsertUser(
+  userData: Omit<NewUser, "id" | "createdAt" | "updatedAt">
+): Promise<{ user: User; created: boolean }> {
   const existingUser = await getUserByEmail(userData.email);
-  
+
   if (existingUser) {
     // Update existing user
     const updatedUser = await updateUser(existingUser.id, userData);
@@ -84,7 +90,7 @@ export async function deleteUser(id: string): Promise<boolean> {
     .update(users)
     .set({ status: "inactive", updatedAt: Date.now() })
     .where(eq(users.id, id));
-  
+
   return result.changes > 0;
 }
 
@@ -94,19 +100,20 @@ export async function listUsers(params: {
   page?: number;
   limit?: number;
   status?: string;
-}): Promise<{ users: User[]; total: number; page: number; totalPages: number }> {
+}): Promise<{
+  users: User[];
+  total: number;
+  page: number;
+  totalPages: number;
+}> {
   const { query = "", page = 1, limit = 20, status } = params;
   const offset = (page - 1) * limit;
 
   // Build where conditions
   const conditions = [];
   if (query) {
-    conditions.push(
-      like(users.email, `%${query}%`)
-    );
-    conditions.push(
-      like(users.name, `%${query}%`)
-    );
+    conditions.push(like(users.email, `%${query}%`));
+    conditions.push(like(users.name, `%${query}%`));
   }
   if (status) {
     conditions.push(eq(users.status, status));
@@ -119,7 +126,7 @@ export async function listUsers(params: {
     .select({ count: users.id })
     .from(users)
     .where(whereClause);
-  
+
   const total = countResult.length;
 
   // Get users
@@ -127,7 +134,7 @@ export async function listUsers(params: {
     .select()
     .from(users)
     .where(whereClause)
-    .orderBy(desc(users.createdAt))
+    .orderBy(desc(users.createdAt), desc(users.id)) // Fallback to id if createdAt is null
     .limit(limit)
     .offset(offset);
 
@@ -167,7 +174,10 @@ export async function createUserAssignment(assignmentData: {
     status: assignmentData.status || "pending",
   };
 
-  const result = await db.insert(userAssignments).values(newAssignment).returning();
+  const result = await db
+    .insert(userAssignments)
+    .values(newAssignment)
+    .returning();
   return result[0];
 }
 
@@ -230,7 +240,7 @@ export async function upsertSurvey(surveyData: {
   createdBy: string;
 }): Promise<{ survey: any; created: boolean }> {
   const existingSurvey = await getSurveyById(surveyData.id);
-  
+
   if (existingSurvey) {
     // Update existing survey
     const result = await db
@@ -238,7 +248,7 @@ export async function upsertSurvey(surveyData: {
       .set({
         title: surveyData.title,
         description: surveyData.description || existingSurvey.description,
-        updatedAt: Date.now(),
+        updatedAt: Date.now().toString(),
       })
       .where(eq(surveys.id, surveyData.id))
       .returning();
@@ -250,10 +260,11 @@ export async function upsertSurvey(surveyData: {
       id: surveyData.id,
       title: surveyData.title,
       description: surveyData.description || "",
-      canTakeMultiple: surveyData.canTakeMultiple || false,
+      definition: "{}", // Default empty JSON definition
+      canTakeMultiple: surveyData.canTakeMultiple ? 1 : 0,
       createdBy: surveyData.createdBy,
-      createdAt: now,
-      updatedAt: now,
+      createdAt: now.toString(),
+      updatedAt: now.toString(),
     };
 
     const result = await db.insert(surveys).values(newSurvey).returning();

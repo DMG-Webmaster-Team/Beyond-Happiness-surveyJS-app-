@@ -10,6 +10,11 @@ interface User {
   status: string;
   createdAt: number;
   updatedAt: number;
+  assignments?: Array<{
+    surveyId: string;
+    surveyTitle: string;
+    status: string;
+  }>;
 }
 
 interface Pagination {
@@ -35,7 +40,11 @@ export default function UserTable() {
   const [isEditing, setIsEditing] = useState(false);
 
   // Fetch users
-  const fetchUsers = async (page = 1, query = searchQuery, status = statusFilter) => {
+  const fetchUsers = async (
+    page = 1,
+    query = searchQuery,
+    status = statusFilter
+  ) => {
     setIsLoading(true);
     setError(null);
 
@@ -127,11 +136,6 @@ export default function UserTable() {
     }
   };
 
-  // Format timestamp
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString();
-  };
-
   // Get status badge color
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -215,7 +219,7 @@ export default function UserTable() {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Created
+                  Assigned Surveys
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -236,12 +240,40 @@ export default function UserTable() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>
+                    <span
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
+                        user.status
+                      )}`}
+                    >
                       {user.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.createdAt)}
+                    {user.assignments && user.assignments.length > 0 ? (
+                      <div className="space-y-1">
+                        {user.assignments.map((assignment, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center space-x-2"
+                          >
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                              {assignment.surveyTitle}
+                            </span>
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${getStatusColor(
+                                assignment.status
+                              )}`}
+                            >
+                              {assignment.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">
+                        No surveys assigned
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
@@ -278,9 +310,9 @@ export default function UserTable() {
         <div className="px-6 py-4 border-t border-gray-200">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing {((pagination.page - 1) * pagination.limit) + 1} to{" "}
-              {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-              {pagination.total} results
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
+              of {pagination.total} results
             </div>
             <div className="flex space-x-2">
               <motion.button
@@ -313,15 +345,19 @@ export default function UserTable() {
       {isEditing && editingUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Edit User</h3>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              handleUpdateUser({
-                name: formData.get("name") as string,
-                status: formData.get("status") as string,
-              });
-            }}>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Edit User
+            </h3>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                handleUpdateUser({
+                  name: formData.get("name") as string,
+                  status: formData.get("status") as string,
+                });
+              }}
+            >
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email

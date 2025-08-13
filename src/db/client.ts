@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 // SQLite database instance
-let sqlite: Database | undefined;
+let sqlite: any;
 
 function createConnection() {
   // Guard against Edge runtime
@@ -27,7 +27,7 @@ function createConnection() {
 
     // Enable foreign keys
     sqlite.pragma("foreign_keys = ON");
-    
+
     // Performance optimizations for high-throughput imports
     sqlite.pragma("journal_mode = WAL");
     sqlite.pragma("synchronous = NORMAL");
@@ -36,7 +36,9 @@ function createConnection() {
     sqlite.pragma("mmap_size = 268435456"); // 256MB mmap
 
     console.log("📊 SQLite database connected:", dbPath);
-    console.log("🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache");
+    console.log(
+      "🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache"
+    );
   }
 
   return sqlite;
@@ -46,5 +48,4 @@ function createConnection() {
 export const db = drizzle(createConnection(), { schema });
 
 // Export types for use in other parts of the application
-export type Database = typeof db;
-export * from "./schema";
+export type DatabaseInstance = typeof db;

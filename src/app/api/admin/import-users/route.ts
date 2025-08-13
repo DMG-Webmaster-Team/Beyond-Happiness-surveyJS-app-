@@ -22,10 +22,7 @@ export async function POST(request: NextRequest) {
     const dryRun = formData.get("dryRun") === "1";
 
     if (!file) {
-      return NextResponse.json(
-        { error: "No file provided" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     // Validate file size
@@ -43,9 +40,15 @@ export async function POST(request: NextRequest) {
       "text/csv", // .csv
     ];
 
-    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(xlsx|xls|csv)$/i)) {
+    if (
+      !allowedTypes.includes(file.type) &&
+      !file.name.match(/\.(xlsx|xls|csv)$/i)
+    ) {
       return NextResponse.json(
-        { error: "Invalid file type. Please upload Excel (.xlsx, .xls) or CSV (.csv) files" },
+        {
+          error:
+            "Invalid file type. Please upload Excel (.xlsx, .xls) or CSV (.csv) files",
+        },
         { status: 400 }
       );
     }
@@ -68,7 +71,10 @@ export async function POST(request: NextRequest) {
     } catch (parseError) {
       console.error("File parsing error:", parseError);
       return NextResponse.json(
-        { error: "Failed to parse file. Please ensure it's a valid Excel or CSV file." },
+        {
+          error:
+            "Failed to parse file. Please ensure it's a valid Excel or CSV file.",
+        },
         { status: 400 }
       );
     }
@@ -86,7 +92,9 @@ export async function POST(request: NextRequest) {
     // Validate row count
     if (rawData.length > MAX_ROWS) {
       return NextResponse.json(
-        { error: `File contains ${rawData.length} rows, which exceeds the limit of ${MAX_ROWS}` },
+        {
+          error: `File contains ${rawData.length} rows, which exceeds the limit of ${MAX_ROWS}`,
+        },
         { status: 400 }
       );
     }
@@ -105,7 +113,7 @@ export async function POST(request: NextRequest) {
     const errors: any[] = [];
 
     for (let i = 0; i < rawData.length; i++) {
-      const row = rawData[i];
+      const row = rawData[i] as any;
       const rowNumber = i + 2; // +2 because Excel rows are 1-indexed and we have headers
 
       try {
@@ -113,7 +121,9 @@ export async function POST(request: NextRequest) {
         const normalizedRow = {
           email: (row.email || row.Email || "").toString().trim(),
           name: (row.name || row.Name || "").toString().trim(),
-          surveyId: (row.surveyId || row.survey_id || row["Survey ID"] || "").toString().trim(),
+          surveyId: (row.surveyId || row.survey_id || row["Survey ID"] || "")
+            .toString()
+            .trim(),
         };
 
         // Validate row
@@ -159,7 +169,6 @@ export async function POST(request: NextRequest) {
       importResults,
       dryRun: false,
     });
-
   } catch (error) {
     console.error("Import error:", error);
     return NextResponse.json(
@@ -171,7 +180,7 @@ export async function POST(request: NextRequest) {
 
 async function processImport(validRows: any[]) {
   const startTime = Date.now();
-  
+
   // Statistics tracking
   const stats = {
     insertedUsers: 0,
@@ -183,30 +192,78 @@ async function processImport(validRows: any[]) {
 
   try {
     // Extract unique emails and survey IDs for batch lookups
-    const uniqueEmails = [...new Set(validRows.map(row => row.email))];
-    const uniqueSurveyIds = [...new Set(validRows.map(row => row.surveyId))];
+    const uniqueEmails = Array.from(new Set(validRows.map((row) => row.email)));
+    const uniqueSurveyIds = Array.from(
+      new Set(validRows.map((row) => row.surveyId))
+    );
 
-    console.log(`🔍 Batch lookup: ${uniqueEmails.length} unique emails, ${uniqueSurveyIds.length} unique surveys`);
+    console.log(
+      `🔍 Batch lookup: ${uniqueEmails.length} unique emails, ${uniqueSurveyIds.length} unique surveys`
+    );
 
     // Batch lookup existing users and surveys
     const existingUsers = await getUsersByEmails(uniqueEmails);
-    const existingUsersMap = new Map(existingUsers.map(user => [user.email, user]));
+    const existingUsersMap = new Map(
+      existingUsers.map((user) => [user.email, user])
+    );
 
     // Get existing surveys
+    console.log("🔍 Looking up existing surveys...");
+    const { surveys } = await import("../../../../db/schema");
+    console.log("📋 Surveys schema imported:", surveys ? "success" : "failed");
+
     const existingSurveys = await db
       .select()
-      .from(db.schema.surveys)
-      .where(inArray(db.schema.surveys.id, uniqueSurveyIds));
-    const existingSurveysMap = new Map(existingSurveys.map(survey => [survey.id, survey]));
+      .from(surveys)
+      .where(inArray(surveys.id, uniqueSurveyIds));
+    console.log(
+      "📊 Survey lookup result:",
+      existingSurveys.length,
+      "surveys found"
+    );
 
-    console.log(`📊 Found ${existingUsers.length} existing users, ${existingSurveys.length} existing surveys`);
+    const existingSurveysMap = new Map(
+      existingSurveys.map((survey: any) => [survey.id, survey])
+    );
+    console.log(
+      "🗺️ Survey map created with keys:",
+      Array.from(existingSurveysMap.keys())
+    );
 
-    // Begin transaction
-    await db.transaction(async (tx) => {
+    console.log(
+      `📊 Found ${existingUsers.length} existing users, ${existingSurveys.length} existing surveys`
+    );
+
+    // Validate that all survey IDs exist
+    const missingSurveys = uniqueSurveyIds.filter(
+      (id) => !existingSurveysMap.has(id)
+    );
+    if (missingSurveys.length > 0) {
+      throw new Error(
+        `The following surveys do not exist: ${missingSurveys.join(
+          ", "
+        )}. Please create them first.`
+      );
+    }
+
+    // Process rows sequentially (SQLite doesn't support async transactions well)
+    console.log("🔄 Starting import process...");
+
+    try {
+      console.log("📝 Processing rows...");
+
       // Process each row
-      for (const row of validRows) {
+      for (let i = 0; i < validRows.length; i++) {
+        const row = validRows[i];
+        console.log(
+          `📋 Processing row ${i + 1}/${validRows.length}: ${row.email} -> ${
+            row.surveyId
+          }`
+        );
+
         try {
           // Upsert user
+          console.log(`👤 Upserting user: ${row.email}`);
           const userResult = await upsertUser({
             email: row.email,
             name: row.name || undefined,
@@ -215,11 +272,16 @@ async function processImport(validRows: any[]) {
 
           if (userResult.created) {
             stats.insertedUsers++;
+            console.log(`✅ User created: ${userResult.user.id}`);
           } else {
             stats.updatedUsers++;
+            console.log(`🔄 User updated: ${userResult.user.id}`);
           }
 
           // Upsert user assignment
+          console.log(
+            `🔗 Creating assignment: ${userResult.user.id} -> ${row.surveyId}`
+          );
           const assignmentResult = await upsertUserAssignment({
             userId: userResult.user.id,
             surveyId: row.surveyId,
@@ -228,13 +290,25 @@ async function processImport(validRows: any[]) {
 
           if (assignmentResult) {
             stats.insertedAssignments++;
+            console.log(
+              `✅ Assignment created: ${assignmentResult.userId} -> ${assignmentResult.surveyId}`
+            );
           }
         } catch (rowError) {
-          console.error(`Error processing row:`, row, rowError);
+          console.error(`❌ Error processing row ${i + 1}:`, row, rowError);
           stats.skipped++;
         }
       }
-    });
+
+      console.log("✅ Import process completed successfully");
+    } catch (processError) {
+      console.error("❌ Import process failed:", processError);
+      throw new Error(
+        `Import process failed: ${
+          processError instanceof Error ? processError.message : "Unknown error"
+        }`
+      );
+    }
 
     const processingTime = Date.now() - startTime;
     console.log(`⚡ Import completed in ${processingTime}ms`);
@@ -243,7 +317,6 @@ async function processImport(validRows: any[]) {
       ...stats,
       processingTimeMs: processingTime,
     };
-
   } catch (transactionError) {
     console.error("Transaction error:", transactionError);
     throw new Error("Database transaction failed during import");

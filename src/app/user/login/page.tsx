@@ -77,6 +77,16 @@ export default function UserLogin() {
       return;
     }
 
+    // Check if user has completed the contact step
+    const userContact = JSON.parse(
+      sessionStorage.getItem("userContact") || "{}"
+    );
+
+    if (!userContact.email && !userContact.phone) {
+      setError("Please enter your contact information first");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
@@ -85,17 +95,28 @@ export default function UserLogin() {
         sessionStorage.getItem("userContact") || "{}"
       );
 
+      // Debug logging
+      console.log("🔍 userContact:", userContact);
+      console.log("🔍 email:", userContact.email);
+      console.log("🔍 phone:", userContact.phone);
+      console.log("🔍 otp:", otpString);
+      console.log("🔍 surveyId:", surveyId);
+
+      const requestBody = {
+        email: userContact.email || undefined,
+        phone: userContact.phone || undefined,
+        otp: otpString,
+        surveyId, // Pass the requested survey ID
+      };
+
+      console.log("🔍 Request body:", requestBody);
+
       const response = await fetch("/api/users/otp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          email: userContact.email || undefined,
-          phone: userContact.phone || undefined,
-          otp: otpString,
-          surveyId, // Pass the requested survey ID
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();

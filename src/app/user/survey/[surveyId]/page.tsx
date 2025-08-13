@@ -22,12 +22,14 @@ const DynamicSurvey = dynamic(
 interface User {
   id: string;
   email: string;
-  phone: string;
-  assignedSurveys: string[];
-  submittedSurveys: {
+  phone?: string;
+  name?: string;
+  status: string;
+  assignments?: Array<{
     surveyId: string;
-    submittedAt: string;
-  }[];
+    surveyTitle: string;
+    status: string;
+  }>;
   loginTime?: string;
 }
 
@@ -78,7 +80,12 @@ export default function UserSurvey() {
         setUser(data.user);
 
         // Check if user is assigned to this survey
-        if (!data.user.assignedSurveys.includes(surveyId)) {
+        if (
+          !data.user.assignments ||
+          !data.user.assignments.some(
+            (a: { surveyId: string }) => a.surveyId === surveyId
+          )
+        ) {
           setError("You are not assigned to this survey");
           setLoading(false);
           return;
@@ -100,7 +107,12 @@ export default function UserSurvey() {
     error: fetchError,
     isLoading,
   } = useSWR<SurveyData>(
-    user && surveyId && user.assignedSurveys.includes(surveyId)
+    user &&
+      surveyId &&
+      user.assignments &&
+      user.assignments.some(
+        (a: { surveyId: string }) => a.surveyId === surveyId
+      )
       ? `/api/surveys/${surveyId}`
       : null,
     fetcher,
@@ -144,13 +156,31 @@ export default function UserSurvey() {
 
   // Check if user has already submitted this survey after survey data is loaded
   useEffect(() => {
-    if (user && survey && user.assignedSurveys.includes(surveyId)) {
-      const hasSubmittedThisSurvey = user.submittedSurveys.some(
-        (submission) => submission.surveyId === surveyId
-      );
-      if (hasSubmittedThisSurvey) {
-        setSurveySubmitted(true);
-      }
+    if (
+      user &&
+      survey &&
+      user.assignments &&
+      user.assignments.some(
+        (a: { surveyId: string }) => a.surveyId === surveyId
+      )
+    ) {
+      // Check if user has already submitted this survey by querying the results table
+      const checkSubmission = async () => {
+        try {
+          const response = await fetch(
+            `/api/results?surveyId=${surveyId}&userId=${user.id}`
+          );
+          if (response.ok) {
+            const data = await response.json();
+            if (data.results && data.results.length > 0) {
+              setSurveySubmitted(true);
+            }
+          }
+        } catch (error) {
+          console.error("Error checking submission status:", error);
+        }
+      };
+      checkSubmission();
     }
   }, [user, survey, surveyId]);
 
@@ -343,7 +373,10 @@ export default function UserSurvey() {
   }
 
   // SECURITY CHECK: Ensure user is assigned to this specific survey
-  if (!user.assignedSurveys.includes(surveyId)) {
+  if (
+    !user.assignments ||
+    !user.assignments.some((a: { surveyId: string }) => a.surveyId === surveyId)
+  ) {
     return (
       <div className="min-h-screen bg-gray-50">
         <UserNavbar />
@@ -354,10 +387,10 @@ export default function UserSurvey() {
             </div>
             <p className="text-gray-600">
               You are not authorized to access this survey.
-              {user.assignedSurveys.length > 0
-                ? ` You are assigned to surveys: ${user.assignedSurveys.join(
-                    ", "
-                  )}`
+              {user.assignments && user.assignments.length > 0
+                ? ` You are assigned to surveys: ${user.assignments
+                    .map((a) => a.surveyTitle)
+                    .join(", ")}`
                 : " You have no survey assignments."}
             </p>
           </div>
@@ -368,8 +401,8 @@ export default function UserSurvey() {
 
   // Check if user has already submitted (for one-time surveys)
   if (survey && !survey.canTakeMultiple && user) {
-    const hasSubmittedThisSurvey = user.submittedSurveys.some(
-      (submission) => submission.surveyId === surveyId
+    const hasSubmittedThisSurvey = user.assignments.some(
+      (assignment) => assignment.surveyId === surveyId
     );
     if (hasSubmittedThisSurvey) {
       return (

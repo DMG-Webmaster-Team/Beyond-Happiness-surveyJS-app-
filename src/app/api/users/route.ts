@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { listUsers, createUser } from "../../../db/queries/users";
+import {
+  listUsers,
+  createUser,
+  getUserByEmail,
+} from "../../../db/queries/users";
 import { userSchema } from "../../../lib/validation/import-schemas";
 
 // GET /api/users - List users with pagination and search
@@ -18,8 +22,27 @@ export async function GET(request: NextRequest) {
       status,
     });
 
+    // Fetch assignments for each user
+    const usersWithAssignments = await Promise.all(
+      result.users.map(async (user) => {
+        const { getUserAssignments } = await import(
+          "../../../db/queries/users"
+        );
+        const assignments = await getUserAssignments(user.id);
+
+        return {
+          ...user,
+          assignments: assignments.map((assignment: any) => ({
+            surveyId: assignment.assignment.surveyId,
+            surveyTitle: assignment.survey.title,
+            status: assignment.assignment.status,
+          })),
+        };
+      })
+    );
+
     return NextResponse.json({
-      data: result.users,
+      data: usersWithAssignments,
       pagination: {
         page: result.page,
         limit,
@@ -40,10 +63,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Validate input
     const validatedData = userSchema.parse(body);
-    
+
     // Check if user already exists
     const existingUser = await getUserByEmail(validatedData.email);
     if (existingUser) {
@@ -52,15 +75,17 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
-    
+
     // Create user
     const newUser = await createUser(validatedData);
-    
-    return NextResponse.json({
-      data: newUser,
-      message: "User created successfully",
-    }, { status: 201 });
-    
+
+    return NextResponse.json(
+      {
+        data: newUser,
+        message: "User created successfully",
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     if (error.name === "ZodError") {
       return NextResponse.json(
@@ -68,7 +93,7 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     console.error("Error creating user:", error);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -76,6 +101,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Import the function we need
-import { getUserByEmail } from "../../../db/queries/users";

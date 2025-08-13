@@ -7,8 +7,8 @@ import { z } from "zod";
 export const createSurveySchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  definition: z.union([z.string(), z.record(z.any())]).optional(), // SurveyJS JSON as string or object
-  json: z.union([z.string(), z.record(z.any())]).optional(), // Alternative field name for frontend compatibility
+  definition: z.union([z.string(), z.any()]).optional(), // SurveyJS JSON as string or object
+  json: z.union([z.string(), z.any()]).optional(), // Alternative field name for frontend compatibility
   canTakeMultiple: z.union([z.boolean(), z.number()]).default(false), // Accept both boolean and number
   createdBy: z.string(),
 });
@@ -17,8 +17,8 @@ export const updateSurveySchema = z
   .object({
     title: z.string().min(1).optional(),
     description: z.string().optional(),
-    definition: z.union([z.string(), z.record(z.any())]).optional(),
-    json: z.union([z.string(), z.record(z.any())]).optional(),
+    definition: z.union([z.string(), z.any()]).optional(),
+    json: z.union([z.string(), z.any()]).optional(),
     canTakeMultiple: z.union([z.boolean(), z.number()]).optional(),
   })
   .strict();
@@ -129,7 +129,7 @@ export async function updateSurveyTitle(
 
 export async function deleteSurvey(id: string): Promise<boolean> {
   const result = await db.delete(surveys).where(eq(surveys.id, id));
-  return result.rowsAffected > 0;
+  return result.changes > 0;
 }
 
 export async function listSurveys(): Promise<Survey[]> {

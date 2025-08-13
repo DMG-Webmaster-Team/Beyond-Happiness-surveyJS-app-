@@ -110,7 +110,6 @@ export async function POST(request: NextRequest) {
       "../../../db/queries/results"
     );
     const { getSurveyById } = await import("../../../db/queries/surveys");
-    const { markUserAsSubmitted } = await import("../../../db/queries/users");
 
     // Check if survey exists and get its configuration
     const survey = await getSurveyById(resultData.surveyId);
@@ -143,9 +142,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update user's submission status for one-time surveys
-    if (!canTakeMultiple && resultData.userId) {
-      await markUserAsSubmitted(resultData.userId);
-    }
+    // This is now handled by the results table, no need to update user status
 
     // Transform response to match existing API format
     const response = {

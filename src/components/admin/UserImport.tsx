@@ -65,7 +65,7 @@ export default function UserImport() {
 
   const handleConfirmImport = async () => {
     if (!file) return;
-    
+
     setDryRun(false);
     await handleUpload();
   };
@@ -90,7 +90,8 @@ user3@example.com,Bob Johnson,survey2`;
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Import Users</h2>
         <p className="text-gray-600">
-          Upload an Excel (.xlsx, .xls) or CSV file to import users and assign surveys.
+          Upload an Excel (.xlsx, .xls) or CSV file to import users and assign
+          surveys.
         </p>
       </div>
 
@@ -104,7 +105,7 @@ user3@example.com,Bob Johnson,survey2`;
             onChange={handleFileChange}
             className="hidden"
           />
-          
+
           {!file ? (
             <div>
               <svg
@@ -180,7 +181,7 @@ user3@example.com,Bob Johnson,survey2`;
             className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
           />
           <span className="ml-2 text-sm text-gray-700">
-            Dry run (validate only, don't import)
+            Dry run (validate only, don&apos;t import)
           </span>
         </label>
       </div>
@@ -229,8 +230,10 @@ user3@example.com,Bob Johnson,survey2`;
               </svg>
               Processing...
             </div>
+          ) : dryRun ? (
+            "Validate File"
           ) : (
-            dryRun ? "Validate File" : "Import Users"
+            "Import Users"
           )}
         </motion.button>
       </div>
@@ -278,17 +281,35 @@ user3@example.com,Bob Johnson,survey2`;
                 {result.dryRun ? "Validation Results" : "Import Results"}
               </h3>
               <div className="mt-2 text-sm text-blue-700">
-                <p><strong>Total Rows:</strong> {result.totalRows}</p>
-                <p><strong>Valid Rows:</strong> {result.validRows}</p>
+                <p>
+                  <strong>Total Rows:</strong> {result.totalRows}
+                </p>
+                <p>
+                  <strong>Valid Rows:</strong> {result.validRows}
+                </p>
                 {result.errors.length > 0 && (
-                  <p><strong>Errors:</strong> {result.errors.length}</p>
+                  <p>
+                    <strong>Errors:</strong> {result.errors.length}
+                  </p>
                 )}
                 {result.importResults && (
                   <div className="mt-2">
-                    <p><strong>Inserted Users:</strong> {result.importResults.insertedUsers}</p>
-                    <p><strong>Updated Users:</strong> {result.importResults.updatedUsers}</p>
-                    <p><strong>Inserted Assignments:</strong> {result.importResults.insertedAssignments}</p>
-                    <p><strong>Processing Time:</strong> {result.importResults.processingTimeMs}ms</p>
+                    <p>
+                      <strong>Inserted Users:</strong>{" "}
+                      {result.importResults.insertedUsers}
+                    </p>
+                    <p>
+                      <strong>Updated Users:</strong>{" "}
+                      {result.importResults.updatedUsers}
+                    </p>
+                    <p>
+                      <strong>Inserted Assignments:</strong>{" "}
+                      {result.importResults.insertedAssignments}
+                    </p>
+                    <p>
+                      <strong>Processing Time:</strong>{" "}
+                      {result.importResults.processingTimeMs}ms
+                    </p>
                   </div>
                 )}
               </div>
@@ -315,7 +336,9 @@ user3@example.com,Bob Johnson,survey2`;
       {/* Errors Table */}
       {result && result.errors.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-3">Validation Errors</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-3">
+            Validation Errors
+          </h3>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

@@ -9,10 +9,18 @@ async function seed() {
   try {
     // Read existing JSON data
     const dataPath = path.join(process.cwd(), "data");
-    const adminsData = JSON.parse(fs.readFileSync(path.join(dataPath, "admins.json"), "utf8"));
-    const usersData = JSON.parse(fs.readFileSync(path.join(dataPath, "users.json"), "utf8"));
-    const surveysData = JSON.parse(fs.readFileSync(path.join(dataPath, "surveys.json"), "utf8"));
-    const resultsData = JSON.parse(fs.readFileSync(path.join(dataPath, "results.json"), "utf8"));
+    const adminsData = JSON.parse(
+      fs.readFileSync(path.join(dataPath, "admins.json"), "utf8")
+    );
+    const usersData = JSON.parse(
+      fs.readFileSync(path.join(dataPath, "users.json"), "utf8")
+    );
+    const surveysData = JSON.parse(
+      fs.readFileSync(path.join(dataPath, "surveys.json"), "utf8")
+    );
+    const resultsData = JSON.parse(
+      fs.readFileSync(path.join(dataPath, "results.json"), "utf8")
+    );
 
     console.log("📂 Read JSON data files");
 
@@ -41,10 +49,14 @@ async function seed() {
         email: user.email,
         phone: user.phone,
         otp: user.otp,
-        assignedSurveyId: user.assignedSurveyId || user.assignedSurvey, // Handle both field names
-        hasSubmitted: user.hasSubmitted || false,
-        submittedAt: user.submittedAt ? new Date(user.submittedAt) : null,
+        status: user.status || "active",
         companyId: user.companyId,
+        createdAt: user.createdAt
+          ? new Date(user.createdAt).getTime()
+          : Date.now(),
+        updatedAt: user.updatedAt
+          ? new Date(user.updatedAt).getTime()
+          : Date.now(),
       });
     }
     console.log(`👤 Seeded ${usersData.length} users`);
@@ -52,14 +64,17 @@ async function seed() {
     // Seed surveys
     for (const survey of surveysData) {
       await db.insert(surveys).values({
-        id: survey.id,
         title: survey.title,
         description: survey.description,
         definition: survey.json || {}, // SurveyJS definition
-        canTakeMultiple: survey.canTakeMultiple || false,
+        canTakeMultiple: survey.canTakeMultiple ? 1 : 0, // Convert boolean to integer
         createdBy: survey.adminId,
-        createdAt: survey.createdAt ? new Date(survey.createdAt) : new Date(),
-        updatedAt: survey.updatedAt ? new Date(survey.updatedAt) : new Date(),
+        createdAt: survey.createdAt
+          ? new Date(survey.createdAt).getTime().toString()
+          : Date.now().toString(),
+        updatedAt: survey.updatedAt
+          ? new Date(survey.updatedAt).getTime().toString()
+          : Date.now().toString(),
       });
     }
     console.log(`📋 Seeded ${surveysData.length} surveys`);
@@ -67,12 +82,13 @@ async function seed() {
     // Seed results
     for (const result of resultsData) {
       await db.insert(results).values({
-        id: result.id,
         surveyId: result.surveyId,
         userId: result.userId,
         adminId: result.adminId,
         data: result.data || {},
-        submittedAt: result.submittedAt ? new Date(result.submittedAt) : new Date(),
+        submittedAt: result.submittedAt
+          ? new Date(result.submittedAt).getTime()
+          : Date.now(),
       });
     }
     console.log(`📊 Seeded ${resultsData.length} results`);
