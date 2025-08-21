@@ -1,18 +1,38 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import ResultsModal from "@/components/ResultsModal";
-import AnalyticsModal from "@/components/AnalyticsModal";
 import AdminNavbar from "@/components/shared/AdminNavbar";
 import { motion, AnimatePresence } from "motion/react";
+import useSWR, { mutate } from "swr";
+import { useDebounce } from "@/hooks/useDebounce";
+
+// Dynamic imports for heavy components (client-only)
+const AnalyticsModal = dynamic(() => import("@/components/AnalyticsModal"), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded"></div>,
+});
+
+const TableViewModal = dynamic(
+  () => import("@/components/analytics/TableViewModal"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="animate-pulse bg-gray-200 h-32 rounded"></div>
+    ),
+  }
+);
 
 interface Survey {
   id: string;
   title: string;
   description: string;
   canTakeMultiple: boolean;
+  companyId?: string;
+  companyName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -32,7 +52,26 @@ export default function AdminDashboard() {
   const [selectedSurveyId, setSelectedSurveyId] = useState<string | null>(null);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
+  const [isTableViewModalOpen, setIsTableViewModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
+
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 250);
+
+  // Filter surveys based on search term
+  const filteredSurveys = useMemo(() => {
+    if (!debouncedSearchTerm.trim()) return surveys;
+    return surveys.filter(
+      (survey) =>
+        survey.title
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase()) ||
+        survey.description
+          .toLowerCase()
+          .includes(debouncedSearchTerm.toLowerCase())
+    );
+  }, [surveys, debouncedSearchTerm]);
 
   // Memoize the fetch function to prevent recreation
   const fetchSurveys = useCallback(async (adminId: string) => {
@@ -187,6 +226,34 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Search */}
+        <div className="px-4 sm:px-0 mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search surveys..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 pl-10 pr-4 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+            />
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+        </div>
+
         {/* Surveys List */}
         <div className="px-4 sm:px-0">
           <AnimatePresence mode="wait">
@@ -211,7 +278,7 @@ export default function AdminDashboard() {
                 className="bg-white shadow overflow-hidden sm:rounded-md"
               >
                 <ul className="divide-y divide-gray-200">
-                  {surveys.map((survey, index) => (
+                  {filteredSurveys.map((survey, index) => (
                     <motion.li
                       key={survey.id}
                       whileHover={{ scale: 0.98 }}
@@ -233,6 +300,14 @@ export default function AdminDashboard() {
                                   ? "Multiple"
                                   : "One-time"}
                               </span>
+                              {survey.companyName && (
+                                <span className="mr-4">
+                                  Company:{" "}
+                                  <span className="font-medium text-brand-primary">
+                                    {survey.companyName}
+                                  </span>
+                                </span>
+                              )}
                               <span>
                                 Created:{" "}
                                 {new Date(
@@ -297,6 +372,17 @@ export default function AdminDashboard() {
                             >
                               Analytics
                             </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setSelectedSurveyId(survey.id);
+                                setIsTableViewModalOpen(true);
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-indigo-300 text-sm font-medium rounded text-indigo-700 bg-white hover:bg-indigo-50"
+                            >
+                              Dashboard Table
+                            </motion.button>
                             <motion.div
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
@@ -347,6 +433,19 @@ export default function AdminDashboard() {
           isOpen={isAnalyticsModalOpen}
           onClose={() => {
             setIsAnalyticsModalOpen(false);
+            setSelectedSurveyId(null);
+          }}
+        />
+      )}
+
+      {/* Table View Modal */}
+      {selectedSurveyId && (
+        <TableViewModal
+          surveyId={selectedSurveyId}
+          surveyTitle={surveys.find((s) => s.id === selectedSurveyId)?.title}
+          isOpen={isTableViewModalOpen}
+          onClose={() => {
+            setIsTableViewModalOpen(false);
             setSelectedSurveyId(null);
           }}
         />

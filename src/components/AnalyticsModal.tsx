@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import useSWR from "swr";
 import { Model } from "survey-core";
 import "survey-analytics/survey.analytics.css";
+import "survey-core/i18n/english";
 
 interface SurveyResult {
   surveyId: string;
@@ -23,6 +24,12 @@ interface ResultsResponse {
   surveyName: string;
   questionMap: Record<string, QuestionInfo>;
   results: SurveyResult[];
+  // Support both old and new pagination formats
+  items?: SurveyResult[];
+  total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
 }
 
 interface Survey {
@@ -73,10 +80,11 @@ export default function AnalyticsModal({
   // Memoize props and inputs to avoid triggering the effect with new object references
   const memoSurveyId = surveyData?.id;
   const memoSurveyJson = useMemo(() => surveyData?.json ?? {}, [memoSurveyId]);
-  const memoData = useMemo(
-    () => resultsData?.results.map((result) => result.data) || [],
-    [memoSurveyId, resultsData?.results?.length]
-  );
+  const memoData = useMemo(() => {
+    // Handle both old format (results) and new pagination format (items)
+    const resultsArray = resultsData?.results || resultsData?.items || [];
+    return resultsArray.map((result) => result.data) || [];
+  }, [memoSurveyId, resultsData?.results?.length, resultsData?.items?.length]);
   const memoOptions = useMemo(() => ({ allowHideQuestions: true }), []);
 
   // Only initialize the panel when the modal is open and data is ready, and if it's not already initialized
@@ -85,14 +93,6 @@ export default function AnalyticsModal({
     if (!containerRef.current) return;
     if (panelRef.current) return;
     if (!memoSurveyJson || memoData == null) return;
-
-    console.log("Analytics Setup:", {
-      questionsCount: Array.isArray(memoSurveyJson?.pages)
-        ? memoSurveyJson.pages.length
-        : 0,
-      dataCount: memoData.length,
-      surveyTitle: surveyData?.title,
-    });
 
     const initializeAnalytics = async () => {
       try {

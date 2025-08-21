@@ -1,0 +1,21 @@
+# Database Configuration
+DATABASE_URL="file:./surveyjs.db"
+
+# Email Configuration (for OTP)
+EMAIL_USER="your-email@gmail.com"
+EMAIL_PASS="your-app-password"
+
+# Twilio Configuration (for SMS OTP)
+TWILIO_ACCOUNT_SID="your-twilio-account-sid"
+TWILIO_AUTH_TOKEN="your-twilio-auth-token"
+TWILIO_PHONE_NUMBER="+1234567890"
+
+# App Configuration
+NEXTAUTH_SECRET="your-nextauth-secret"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Instructions:
+# 1. Copy this content to .env.local
+# 2. For Gmail: Use App Password (not regular password)
+# 3. For Twilio: Get credentials from twilio.com (free trial)
+# 4. Replace all "your-*" values with actual credentials

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR, { mutate } from "swr";
 import AdminNavbar from "@/components/shared/AdminNavbar";
+import CompanySelect from "@/components/shared/CompanySelect";
 import "survey-core/survey-core.css";
 import "survey-creator-core/survey-creator-core.css";
 
@@ -27,6 +28,8 @@ interface Survey {
   title: string;
   description: string;
   canTakeMultiple: boolean;
+  companyId?: string;
+  companyName?: string;
   json: any;
 }
 
@@ -92,6 +95,9 @@ export default function AdminCreator() {
   const [newSurveySettings, setNewSurveySettings] = useState({
     canTakeMultiple: false,
   });
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+    null
+  );
   const router = useRouter();
   const searchParams = useSearchParams();
   const idParam = searchParams.get("surveyId") || searchParams.get("id");
@@ -183,6 +189,11 @@ export default function AdminCreator() {
     if (survey && (!localSurvey || localSurvey.id !== survey.id)) {
       console.log("Setting local survey:", survey.title, survey.id);
       setLocalSurvey(survey);
+
+      // Set company if survey has one
+      if (survey.companyId) {
+        setSelectedCompanyId(survey.companyId);
+      }
     }
   }, [survey, localSurvey]);
 
@@ -253,6 +264,7 @@ export default function AdminCreator() {
         description: surveyJson.description || localSurvey?.description || "",
         canTakeMultiple:
           localSurvey?.canTakeMultiple ?? newSurveySettings.canTakeMultiple,
+        companyId: selectedCompanyId,
         adminId: adminData.id,
         json: surveyJson,
       };
@@ -350,34 +362,48 @@ export default function AdminCreator() {
             <h3 className="text-lg font-medium text-gray-900 mb-4">
               Survey Settings
             </h3>
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={
-                    localSurvey
-                      ? localSurvey.canTakeMultiple
-                      : newSurveySettings.canTakeMultiple
-                  }
-                  onChange={(e) => {
-                    if (localSurvey) {
-                      setLocalSurvey({
-                        ...localSurvey,
-                        canTakeMultiple: e.target.checked,
-                      });
-                    } else {
-                      setNewSurveySettings({
-                        ...newSurveySettings,
-                        canTakeMultiple: e.target.checked,
-                      });
-                    }
-                  }}
-                  className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company
+                </label>
+                <CompanySelect
+                  value={selectedCompanyId}
+                  onChange={setSelectedCompanyId}
+                  allowNone={true}
+                  placeholder="Select a company (optional)"
+                  className="max-w-xs"
                 />
-                <span className="ml-2 text-sm text-gray-700">
-                  Allow multiple submissions per user
-                </span>
-              </label>
+              </div>
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      localSurvey
+                        ? localSurvey.canTakeMultiple
+                        : newSurveySettings.canTakeMultiple
+                    }
+                    onChange={(e) => {
+                      if (localSurvey) {
+                        setLocalSurvey({
+                          ...localSurvey,
+                          canTakeMultiple: e.target.checked,
+                        });
+                      } else {
+                        setNewSurveySettings({
+                          ...newSurveySettings,
+                          canTakeMultiple: e.target.checked,
+                        });
+                      }
+                    }}
+                    className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    Allow multiple submissions per user
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
         </div>

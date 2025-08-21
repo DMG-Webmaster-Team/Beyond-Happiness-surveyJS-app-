@@ -31,7 +31,12 @@ export async function GET(
           : survey.definition,
     };
 
-    return NextResponse.json(response);
+    const responseWithHeaders = NextResponse.json(response);
+    responseWithHeaders.headers.set(
+      "Cache-Control",
+      "public, max-age=60, stale-while-revalidate=300"
+    );
+    return responseWithHeaders;
   } catch (error) {
     console.error("Error fetching survey:", error);
     return NextResponse.json(
@@ -57,6 +62,8 @@ export async function PUT(
       description: updateData.description,
       definition: updateData.json,
       canTakeMultiple: updateData.canTakeMultiple,
+      companyId: updateData.companyId,
+      companyName: updateData.companyName,
     });
 
     if (!updatedSurvey) {

@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
       description: surveyData.description,
       definition: surveyData.json || surveyData.definition || {},
       canTakeMultiple: surveyData.canTakeMultiple || false,
+      companyId: surveyData.companyId || null,
+      companyName: surveyData.companyName || null,
       createdBy: surveyData.adminId || "admin1", // Fallback to default admin if not provided
     };
 

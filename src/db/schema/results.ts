@@ -12,9 +12,11 @@ export const results = sqliteTable(
       .$defaultFn(() => createId()),
     surveyId: text("survey_id")
       .notNull()
-      .references(() => surveys.id),
-    userId: text("user_id").references(() => users.id),
-    adminId: text("admin_id").references(() => admins.id),
+      .references(() => surveys.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    adminId: text("admin_id").references(() => admins.id, {
+      onDelete: "cascade",
+    }),
     data: text("data").notNull(), // Survey response data as text
     submittedAt: integer("submitted_at").$defaultFn(() => Date.now()),
   },

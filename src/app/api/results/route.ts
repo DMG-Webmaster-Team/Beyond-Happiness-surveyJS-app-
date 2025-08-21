@@ -5,8 +5,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const surveyId = searchParams.get("surveyId");
   const adminId = searchParams.get("adminId");
+  const page = searchParams.get("page");
   const limit = searchParams.get("limit");
-  const cursor = searchParams.get("cursor");
 
   try {
     // Dynamic import to avoid static generation issues
@@ -17,52 +17,41 @@ export async function GET(request: NextRequest) {
     let results;
 
     if (surveyId) {
-      if (limit || cursor) {
-        // Use paginated query
-        const paginatedResults = await listResultsBySurveyPaged({
-          surveyId,
-          limit: limit ? parseInt(limit) : 100,
-          ...(cursor && { cursor }),
-        });
-        return NextResponse.json(paginatedResults);
-      } else {
-        // Use simple query
-        results = await listResultsBySurvey(surveyId);
-      }
+      // Always use pagination for survey results
+      const pageNum = page ? parseInt(page) : 1;
+      const limitNum = limit ? parseInt(limit) : 50;
+
+      const paginatedResults = await listResultsBySurveyPaged({
+        surveyId,
+        page: pageNum,
+        limit: limitNum,
+      });
+
+      return NextResponse.json({
+        items: paginatedResults.results,
+        total: paginatedResults.total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(paginatedResults.total / limitNum),
+      });
     } else {
       // Get all results with pagination
+      const pageNum = page ? parseInt(page) : 1;
+      const limitNum = limit ? parseInt(limit) : 100;
+
       const paginatedResults = await listResultsBySurveyPaged({
-        limit: limit ? parseInt(limit) : 100,
-        ...(cursor && { cursor }),
+        page: pageNum,
+        limit: limitNum,
       });
-      results = paginatedResults.results;
+
+      return NextResponse.json({
+        items: paginatedResults.results,
+        total: paginatedResults.total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(paginatedResults.total / limitNum),
+      });
     }
-
-    // Filter by adminId if provided (for backwards compatibility)
-    if (adminId) {
-      results = results.filter((r: any) => r.adminId === adminId);
-    }
-
-    // Transform to match existing API response format
-    const transformedResults = results.map((result: any) => ({
-      id: result.id,
-      surveyId: result.surveyId,
-      userId: result.userId,
-      adminId: result.adminId,
-      data: (() => {
-        try {
-          return typeof result.data === "string"
-            ? JSON.parse(result.data)
-            : result.data;
-        } catch (error) {
-          console.error("Error parsing result data:", error);
-          return result.data; // Return original data if parsing fails
-        }
-      })(),
-      submittedAt: result.submittedAt, // Already ISO string format
-    }));
-
-    return NextResponse.json(transformedResults);
   } catch (error) {
     console.error("Database error, falling back to JSON:", error);
 
@@ -110,6 +99,9 @@ export async function POST(request: NextRequest) {
       "../../../db/queries/results"
     );
     const { getSurveyById } = await import("../../../db/queries/surveys");
+    const { updateAssignmentStatus } = await import(
+      "../../../db/queries/user-assignments"
+    );
 
     // Check if survey exists and get its configuration
     const survey = await getSurveyById(resultData.surveyId);
@@ -141,8 +133,19 @@ export async function POST(request: NextRequest) {
       data: resultData.data || {},
     });
 
-    // Update user's submission status for one-time surveys
-    // This is now handled by the results table, no need to update user status
+    // Update user assignment status to "completed" when survey is submitted
+    if (resultData.userId) {
+      try {
+        await updateAssignmentStatus(
+          resultData.userId,
+          resultData.surveyId,
+          "completed"
+        );
+      } catch (error) {
+        console.warn("Failed to update assignment status:", error);
+        // Don't fail the entire request if status update fails
+      }
+    }
 
     // Transform response to match existing API format
     const response = {

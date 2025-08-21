@@ -4,6 +4,7 @@ import { z } from "zod";
 export const importRowSchema = z.object({
   email: z.string().email().toLowerCase().trim(),
   name: z.string().trim().optional(),
+  companyId: z.string().trim().optional(),
 });
 
 // Schema for import request
@@ -22,7 +23,7 @@ export const userSchema = z.object({
   name: z.string().trim().optional(),
   phone: z.string().trim().optional(),
   status: z.enum(["active", "inactive", "pending"]).default("active"),
-  companyId: z.number().optional(),
+  companyId: z.string().optional(),
 });
 
 // Schema for user assignment

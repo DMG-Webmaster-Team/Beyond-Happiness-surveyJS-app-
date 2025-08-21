@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
+import CompanySelect from "@/components/shared/CompanySelect";
 
 interface User {
   id: string;
   email: string;
   name?: string;
   status: string;
+  companyId?: string;
+  companyName?: string;
   createdAt: number;
   updatedAt: number;
   assignments?: Array<{
@@ -40,6 +43,9 @@ export default function UserTable() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSurveys, setSelectedSurveys] = useState<string[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+    null
+  );
 
   // Fetch users
   const fetchUsers = async (
@@ -118,6 +124,7 @@ export default function UserTable() {
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setSelectedSurveys(user.assignments?.map((a) => a.surveyId) || []);
+    setSelectedCompanyId(user.companyId || null);
     setIsEditing(true);
   };
 
@@ -144,21 +151,29 @@ export default function UserTable() {
 
   // Handle user update
   const handleUpdateUser = async (
-    userData: Partial<User> & { surveyAssignments?: string[] }
+    userData: Partial<User> & {
+      surveyAssignments?: string[];
+      companyId?: string | null;
+    }
   ) => {
     if (!editingUser) return;
 
     try {
-      // Extract survey assignments from userData
-      const { surveyAssignments, ...userUpdateData } = userData;
+      // Extract survey assignments and company from userData
+      const { surveyAssignments, companyId, ...userUpdateData } = userData;
 
-      // Update user data
+      // Update user data including company
+      const updateData = {
+        ...userUpdateData,
+        ...(companyId !== undefined && { companyId }),
+      };
+
       const response = await fetch(`/api/users/${editingUser.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(userUpdateData),
+        body: JSON.stringify(updateData),
       });
 
       if (!response.ok) {
@@ -189,6 +204,7 @@ export default function UserTable() {
       fetchUsers(pagination.page, searchQuery, statusFilter);
       setEditingUser(null);
       setIsEditing(false);
+      setSelectedCompanyId(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update user");
     }
@@ -274,6 +290,9 @@ export default function UserTable() {
                   User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Company
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -296,6 +315,17 @@ export default function UserTable() {
                         <div className="text-sm text-gray-500">{user.name}</div>
                       )}
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user.companyName ? (
+                      <div className="text-sm text-gray-900">
+                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                          {user.companyName}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">No company</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
@@ -410,6 +440,7 @@ export default function UserTable() {
                 handleUpdateUser({
                   name: formData.get("name") as string,
                   status: formData.get("status") as string,
+                  companyId: selectedCompanyId || undefined,
                   surveyAssignments: selectedSurveys,
                 });
               }}
@@ -449,6 +480,23 @@ export default function UserTable() {
                   <option value="inactive">Inactive</option>
                   <option value="pending">Pending</option>
                 </select>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company
+                </label>
+                <CompanySelect
+                  value={selectedCompanyId}
+                  onChange={setSelectedCompanyId}
+                  allowNone={true}
+                  placeholder="Choose a company (optional)"
+                  className="w-full"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Select a company for this user. Leave empty if no company
+                  assignment is needed.
+                </p>
               </div>
 
               <div className="mb-6">
@@ -499,6 +547,7 @@ export default function UserTable() {
                   onClick={() => {
                     setIsEditing(false);
                     setEditingUser(null);
+                    setSelectedCompanyId(null);
                   }}
                   className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
                 >

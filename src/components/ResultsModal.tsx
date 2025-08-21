@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import useSWR from "swr";
 
 interface SurveyResult {
@@ -55,6 +55,8 @@ export default function ResultsModal({
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [showCopyToast, setShowCopyToast] = useState(false);
+  const [userMap, setUserMap] = useState<Map<string, any>>(new Map());
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const itemsPerPage = 20;
 
   const {
@@ -66,11 +68,60 @@ export default function ResultsModal({
     fetcher
   );
 
+  // Get display name for a user
+  const getDisplayName = useCallback(
+    (userId: string) => {
+      const user = userMap.get(userId);
+      return user?.name || user?.email || "Unknown User";
+    },
+    [userMap]
+  );
+
+  // Fetch user information for all results
+  const fetchUserInfo = useCallback(async (results: SurveyResult[]) => {
+    if (results.length === 0) return;
+
+    setIsLoadingUsers(true);
+    try {
+      const userPromises = results.map(async (result) => {
+        try {
+          const response = await fetch(`/api/users/${result.userId}`);
+          if (response.ok) {
+            const userData = await response.json();
+            return { userId: result.userId, user: userData.data };
+          }
+        } catch (error) {
+          console.error(`Error fetching user ${result.userId}:`, error);
+        }
+        return { userId: result.userId, user: null };
+      });
+
+      const userResults = await Promise.all(userPromises);
+      const newUserMap = new Map();
+      userResults.forEach(({ userId, user }) => {
+        newUserMap.set(userId, user);
+      });
+      setUserMap(newUserMap);
+    } catch (error) {
+      console.error("Error fetching user information:", error);
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  }, []);
+
+  // Fetch user info when results change
+  useEffect(() => {
+    if (responseData?.results) {
+      fetchUserInfo(responseData.results);
+    }
+  }, [responseData?.results, fetchUserInfo]);
+
   // Filter results by search term - handle undefined data safely
   const filteredResults =
-    responseData?.results?.filter((result) =>
-      result?.userId?.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+    responseData?.results?.filter((result) => {
+      const displayName = getDisplayName(result.userId);
+      return displayName.toLowerCase().includes(searchTerm.toLowerCase());
+    }) || [];
 
   // Paginate results
   const paginatedResults = filteredResults.slice(
@@ -109,7 +160,7 @@ export default function ResultsModal({
             <div className="mb-4">
               <input
                 type="text"
-                placeholder="Search by User ID..."
+                placeholder="Search by name or email..."
                 className="w-full p-2 border rounded"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -139,7 +190,11 @@ export default function ResultsModal({
                           : "hover:bg-gray-100"
                       }`}
                     >
-                      <div className="font-medium">{result.userId}</div>
+                      <div className="font-medium">
+                        {isLoadingUsers
+                          ? "Loading..."
+                          : getDisplayName(result.userId)}
+                      </div>
                       <div className="text-sm">
                         {new Date(result.submittedAt).toLocaleString()}
                       </div>
@@ -188,8 +243,20 @@ export default function ResultsModal({
                   <h4 className="font-medium mb-3">Submission Info</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex">
+                      <span className="w-24 text-gray-600">User:</span>
+                      <span>{getDisplayName(selectedResult.userId)}</span>
+                    </div>
+                    <div className="flex">
+                      <span className="w-24 text-gray-600">Email:</span>
+                      <span>
+                        {userMap.get(selectedResult.userId)?.email || "N/A"}
+                      </span>
+                    </div>
+                    <div className="flex">
                       <span className="w-24 text-gray-600">User ID:</span>
-                      <span>{selectedResult.userId}</span>
+                      <span className="text-xs text-gray-500 font-mono">
+                        {selectedResult.userId}
+                      </span>
                     </div>
                     <div className="flex">
                       <span className="w-24 text-gray-600">Submitted:</span>

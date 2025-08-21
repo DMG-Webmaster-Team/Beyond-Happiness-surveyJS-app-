@@ -1,4 +1,4 @@
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { db } from "../client";
 import { surveys, type Survey, type NewSurvey } from "../schema/surveys";
 import { z } from "zod";
@@ -11,6 +11,8 @@ export const createSurveySchema = z.object({
   json: z.union([z.string(), z.any()]).optional(), // Alternative field name for frontend compatibility
   canTakeMultiple: z.union([z.boolean(), z.number()]).default(false), // Accept both boolean and number
   createdBy: z.string(),
+  companyId: z.string().optional(),
+  companyName: z.string().optional(),
 });
 
 export const updateSurveySchema = z
@@ -20,6 +22,8 @@ export const updateSurveySchema = z
     definition: z.union([z.string(), z.any()]).optional(),
     json: z.union([z.string(), z.any()]).optional(),
     canTakeMultiple: z.union([z.boolean(), z.number()]).optional(),
+    companyId: z.string().optional(),
+    companyName: z.string().optional(),
   })
   .strict();
 
@@ -51,10 +55,32 @@ export async function createSurvey(surveyData: any): Promise<Survey> {
         : 0
       : validatedData.canTakeMultiple;
 
+  // Handle company information
+  let companyName = null;
+  let metadata = null;
+
+  if (validatedData.companyId) {
+    try {
+      const { getCompanyById } = await import("./companies");
+      const company = await getCompanyById(validatedData.companyId);
+      if (company) {
+        companyName = company.name;
+        metadata = JSON.stringify({
+          company: { id: company.id, name: company.name },
+        });
+      }
+    } catch (error) {
+      console.warn("Could not resolve company name:", error);
+      companyName = validatedData.companyName || null;
+    }
+  }
+
   const dataToInsert = {
     ...validatedData,
     definition: definitionString,
     canTakeMultiple,
+    companyName,
+    metadata,
   };
 
   const result = await db.insert(surveys).values(dataToInsert).returning();
@@ -102,8 +128,44 @@ export async function updateSurvey(
         : surveyData.canTakeMultiple;
   }
 
+  // Handle company information
+  if (surveyData.companyId !== undefined) {
+    dataToUpdate.companyId = surveyData.companyId;
+
+    // If companyId is provided, try to resolve companyName
+    if (surveyData.companyId) {
+      try {
+        const { getCompanyById } = await import("./companies");
+        const company = await getCompanyById(surveyData.companyId);
+        if (company) {
+          dataToUpdate.companyName = company.name;
+
+          // Add company info to metadata
+          const existingMetadata = surveyData.metadata
+            ? typeof surveyData.metadata === "string"
+              ? JSON.parse(surveyData.metadata)
+              : surveyData.metadata
+            : {};
+
+          dataToUpdate.metadata = JSON.stringify({
+            ...existingMetadata,
+            company: { id: company.id, name: company.name },
+          });
+        }
+      } catch (error) {
+        console.warn("Could not resolve company name:", error);
+        // If we can't resolve, just use the provided companyId
+        dataToUpdate.companyName = surveyData.companyName || null;
+      }
+    } else {
+      // Clear company info if companyId is null/empty
+      dataToUpdate.companyName = null;
+      dataToUpdate.metadata = null;
+    }
+  }
+
   // Always update the updatedAt timestamp
-  dataToUpdate.updatedAt = new Date().toISOString();
+  dataToUpdate.updatedAt = Date.now();
 
   console.log("Data to update:", dataToUpdate);
 
@@ -132,14 +194,29 @@ export async function deleteSurvey(id: string): Promise<boolean> {
   return result.changes > 0;
 }
 
-export async function listSurveys(): Promise<Survey[]> {
+export async function listSurveys(companyId?: string): Promise<Survey[]> {
+  if (companyId) {
+    return db
+      .select()
+      .from(surveys)
+      .where(eq(surveys.companyId, companyId))
+      .orderBy(desc(surveys.createdAt));
+  }
   return db.select().from(surveys).orderBy(desc(surveys.createdAt));
 }
 
-export async function listSurveysByAdmin(adminId: string): Promise<Survey[]> {
+export async function listSurveysByAdmin(
+  adminId: string,
+  companyId?: string
+): Promise<Survey[]> {
+  const conditions = [eq(surveys.createdBy, adminId)];
+  if (companyId) {
+    conditions.push(eq(surveys.companyId, companyId));
+  }
+
   return db
     .select()
     .from(surveys)
-    .where(eq(surveys.createdBy, adminId))
+    .where(and(...conditions))
     .orderBy(desc(surveys.createdAt));
 }

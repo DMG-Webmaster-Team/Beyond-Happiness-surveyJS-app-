@@ -12,6 +12,9 @@ export const surveys = sqliteTable(
     description: text("description"),
     definition: text("definition").notNull(), // SurveyJS JSON definition as text
     canTakeMultiple: integer("can_take_multiple").default(0), // Match actual DB column name
+    companyId: text("company_id"),
+    companyName: text("company_name"),
+    metadata: text("metadata"), // JSON string for additional data
     createdBy: text("created_by").notNull(), // Match actual DB column name
     createdAt: text("created_at").$defaultFn(() => Date.now().toString()), // Match actual DB column name
     updatedAt: text("updated_at").$defaultFn(() => Date.now().toString()), // Match actual DB column name
@@ -19,6 +22,7 @@ export const surveys = sqliteTable(
   (table) => ({
     createdByIdx: index("survey_created_by_idx").on(table.createdBy),
     createdAtIdx: index("survey_created_at_idx").on(table.createdAt),
+    companyIdIdx: index("survey_company_id_idx").on(table.companyId),
   })
 );
 

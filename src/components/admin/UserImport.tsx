@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
+import CompanySelect from "@/components/shared/CompanySelect";
 
 interface ImportResult {
   message: string;
@@ -15,6 +16,9 @@ interface ImportResult {
 export default function UserImport() {
   const [file, setFile] = useState<File | null>(null);
   const [selectedSurveyId, setSelectedSurveyId] = useState<string>("");
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
+    null
+  );
   const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
   const [dryRun, setDryRun] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -68,6 +72,9 @@ export default function UserImport() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("surveyId", selectedSurveyId);
+      if (selectedCompanyId) {
+        formData.append("companyId", selectedCompanyId);
+      }
       formData.append("dryRun", dryRun ? "1" : "0");
 
       const response = await fetch("/api/admin/import-users", {
@@ -97,10 +104,10 @@ export default function UserImport() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `email,name
-user1@example.com,John Doe
-user2@example.com,Jane Smith
-user3@example.com,Bob Johnson`;
+    const csvContent = `email,name,companyId
+user1@example.com,John Doe,
+user2@example.com,Jane Smith,
+user3@example.com,Bob Johnson,`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -195,6 +202,24 @@ user3@example.com,Bob Johnson`;
             </div>
           )}
         </div>
+      </div>
+
+      {/* Company Selection */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select Company for Users
+        </label>
+        <CompanySelect
+          value={selectedCompanyId}
+          onChange={setSelectedCompanyId}
+          allowNone={true}
+          placeholder="Choose a company (optional)"
+          className="max-w-xs"
+        />
+        <p className="mt-1 text-sm text-gray-500">
+          Users will be assigned to the selected company. Leave empty if no
+          company assignment is needed.
+        </p>
       </div>
 
       {/* Survey Selection */}

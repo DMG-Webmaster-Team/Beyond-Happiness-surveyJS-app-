@@ -1,4 +1,4 @@
-import { eq, desc, and, gte, lt } from "drizzle-orm";
+import { eq, desc, and, gte, lt, sql } from "drizzle-orm";
 import { db } from "../client";
 import { results, type Result, type NewResult } from "../schema/results";
 import { surveys } from "../schema/surveys";
@@ -50,14 +50,51 @@ export async function listResultsBySurvey(surveyId: string): Promise<Result[]> {
     .orderBy(desc(results.submittedAt));
 }
 
-// Temporarily disabled due to TypeScript issues with Drizzle ORM
-export async function listResultsBySurveyPaged(params: any): Promise<{
+export async function listResultsBySurveyPaged(params: {
+  surveyId?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{
   results: Result[];
-  hasMore: boolean;
-  nextCursor?: number;
+  total: number;
+  page: number;
+  limit: number;
 }> {
-  // TODO: Fix Drizzle ORM query building issues
-  throw new Error("Function temporarily disabled - needs Drizzle ORM fixes");
+  const { surveyId, page = 1, limit = 50 } = params;
+  const offset = (page - 1) * limit;
+
+  // Get total count
+  const countResult = surveyId
+    ? await db
+        .select({ count: sql`count(*)` })
+        .from(results)
+        .where(eq(results.surveyId, surveyId))
+    : await db.select({ count: sql`count(*)` }).from(results);
+
+  const total = Number(countResult[0]?.count || 0);
+
+  // Get paginated results
+  const paginatedResults = surveyId
+    ? await db
+        .select()
+        .from(results)
+        .where(eq(results.surveyId, surveyId))
+        .orderBy(desc(results.submittedAt))
+        .limit(limit)
+        .offset(offset)
+    : await db
+        .select()
+        .from(results)
+        .orderBy(desc(results.submittedAt))
+        .limit(limit)
+        .offset(offset);
+
+  return {
+    results: paginatedResults,
+    total,
+    page,
+    limit,
+  };
 }
 
 export async function getUserResultsForSurvey(

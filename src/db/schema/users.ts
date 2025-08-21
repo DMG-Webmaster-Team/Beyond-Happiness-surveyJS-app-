@@ -18,13 +18,15 @@ export const users = sqliteTable(
     phone: text("phone"),
     otp: text("otp"),
     status: text("status").default("active"),
-    companyId: integer("company_id"),
+    companyId: text("company_id"),
+    companyName: text("company_name"),
     createdAt: integer("created_at").$defaultFn(() => Date.now()),
     updatedAt: integer("updated_at").$defaultFn(() => Date.now()),
   },
   (table) => ({
     emailIdx: index("email_idx").on(table.email),
     statusIdx: index("status_idx").on(table.status),
+    companyIdIdx: index("user_company_id_idx").on(table.companyId),
   })
 );
 

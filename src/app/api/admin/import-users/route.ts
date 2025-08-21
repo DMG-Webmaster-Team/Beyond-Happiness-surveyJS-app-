@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const surveyId = formData.get("surveyId") as string;
+    const companyId = formData.get("companyId") as string;
     const dryRun = formData.get("dryRun") === "1";
 
     if (!surveyId) {
@@ -129,6 +130,9 @@ export async function POST(request: NextRequest) {
         const normalizedRow = {
           email: (row.email || row.Email || "").toString().trim(),
           name: (row.name || row.Name || "").toString().trim(),
+          companyId:
+            (row.companyId || row.company_id || "").toString().trim() ||
+            undefined,
         };
 
         // Validate row
@@ -164,7 +168,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Process valid rows in database transaction
-    const importResults = await processImport(validRows, surveyId);
+    const importResults = await processImport(validRows, surveyId, companyId);
 
     return NextResponse.json({
       message: "Import completed successfully",
@@ -183,7 +187,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function processImport(validRows: any[], surveyId: string) {
+async function processImport(
+  validRows: any[],
+  surveyId: string,
+  companyId?: string
+) {
   const startTime = Date.now();
 
   // Statistics tracking
@@ -222,6 +230,26 @@ async function processImport(validRows: any[], surveyId: string) {
       throw new Error(`Survey with ID ${surveyId} does not exist`);
     }
 
+    // Get company name if companyId is provided
+    let companyName: string | undefined;
+    if (companyId) {
+      try {
+        const { companies } = await import("../../../../db/schema");
+        const company = await db
+          .select()
+          .from(companies)
+          .where(eq(companies.id, companyId))
+          .limit(1);
+
+        if (company.length > 0) {
+          companyName = company[0].name;
+          console.log(`🏢 Company found: ${companyName} (${companyId})`);
+        }
+      } catch (error) {
+        console.warn("Failed to fetch company name:", error);
+      }
+    }
+
     console.log(
       `📊 Found ${existingUsers.length} existing users, survey: ${survey[0].title}`
     );
@@ -248,6 +276,8 @@ async function processImport(validRows: any[], surveyId: string) {
             email: row.email,
             name: row.name || undefined,
             status: "active", // Default status
+            companyId: companyId || undefined,
+            companyName: companyName || undefined,
           });
 
           if (userResult.created) {

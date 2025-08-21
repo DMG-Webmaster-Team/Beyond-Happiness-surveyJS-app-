@@ -25,12 +25,31 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
   return result[0];
 }
 
+// Get user by phone
+export async function getUserByPhone(phone: string): Promise<User | undefined> {
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.phone, phone))
+    .limit(1);
+  return result[0];
+}
+
 // Get users by emails (batch lookup)
 export async function getUsersByEmails(emails: string[]): Promise<User[]> {
   if (emails.length === 0) return [];
 
   const normalizedEmails = emails.map((email) => email.toLowerCase());
   return db.select().from(users).where(inArray(users.email, normalizedEmails));
+}
+
+// Get users by company ID
+export async function getUsersByCompany(companyId: string): Promise<User[]> {
+  return db
+    .select()
+    .from(users)
+    .where(eq(users.companyId, companyId))
+    .orderBy(desc(users.createdAt));
 }
 
 // Create new user
@@ -100,13 +119,14 @@ export async function listUsers(params: {
   page?: number;
   limit?: number;
   status?: string;
+  companyId?: string;
 }): Promise<{
   users: User[];
   total: number;
   page: number;
   totalPages: number;
 }> {
-  const { query = "", page = 1, limit = 20, status } = params;
+  const { query = "", page = 1, limit = 20, status, companyId } = params;
   const offset = (page - 1) * limit;
 
   // Build where conditions
@@ -117,6 +137,9 @@ export async function listUsers(params: {
   }
   if (status) {
     conditions.push(eq(users.status, status));
+  }
+  if (companyId) {
+    conditions.push(eq(users.companyId, companyId));
   }
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

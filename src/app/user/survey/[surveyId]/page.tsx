@@ -19,6 +19,44 @@ const DynamicSurvey = dynamic(
   }
 );
 
+// Fallback component for when SurveyJS fails to load
+const SurveyFallback = ({
+  surveyData,
+  onRetry,
+}: {
+  surveyData: SurveyData;
+  onRetry: () => void;
+}) => (
+  <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+    <div className="text-center py-8">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">
+        Survey: {surveyData.title}
+      </h2>
+      <p className="text-gray-600 mb-6">{surveyData.description}</p>
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-yellow-800">
+          ⚠️ SurveyJS component failed to load. This might be due to a network
+          issue or chunk loading problem.
+        </p>
+        <div className="mt-4 space-x-3">
+          <button
+            onClick={onRetry}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition-colors"
+          >
+            Refresh Page
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 interface User {
   id: string;
   email: string;
@@ -56,6 +94,8 @@ export default function UserSurvey() {
   const [error, setError] = useState("");
   const [surveySubmitted, setSurveySubmitted] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [surveyLoadError, setSurveyLoadError] = useState(false);
+  const [preloading, setPreloading] = useState(false);
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
@@ -64,6 +104,66 @@ export default function UserSurvey() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Handle chunk loading errors
+  useEffect(() => {
+    const handleChunkError = (event: ErrorEvent) => {
+      if (
+        event.error &&
+        event.error.message &&
+        event.error.message.includes("ChunkLoadError")
+      ) {
+        console.error("SurveyJS chunk loading failed:", event.error);
+        setSurveyLoadError(true);
+      }
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      if (
+        event.reason &&
+        event.reason.message &&
+        event.reason.message.includes("ChunkLoadError")
+      ) {
+        console.error(
+          "SurveyJS chunk loading failed (unhandled rejection):",
+          event.reason
+        );
+        setSurveyLoadError(true);
+      }
+    };
+
+    window.addEventListener("error", handleChunkError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener("error", handleChunkError);
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection
+      );
+    };
+  }, []);
+
+  // Preload SurveyJS component to prevent chunk loading issues
+  useEffect(() => {
+    if (mounted && !surveyLoadError) {
+      // Preload the SurveyJS component
+      const preloadSurveyJS = async () => {
+        setPreloading(true);
+        try {
+          await import("survey-react-ui");
+          console.log("✅ SurveyJS component preloaded successfully");
+        } catch (error) {
+          console.error("❌ Failed to preload SurveyJS component:", error);
+          setSurveyLoadError(true);
+        } finally {
+          setPreloading(false);
+        }
+      };
+
+      preloadSurveyJS();
+    }
+  }, [mounted, surveyLoadError]);
 
   // Check user session
   useEffect(() => {
@@ -442,11 +542,28 @@ export default function UserSurvey() {
         {/* Survey */}
         <div className="px-4 sm:px-0">
           <div className="bg-white shadow rounded-lg p-6">
-            {mounted && surveyModel ? (
+            {mounted && surveyModel && !surveyLoadError ? (
               <DynamicSurvey
                 model={surveyModel}
                 onComplete={handleSurveyComplete}
+                onError={(error: any) => {
+                  console.error("SurveyJS error:", error);
+                  setSurveyLoadError(true);
+                }}
               />
+            ) : surveyLoadError && survey ? (
+              <SurveyFallback
+                surveyData={survey}
+                onRetry={() => {
+                  setSurveyLoadError(false);
+                  setPreloading(false);
+                }}
+              />
+            ) : preloading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p>Preloading SurveyJS component...</p>
+              </div>
             ) : (
               <div className="text-center py-8">Loading survey...</div>
             )}

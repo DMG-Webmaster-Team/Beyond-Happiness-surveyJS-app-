@@ -81,6 +81,23 @@ export default function AdminNavbar() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
               )}
             </div>
+            <div className="relative">
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href="/admin/companies"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
+                  pathname === "/admin/companies"
+                    ? "text-brand-primary"
+                    : "text-gray-700 hover:text-brand-primary"
+                }`}
+              >
+                Companies
+              </motion.a>
+              {pathname === "/admin/companies" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
+              )}
+            </div>
           </div>
           <div className="flex items-center">
             {admin && (
