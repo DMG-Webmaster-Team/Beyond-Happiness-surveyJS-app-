@@ -266,7 +266,11 @@ export default function UserLogin() {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.status == 403) {
+        setError(data.error);
+        setAuthStep("contact");
+        setLoading(false);
+      } else if (response.ok) {
         // Clear contact storage
         sessionStorage.removeItem("userContact");
 
@@ -330,6 +334,12 @@ export default function UserLogin() {
             {authStep === "redirecting" &&
               "Preparing to redirect you to the survey..."}
           </p>
+
+          {error && (
+            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg text-center">
+              {error}
+            </div>
+          )}
 
           {/* Progress Indicator */}
           {authStep !== "contact" && (

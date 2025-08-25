@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       : await getUserByPhone(phone!);
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      return NextResponse.json({ error: "User not found" }, { status: 403 });
     }
 
     // If a specific survey is requested, verify access
@@ -130,10 +130,15 @@ export async function POST(request: NextRequest) {
       );
 
       if (!hasAssignment) {
-        return NextResponse.json(
-          { error: "You are not assigned to this survey" },
-          { status: 403 }
-        );
+        return NextResponse.json({
+          ok: true,
+          assigned: false,
+          hasSubmitted: false,
+          surveyId,
+          survey: survey[0],
+          user: { id: user.id, email: user.email, phone: user.phone },
+          message: "You are not assigned to this survey.",
+        });
       }
 
       // Check if user has already submitted this survey (if it's not repeatable)
@@ -148,13 +153,15 @@ export async function POST(request: NextRequest) {
           .limit(1);
 
         if (existingSubmission.length > 0) {
-          return NextResponse.json(
-            {
-              error:
-                "You have already submitted this survey. This survey can only be completed once.",
-            },
-            { status: 403 }
-          );
+          return NextResponse.json({
+            ok: true,
+            assigned: true,
+            hasSubmitted: true,
+            surveyId,
+            survey: survey[0],
+            user: { id: user.id, email: user.email, phone: user.phone },
+            message: "You have already completed this survey.",
+          });
         }
       }
 
