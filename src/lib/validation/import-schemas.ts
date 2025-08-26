@@ -4,6 +4,7 @@ import { z } from "zod";
 export const importRowSchema = z.object({
   email: z.string().email().toLowerCase().trim(),
   name: z.string().trim().optional(),
+  phone: z.string().trim().optional(), // Add phone field
   companyId: z.string().trim().optional(),
 });
 

@@ -130,6 +130,10 @@ export async function POST(request: NextRequest) {
         const normalizedRow = {
           email: (row.email || row.Email || "").toString().trim(),
           name: (row.name || row.Name || "").toString().trim(),
+          phone:
+            (row.phone || row.Phone || row.mobile || row.Mobile || "")
+              .toString()
+              .trim() || undefined,
           companyId:
             (row.companyId || row.company_id || "").toString().trim() ||
             undefined,
@@ -275,6 +279,7 @@ async function processImport(
           const userResult = await upsertUser({
             email: row.email,
             name: row.name || undefined,
+            phone: row.phone || undefined, // Add phone field
             status: "active", // Default status
             companyId: companyId || undefined,
             companyName: companyName || undefined,

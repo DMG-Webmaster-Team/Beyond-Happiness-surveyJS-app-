@@ -1,40 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendOTP } from "../../../../lib/services/otp-service";
-import { z } from "zod";
 
-// Validation schema
-const sendOTPSchema = z.object({
-  identifier: z.string().min(1, "Email or phone is required"),
-  method: z.enum(["email", "sms", "both"]).default("both"),
-  surveyId: z.string().optional().nullable(),
-  surveyTitle: z.string().optional().nullable(),
-});
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await req.json();
 
     // Debug: Log what we received
-    console.log("🔍 /api/auth/send-otp received:", body);
+    console.log(" /api/auth/send-otp received:", body);
 
     // Validate request body
-    const validation = sendOTPSchema.safeParse(body);
-    if (!validation.success) {
-      console.log("❌ Validation failed:", validation.error.issues);
+    const { identifier, method, surveyId, surveyTitle } = body;
+
+    if (!identifier) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request data",
-          details: validation.error.issues,
-        },
+        { success: false, error: "Identifier is required" },
         { status: 400 }
       );
     }
 
-    const { identifier, method, surveyId, surveyTitle } = validation.data;
+    if (!method || !["email", "sms", "none"].includes(method)) {
+      return NextResponse.json(
+        { success: false, error: "Valid method is required" },
+        { status: 400 }
+      );
+    }
 
     // Send OTP
-    const result = await sendOTP(identifier, method, surveyTitle || undefined);
+    const result = await sendOTP(identifier, method, surveyTitle);
 
     if (result.success) {
       return NextResponse.json({
@@ -42,23 +34,18 @@ export async function POST(request: NextRequest) {
         message: result.message,
         method: result.method,
         identifier: identifier.includes("@") ? "email" : "phone",
+        otp: result.otp, // Include OTP in test mode
       });
     } else {
       return NextResponse.json(
-        {
-          success: false,
-          error: result.message,
-        },
+        { success: false, error: result.error || result.message },
         { status: 400 }
       );
     }
   } catch (error) {
-    console.error("❌ Error in send-otp endpoint:", error);
+    console.error("Error in send-otp:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
+      { success: false, error: "Internal server error" },
       { status: 500 }
     );
   }

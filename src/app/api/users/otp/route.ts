@@ -1,248 +1,375 @@
+// src/app/api/users/otp/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "../../../../db/client";
+import {
+  users,
+  surveys,
+  userAssignments,
+  results,
+} from "../../../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { verifyOTP } from "../../../../lib/services/otp-service";
 
-interface OTPRequest {
-  email?: string;
-  phone?: string;
-  otp: string;
-  surveyId?: string;
-}
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const {
+    const body = await req.json();
+    const { email, phone, identifier, otp, surveyId, skipOtpVerification } =
+      body as {
+        email?: string;
+        phone?: string;
+        identifier?: string;
+        otp?: string;
+        surveyId?: string;
+        skipOtpVerification?: boolean;
+      };
+
+    const normalizedIdentifier = identifier || email || phone || "";
+    const looksLikeEmail = normalizedIdentifier.includes("@");
+
+    console.log("🔍 /api/users/otp received:", {
       email,
       phone,
-      otp,
+      identifier,
+      otp: otp ? `${String(otp).slice(0, 3)}***` : undefined,
       surveyId,
       skipOtpVerification,
-    }: OTPRequest & { skipOtpVerification?: boolean } = await request.json();
-
-    // Get the calling URL to debug where this is coming from
-    const referer = request.headers.get("referer");
-    const userAgent = request.headers.get("user-agent");
-
-    console.log("🔍 /api/users/otp called with:", {
-      email,
-      phone,
-      otp: otp ? `${otp.substring(0, 3)}...` : undefined,
-      surveyId,
-      skipOtpVerification,
-      referer,
-      userAgent: userAgent ? userAgent.substring(0, 50) + "..." : undefined,
+      idType: looksLikeEmail ? "email" : "phone",
     });
 
-    if ((!email && !phone) || !otp) {
+    if (!normalizedIdentifier) {
       return NextResponse.json(
-        { error: "Email or phone and OTP are required" },
+        { error: "Email, phone, or identifier is required" },
         { status: 400 }
       );
     }
 
-    // Handle OTP verification with graceful fallback
-    const identifier = email || phone!;
+    if (!otp && !skipOtpVerification) {
+      return NextResponse.json({ error: "OTP is required" }, { status: 400 });
+    }
 
+    // 1) Verify OTP unless explicitly skipped
     if (!skipOtpVerification) {
-      console.log("⚠️ OTP verification NOT skipped - calling verifyOTP");
-
-      // Try to verify the OTP
-      const otpVerification = await verifyOTP(identifier, otp);
-
-      if (!otpVerification.valid) {
-        // If OTP verification fails, check if it's because the OTP was already verified
-        try {
-          const { getOTP } = await import("../../../../db/queries/otps");
-          const existingOTP = await getOTP(identifier);
-
-          if (!existingOTP) {
-            console.log(
-              "ℹ️ OTP not found in database - user may have already verified, continuing with authentication"
-            );
-            // Continue with authentication - this is normal after OTP verification
-          } else if (Date.now() > existingOTP.expiresAt) {
-            console.log(
-              "ℹ️ OTP expired in database - user may have already verified, continuing with authentication"
-            );
-            // Continue with authentication - this is normal after OTP verification
-          } else {
-            // OTP exists and is valid, but verification failed - return error
-            return NextResponse.json(
-              { error: otpVerification.message },
-              { status: 400 }
-            );
-          }
-        } catch (error) {
-          console.log(
-            "⚠️ Error checking OTP status, continuing with authentication:",
-            error
-          );
-          // Continue with authentication even if OTP check fails
-        }
-      } else {
-        console.log("✅ OTP verified successfully");
+      const otpResult = await verifyOTP(normalizedIdentifier, String(otp));
+      if (!otpResult.valid) {
+        return NextResponse.json(
+          { error: otpResult.message || "Invalid OTP" },
+          { status: 401 }
+        );
       }
+      console.log("✅ OTP verified successfully");
     } else {
       console.log(
-        "✅ OTP verification skipped - proceeding with authentication"
+        "⏭️ Skipping OTP verification (already verified client-side)"
       );
     }
 
-    // Dynamically import database functions to avoid build-time issues
-    const { getUserByEmail, getUserByPhone } = await import(
-      "../../../../db/queries/users"
-    );
-    const { surveys } = await import("../../../../db/schema");
+    // 2) Look up the user by email OR phone (bug fix)
+    const userRows = await db
+      .select()
+      .from(users)
+      .where(
+        looksLikeEmail
+          ? eq(users.email, normalizedIdentifier)
+          : eq(users.phone, normalizedIdentifier)
+      )
+      .limit(1);
 
-    // Find user by email or phone
-    const user = email
-      ? await getUserByEmail(email)
-      : await getUserByPhone(phone!);
+    // If user does not exist, respond as "not assigned" to match requested UX
+    if (!userRows || userRows.length === 0) {
+      // If a surveyId was provided, try to include survey meta for the UI
+      let surveyMeta: {
+        id: string;
+        title: string;
+        canTakeMultiple: boolean;
+      } | null = null;
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 403 });
+      if (surveyId) {
+        const s = await db
+          .select({
+            id: surveys.id,
+            title: surveys.title,
+            // robust casting: works if boolean or int
+            can_take_multiple: surveys.canTakeMultiple,
+          })
+          .from(surveys)
+          .where(eq(surveys.id, surveyId))
+          .limit(1);
+
+        if (s.length > 0) {
+          surveyMeta = {
+            id: s[0].id,
+            title: s[0].title,
+            canTakeMultiple: !!s[0].can_take_multiple,
+          };
+        }
+      }
+
+      const res = NextResponse.json({
+        ok: true,
+        assigned: false,
+        hasSubmitted: false,
+        surveyId: surveyId ?? null,
+        survey: surveyMeta,
+        user: null,
+        message:
+          "You are not assigned to this survey (no user found for this identifier).",
+        // ✅ NEW: Access status for user not found
+        access: {
+          assigned: false,
+          hasSubmitted: false,
+          canAccess: false,
+          reason: "not-assigned",
+          message: "You are not assigned to this survey.",
+        },
+      });
+
+      // do NOT set a session cookie for non-existent users
+      return res;
     }
 
-    // If a specific survey is requested, verify access
+    const userData = userRows[0];
+
+    // 3) If surveyId provided, check assignment + submission status
     if (surveyId) {
-      // Get survey information
-      const { db } = await import("../../../../db/client");
-      const survey = await db
-        .select()
+      // Get survey details
+      const s = await db
+        .select({
+          id: surveys.id,
+          title: surveys.title,
+          can_take_multiple: surveys.canTakeMultiple,
+        })
         .from(surveys)
         .where(eq(surveys.id, surveyId))
         .limit(1);
 
-      if (!survey || survey.length === 0) {
+      if (!s || s.length === 0) {
         return NextResponse.json(
           { error: "Survey not found" },
           { status: 404 }
         );
       }
 
-      // Check if user is assigned to this survey
-      const { getUserAssignments } = await import(
-        "../../../../db/queries/users"
-      );
-      const assignments = await getUserAssignments(user.id);
-      const hasAssignment = assignments.some(
-        (assignment: any) => assignment.assignment.surveyId === surveyId
-      );
+      // robust boolean cast
+      const surveySafe = {
+        id: s[0].id,
+        title: s[0].title,
+        canTakeMultiple: !!s[0].can_take_multiple, // Cast to boolean robustly
+      };
 
-      if (!hasAssignment) {
-        return NextResponse.json({
+      console.log("🔍 Survey details:", {
+        id: surveySafe.id,
+        title: surveySafe.title,
+        canTakeMultiple: surveySafe.canTakeMultiple,
+        rawCanTakeMultiple: s[0].can_take_multiple,
+      });
+
+      // Check assignment
+      console.log("🔍 Checking assignment for:", {
+        userId: userData.id,
+        surveyId: surveyId,
+        userEmail: userData.email,
+      });
+
+      const assignment = await db
+        .select()
+        .from(userAssignments)
+        .where(
+          and(
+            eq(userAssignments.userId, userData.id),
+            eq(userAssignments.surveyId, surveyId)
+          )
+        )
+        .limit(1);
+
+      console.log("🔍 Assignment query result:", assignment);
+      const assigned = assignment.length > 0;
+      console.log("🔍 User assigned:", assigned);
+      console.log("🔍 Assignment details:", {
+        found: assignment.length,
+        assignment: assignment[0] || null,
+        searchUserId: userData.id,
+        searchSurveyId: surveyId,
+      });
+
+      // If not assigned → respond gracefully (200) so UI can show friendly message
+      if (!assigned) {
+        const res = NextResponse.json({
           ok: true,
           assigned: false,
           hasSubmitted: false,
           surveyId,
-          survey: survey[0],
-          user: { id: user.id, email: user.email, phone: user.phone },
+          survey: surveySafe,
+          user: {
+            id: userData.id,
+            email: userData.email,
+            phone: userData.phone,
+          },
           message: "You are not assigned to this survey.",
+          // ✅ NEW: Access status for not assigned user
+          access: {
+            assigned: false,
+            hasSubmitted: false,
+            canAccess: false,
+            reason: "not-assigned",
+            message: "You are not assigned to this survey.",
+          },
         });
+
+        // we do set a short session so the UI can keep context if needed
+        res.cookies.set(
+          "user_session",
+          JSON.stringify({
+            id: userData.id,
+            email: userData.email,
+            phone: userData.phone,
+            loginTime: new Date().toISOString(),
+          }),
+          {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 60 * 60 * 24, // 24h
+          }
+        );
+
+        return res;
       }
 
-      // Check if user has already submitted this survey (if it's not repeatable)
-      if (!survey[0].canTakeMultiple) {
-        const { results } = await import("../../../../db/schema");
-        const existingSubmission = await db
+      // Check if the user has already submitted (for single-take surveys)
+      let hasSubmitted = false;
+      console.log(`🔍 /api/users/otp checking submission status:`, {
+        userId: userData.id,
+        userEmail: userData.email,
+        surveyId,
+        canTakeMultiple: surveySafe.canTakeMultiple,
+      });
+
+      if (!surveySafe.canTakeMultiple) {
+        console.log(
+          `🔍 Single-take survey - checking existing submissions for user ${userData.id}`
+        );
+
+        const existing = await db
           .select()
           .from(results)
           .where(
-            and(eq(results.userId, user.id), eq(results.surveyId, surveyId))
+            and(eq(results.userId, userData.id), eq(results.surveyId, surveyId))
           )
           .limit(1);
 
-        if (existingSubmission.length > 0) {
-          return NextResponse.json({
-            ok: true,
-            assigned: true,
-            hasSubmitted: true,
-            surveyId,
-            survey: survey[0],
-            user: { id: user.id, email: user.email, phone: user.phone },
-            message: "You have already completed this survey.",
-          });
-        }
+        hasSubmitted = existing.length > 0;
+
+        console.log(`🔍 Submission check result:`, {
+          userId: userData.id,
+          surveyId,
+          existingCount: existing.length,
+          hasSubmitted,
+        });
+      } else {
+        console.log(
+          `🔍 Multi-take survey - allowing submission regardless of history`
+        );
       }
 
-      // Return user data and survey info with assignments
-      const { otp: _, ...userData } = user;
-      const response = NextResponse.json({
-        success: true,
-        user: {
-          ...userData,
-          assignments: assignments.map((assignment: any) => ({
-            surveyId: assignment.assignment.surveyId,
-            surveyTitle: assignment.survey.title,
-            status: assignment.assignment.status,
-            dueAt: assignment.assignment.dueAt,
-          })),
-        },
-        survey: survey[0],
-      });
+      // ✅ ENHANCED: Comprehensive access status
+      const canAccess =
+        hasSubmitted && !surveySafe.canTakeMultiple ? false : true;
+      const accessReason = !canAccess ? "already-submitted" : "access-granted";
 
-      // Set session cookie with short expiry (closes when browser closes)
-      response.cookies.set({
-        name: "user_session",
-        value: JSON.stringify({
-          ...userData,
-          assignments: assignments.map((assignment: any) => ({
-            surveyId: assignment.assignment.surveyId,
-            surveyTitle: assignment.survey.title,
-            status: assignment.assignment.status,
-            dueAt: assignment.assignment.dueAt,
-          })),
+      const responseData = {
+        ok: true,
+        assigned: true,
+        hasSubmitted,
+        surveyId,
+        survey: {
+          id: surveySafe.id,
+          title: surveySafe.title,
+          canTakeMultiple: surveySafe.canTakeMultiple,
+        },
+        user: {
+          id: userData.id,
+          email: userData.email,
+          phone: userData.phone,
+        },
+        // ✅ NEW: Comprehensive access status
+        access: {
+          assigned: true,
+          hasSubmitted,
+          canAccess,
+          reason: accessReason,
+          message: !canAccess
+            ? "You have already submitted this survey and it can only be completed once."
+            : "Access granted to survey.",
+        },
+      };
+
+      console.log("✅ Successful assignment response:", responseData);
+
+      const res = NextResponse.json(responseData);
+
+      // Set session cookie (authenticated user)
+      res.cookies.set(
+        "user_session",
+        JSON.stringify({
+          id: userData.id,
+          email: userData.email,
+          phone: userData.phone,
           loginTime: new Date().toISOString(),
         }),
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-      });
+        {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24, // 24h
+        }
+      );
 
-      return response;
+      return res;
     }
 
-    // If no specific survey requested, return user data with assignments
-    const { otp: _, ...userData } = user;
-
-    // Get user assignments for general login
-    const { getUserAssignments } = await import("../../../../db/queries/users");
-    const assignments = await getUserAssignments(user.id);
-
-    const response = NextResponse.json({
-      success: true,
+    // 4) No surveyId → just authenticate user and set session
+    const res = NextResponse.json({
+      ok: true,
+      assigned: false, // unknown without surveyId
+      hasSubmitted: false, // unknown without surveyId
+      surveyId: null,
+      survey: null,
       user: {
-        ...userData,
-        assignments: assignments.map((assignment: any) => ({
-          surveyId: assignment.assignment.surveyId,
-          surveyTitle: assignment.survey.title,
-          status: assignment.assignment.status,
-          dueAt: assignment.assignment.dueAt,
-        })),
+        id: userData.id,
+        email: userData.email,
+        phone: userData.phone,
+      },
+      message:
+        "User authenticated successfully. Provide surveyId to check assignment.",
+      // ✅ NEW: Access status for no surveyId
+      access: {
+        assigned: false,
+        hasSubmitted: false,
+        canAccess: false,
+        reason: "no-survey-id",
+        message: "Survey ID required to check access.",
       },
     });
 
-    // Set session cookie with short expiry (closes when browser closes)
-    response.cookies.set({
-      name: "user_session",
-      value: JSON.stringify({
-        ...userData,
-        assignments: assignments.map((assignment: any) => ({
-          surveyId: assignment.assignment.surveyId,
-          surveyTitle: assignment.survey.title,
-          status: assignment.assignment.status,
-          dueAt: assignment.assignment.dueAt,
-        })),
+    res.cookies.set(
+      "user_session",
+      JSON.stringify({
+        id: userData.id,
+        email: userData.email,
+        phone: userData.phone,
         loginTime: new Date().toISOString(),
       }),
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-    });
+      {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 60 * 60 * 24, // 24h
+      }
+    );
 
-    return response;
+    return res;
   } catch (error) {
-    console.error("OTP verification error:", error);
+    console.error("❌ Error in /api/users/otp:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

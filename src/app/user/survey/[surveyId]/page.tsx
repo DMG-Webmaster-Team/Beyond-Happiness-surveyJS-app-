@@ -96,6 +96,7 @@ export default function UserSurvey() {
   const [mounted, setMounted] = useState(false);
   const [surveyLoadError, setSurveyLoadError] = useState(false);
   const [preloading, setPreloading] = useState(false);
+  // ✅ REMOVED: statusPageData - no longer needed with consolidated flow
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
@@ -104,6 +105,8 @@ export default function UserSurvey() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // ✅ REMOVED: Auth response checking - now handled in login flow
 
   // Handle chunk loading errors
   useEffect(() => {
@@ -168,33 +171,94 @@ export default function UserSurvey() {
   // Check user session
   useEffect(() => {
     const checkSession = async () => {
+      // prevent setState on unmounted
+      let cancelled = false;
+      const cancel = () => {
+        cancelled = true;
+      };
       try {
-        const response = await fetch("/api/auth/check-session");
-        const data = await response.json();
+        // show loading immediately to avoid page flash
+        setLoading(true);
+        setError("");
 
-        if (!data.isAuthenticated) {
-          router.push(`/user/login?redirect=${surveyId}`);
+        const res = await fetch("/api/auth/check-session", {
+          method: "GET",
+          credentials: "include", // important if using cookies
+          headers: { Accept: "application/json" },
+          cache: "no-store",
+        });
+
+        // Distinguish auth vs server failures
+        if (res.status === 401) {
+          // not authenticated → redirect with replace to avoid back-button loop
+          router.replace(
+            `/user/login?redirect=${encodeURIComponent(surveyId)}`
+          );
+          return cancel();
+        }
+        if (!res.ok) {
+          // server error → show friendly message and stop
+          setError("We couldn't verify your session. Please try again.");
           return;
         }
 
-        setUser(data.user);
+        const data = await res.json();
 
-        // Check if user is assigned to this survey
-        if (
-          !data.user.assignments ||
-          !data.user.assignments.some(
-            (a: { surveyId: string }) => a.surveyId === surveyId
-          )
-        ) {
+        console.log("🔍 Session check response for survey page:", {
+          isAuthenticated: data.isAuthenticated,
+          hasUser: !!data.user,
+          surveyId: surveyId,
+        });
+
+        // Defensive user shape
+        const userData = data?.user ?? null;
+        const assignments = Array.isArray(userData?.assignments)
+          ? userData.assignments
+          : [];
+
+        console.log(
+          "🔍 User assignments:",
+          assignments.map((a: any) => ({
+            surveyId: a.surveyId,
+            title: a.surveyTitle,
+            status: a.status,
+          }))
+        );
+
+        if (!userData) {
+          console.log("❌ No user data, redirecting to login");
+          router.replace(
+            `/user/login?redirect=${encodeURIComponent(surveyId)}`
+          );
+          return cancel();
+        }
+
+        // Assignment gate
+        const isAssigned = assignments.some(
+          (a: any) => a && String(a.surveyId) === String(surveyId)
+        );
+
+        console.log("🔍 Assignment check result:", {
+          isAssigned,
+          targetSurveyId: surveyId,
+          userAssignments: assignments.map((a: any) => a.surveyId),
+        });
+
+        if (!isAssigned) {
+          console.log("❌ User not assigned to this survey");
+          setUser(userData);
           setError("You are not assigned to this survey");
-          setLoading(false);
           return;
         }
 
-        setLoading(false);
-      } catch (error) {
-        console.error("Session check error:", error);
-        router.push(`/user/login?redirect=${surveyId}`);
+        console.log("✅ User is assigned, proceeding to survey");
+        setUser(userData);
+      } catch (err) {
+        console.error("Session check error:", err);
+        // On network errors, go to login but use replace to avoid flicker/history clutter
+        router.replace(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
@@ -254,35 +318,11 @@ export default function UserSurvey() {
     }
   }, [fetchError]);
 
-  // Check if user has already submitted this survey after survey data is loaded
-  useEffect(() => {
-    if (
-      user &&
-      survey &&
-      user.assignments &&
-      user.assignments.some(
-        (a: { surveyId: string }) => a.surveyId === surveyId
-      )
-    ) {
-      // Check if user has already submitted this survey by querying the results table
-      const checkSubmission = async () => {
-        try {
-          const response = await fetch(
-            `/api/results?surveyId=${surveyId}&userId=${user.id}`
-          );
-          if (response.ok) {
-            const data = await response.json();
-            if (data.results && data.results.length > 0) {
-              setSurveySubmitted(true);
-            }
-          }
-        } catch (error) {
-          console.error("Error checking submission status:", error);
-        }
-      };
-      checkSubmission();
-    }
-  }, [user, survey, surveyId]);
+  // ✅ REMOVED: Redundant submission check
+  // The hasSubmitted status should be determined during the OTP login flow
+  // and enforced by the login page. The UserSurvey component should only
+  // handle the survey display and submission, not check submission status.
+  // This eliminates the race condition and inconsistency issues.
 
   const handleSurveyComplete = async (sender: any) => {
     if (!user || !survey) return;
@@ -318,8 +358,25 @@ export default function UserSurvey() {
 
         // Auto-logout after 5 seconds for completed surveys
         setTimeout(() => {
-          fetch("/api/auth/logout", { method: "POST" })
-            .then(() => router.push("/user/login"))
+          fetch("/api/auth/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ surveyId }),
+          })
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.redirect) {
+                router.push(data.redirect);
+              } else {
+                const fallbackRedirect =
+                  sessionStorage.getItem("redirectSurveyId");
+                if (fallbackRedirect) {
+                  router.push(`/user/login?redirect=${fallbackRedirect}`);
+                } else {
+                  router.push("/user/login");
+                }
+              }
+            })
             .catch(console.error);
         }, 5000);
       } else {
@@ -341,6 +398,8 @@ export default function UserSurvey() {
       surveyModel.clear();
     }
   };
+
+  // ✅ REMOVED: Status page handling - now handled by dedicated routes
 
   if (loading) {
     return (
@@ -499,30 +558,11 @@ export default function UserSurvey() {
     );
   }
 
-  // Check if user has already submitted (for one-time surveys)
-  if (survey && !survey.canTakeMultiple && user) {
-    const hasSubmittedThisSurvey = user.assignments.some(
-      (assignment) => assignment.surveyId === surveyId
-    );
-    if (hasSubmittedThisSurvey) {
-      return (
-        <div className="min-h-screen bg-gray-50">
-          <UserNavbar />
-          <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-            <div className="text-center">
-              <div className="text-red-600 text-xl mb-4">
-                You have already submitted this survey
-              </div>
-              <p className="text-gray-600">
-                This survey can only be completed once and you have already
-                submitted it.
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    }
-  }
+  // ✅ REMOVED: Incorrect submission check logic
+  // The previous logic was checking if user has an assignment and incorrectly
+  // assuming that means they've submitted. Assignment != Submission!
+  // Submission status should be checked during the OTP login flow and
+  // users should be blocked at the login page, not here.
 
   return (
     <div className="min-h-screen bg-gray-50">

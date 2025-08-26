@@ -104,10 +104,10 @@ export default function UserImport() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `email,name,companyId
-user1@example.com,John Doe,
-user2@example.com,Jane Smith,
-user3@example.com,Bob Johnson,`;
+    const csvContent = `email,name,phone,companyId
+user1@example.com,John Doe,+201234567890,
+user2@example.com,Jane Smith,+201234567891,
+user3@example.com,Bob Johnson,+201234567892,`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);

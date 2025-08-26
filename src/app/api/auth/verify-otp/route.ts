@@ -1,82 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyOTP } from "../../../../lib/services/otp-service";
-import { z } from "zod";
 
-// Validation schema - support both formats
-const verifyOTPSchema = z
-  .object({
-    identifier: z.string().min(1, "Email or phone is required").optional(),
-    email: z.string().email().optional(),
-    phone: z.string().optional(),
-    otp: z.string().length(6, "OTP must be 6 digits"),
-  })
-  .refine(
-    (data) => {
-      // Must have either identifier OR (email OR phone)
-      return data.identifier || data.email || data.phone;
-    },
-    {
-      message: "Either identifier or email/phone is required",
-    }
-  );
-
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    const body = await req.json();
+    console.log("🔍 /api/auth/verify-otp received:", body);
 
-    // Validate request body
-    const validation = verifyOTPSchema.safeParse(body);
-    if (!validation.success) {
+    const { identifier, otp } = body;
+
+    if (!identifier || !otp) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request data",
-          details: validation.error.issues,
-        },
+        { verified: false, error: "Identifier and OTP are required" },
         { status: 400 }
       );
     }
 
-    const { identifier, email, phone, otp } = validation.data;
-
-    // Determine the identifier to use
-    const actualIdentifier = identifier || email || phone;
-    if (!actualIdentifier) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "No valid identifier provided",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Verify OTP
-    const result = await verifyOTP(actualIdentifier, otp);
+    const result = await verifyOTP(identifier, otp);
 
     if (result.valid) {
-      return NextResponse.json({
-        success: true,
-        message: result.message,
-        verified: true,
-      });
+      return NextResponse.json({ verified: true });
     } else {
       return NextResponse.json(
-        {
-          success: false,
-          error: result.message,
-          verified: false,
-        },
-        { status: 400 }
+        { verified: false, error: result.message },
+        { status: 401 }
       );
     }
   } catch (error) {
-    console.error("❌ Error in verify-otp endpoint:", error);
+    console.error("Error in verify-otp:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error",
-      },
+      { verified: false, error: "Internal server error" },
       { status: 500 }
     );
   }

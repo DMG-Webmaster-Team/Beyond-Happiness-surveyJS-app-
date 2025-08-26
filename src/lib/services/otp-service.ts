@@ -1,48 +1,152 @@
 import nodemailer from "nodemailer";
 import twilio from "twilio";
-import {
-  createOTP,
-  verifyOTP as verifyOTPDB,
-  getOTP,
-  cleanupExpiredOTPs as cleanupExpiredOTPsDB,
-} from "../../db/queries/otps";
+import { db } from "../../db/client";
+import { users } from "../../db/schema";
+import { eq, sql } from "drizzle-orm";
 
 // OTP Configuration
 const OTP_LENGTH = 6;
-const OTP_EXPIRY_MINUTES = 30; // Increased to 30 minutes for testing
+const OTP_EXPIRY_MINUTES = 30;
 const MAX_OTP_ATTEMPTS = 3;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
-const MAX_OTP_PER_WINDOW = 3;
 
-// Rate limiting storage (keep in memory for performance)
-const rateLimitStore = new Map<
-  string,
-  {
-    lastSentAt: number;
-    countInWindow: number;
-    windowStart: number;
+// Rate limiting storage
+const rateLimitStore = new Map<string, { count: number; lastSentAt: number }>();
+
+// Generate a random 6-digit OTP
+const generateOTP = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Check rate limiting
+const checkRateLimit = (identifier: string): boolean => {
+  const now = Date.now();
+  const record = rateLimitStore.get(identifier);
+
+  if (!record) {
+    rateLimitStore.set(identifier, { count: 1, lastSentAt: now });
+    return true;
   }
->();
 
-// Email transporter configuration
-const createEmailTransporter = async () => {
-  // Check if we have proper Gmail credentials
-  if (
-    !process.env.EMAIL_USER ||
-    !process.env.EMAIL_PASS ||
-    process.env.EMAIL_USER === "your-email@gmail.com" ||
-    process.env.EMAIL_PASS === "your-app-password" ||
-    process.env.EMAIL_PASS === "YOUR_GMAIL_APP_PASSWORD" ||
-    !process.env.EMAIL_USER.includes("@gmail.com") // Ensure it's a Gmail address
-  ) {
-    console.log("⚠️ Gmail credentials not configured, using test mode");
+  // Reset if outside window
+  if (now - record.lastSentAt > RATE_LIMIT_WINDOW_MS) {
+    record.count = 1;
+    record.lastSentAt = now;
+    return true;
+  }
+
+  // Check if within limit
+  if (record.count >= 3) {
+    return false;
+  }
+
+  record.count++;
+  record.lastSentAt = now;
+  return true;
+};
+
+// Helper function to determine if identifier is email
+const isEmail = (id: string) => id.includes("@");
+
+// Store OTP in users table only
+export async function storeOTP(identifier: string, otp: string) {
+  try {
+    console.log(`🔐 Storing OTP in users table for ${identifier}: ${otp}`);
+
+    const where = isEmail(identifier)
+      ? eq(users.email, identifier)
+      : eq(users.phone, identifier.replace(/\s+/g, ""));
+
+    // Store OTP with current timestamp - use updatedAt (Drizzle column name)
+    const result = await db
+      .update(users)
+      .set({
+        otp: otp,
+        updatedAt: Date.now(),
+      })
+      .where(where);
+
+    console.log(`✅ OTP stored successfully in users table for ${identifier}`);
+    console.log(`📊 Database update result:`, result);
+  } catch (error) {
+    console.error(`❌ Failed to store OTP in users table:`, error);
+    throw error;
+  }
+}
+
+// Get OTP row from users table
+export async function getOTPRow(identifier: string) {
+  try {
+    const where = isEmail(identifier)
+      ? eq(users.email, identifier)
+      : eq(users.phone, identifier.replace(/\s+/g, ""));
+
+    const row = await db
+      .select({
+        otp: users.otp,
+        updatedAt: users.updatedAt,
+        email: users.email,
+        phone: users.phone,
+      })
+      .from(users)
+      .where(where)
+      .limit(1);
+
+    console.log(
+      `🔍 Retrieved OTP row for ${identifier}:`,
+      row[0] || "Not found"
+    );
+    return row[0] ?? null;
+  } catch (error) {
+    console.error(`❌ Error getting OTP row:`, error);
     return null;
   }
+}
 
-  // Use Gmail SMTP configuration
-  console.log(`🔧 Creating Gmail transporter for: ${process.env.EMAIL_USER}`);
-
+// Clear OTP from users table
+export async function clearOTP(identifier: string) {
   try {
+    const where = isEmail(identifier)
+      ? eq(users.email, identifier)
+      : eq(users.phone, identifier.replace(/\s+/g, ""));
+
+    const result = await db
+      .update(users)
+      .set({
+        otp: null,
+        updatedAt: Date.now(),
+      })
+      .where(where);
+
+    console.log(` Cleared OTP for ${identifier}`);
+    console.log(`📊 Clear result:`, result);
+  } catch (error) {
+    console.error(`❌ Error clearing OTP:`, error);
+    throw error;
+  }
+}
+
+// Send OTP via Email
+const sendOTPEmail = async (
+  email: string,
+  otp: string,
+  surveyTitle?: string
+): Promise<boolean> => {
+  try {
+    // Check if email is configured
+    if (
+      !process.env.EMAIL_USER ||
+      !process.env.EMAIL_PASS ||
+      process.env.EMAIL_USER === "your-email@gmail.com" ||
+      process.env.EMAIL_PASS === "your-app-password" ||
+      process.env.EMAIL_PASS === "YOUR_GMAIL_APP_PASSWORD" ||
+      !process.env.EMAIL_USER.includes("@gmail.com")
+    ) {
+      console.log(`📧 Email not configured - cannot send OTP to ${email}`);
+      console.log(` Add EMAIL_USER and EMAIL_PASS to your .env.local file`);
+      return false;
+    }
+
     const transporter = nodemailer.createTransport({
       host: "smtp.gmail.com",
       port: 587,
@@ -54,193 +158,7 @@ const createEmailTransporter = async () => {
       tls: {
         rejectUnauthorized: false,
       },
-      debug: true, // Enable debug output for troubleshooting
     });
-
-    // Test the connection
-    await transporter.verify();
-    console.log("✅ Gmail SMTP connection verified successfully");
-    return transporter;
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.log(`❌ Gmail SMTP connection failed: ${errorMessage}`);
-
-    // Check for specific Gmail authentication errors
-    if (errorMessage.includes("Invalid login")) {
-      console.log("🚨 Gmail authentication failed");
-      console.log(
-        "💡 Make sure you're using an App Password, not your regular password"
-      );
-      console.log("🔗 Visit: https://myaccount.google.com/apppasswords");
-    }
-
-    return null;
-  }
-};
-
-// Alternative Gmail configurations if the main one fails
-const createAlternativeEmailTransporter = async () => {
-  // Try different Gmail SMTP configurations
-  const configs = [
-    {
-      name: "Gmail SSL",
-      host: "smtp.gmail.com",
-      port: 465,
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    },
-    {
-      name: "Gmail TLS",
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    },
-  ];
-
-  // Try each configuration
-  for (const config of configs) {
-    try {
-      const transporter = nodemailer.createTransport(config);
-      // Test the connection - verify() is async
-      await transporter.verify();
-      console.log(
-        `✅ Alternative transporter created successfully with ${config.name}`
-      );
-      return transporter;
-    } catch (error) {
-      console.log(
-        `⚠️ Failed to create transporter with ${config.name}:`,
-        error instanceof Error ? error.message : String(error)
-      );
-      continue;
-    }
-  }
-
-  return null;
-};
-
-// Twilio client configuration
-const createTwilioClient = () => {
-  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
-    return null;
-  }
-
-  return twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-};
-
-// Generate random OTP
-export const generateOTP = (): string => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
-
-// Check rate limiting
-const checkRateLimit = (identifier: string): boolean => {
-  const now = Date.now();
-  const record = rateLimitStore.get(identifier);
-
-  if (!record) {
-    rateLimitStore.set(identifier, {
-      lastSentAt: now,
-      countInWindow: 1,
-      windowStart: now,
-    });
-    return true;
-  }
-
-  // Reset window if expired
-  if (now - record.windowStart > RATE_LIMIT_WINDOW_MS) {
-    record.windowStart = now;
-    record.countInWindow = 0;
-  }
-
-  // Check attempts within window
-  if (record.countInWindow >= MAX_OTP_PER_WINDOW) {
-    return false;
-  }
-
-  // Check overall attempts (now handled in database)
-  // if (record.attempts >= MAX_OTP_ATTEMPTS) {
-  //   return false;
-  // }
-
-  return true;
-};
-
-// Store OTP in database
-const storeOTP = async (
-  identifier: string,
-  otp: string,
-  method: "email" | "sms",
-  surveyTitle?: string
-): Promise<void> => {
-  try {
-    console.log(`🔐 Storing OTP in database for ${identifier}: ${otp}`);
-    console.log(`⏰ Expires in: ${OTP_EXPIRY_MINUTES} minutes`);
-
-    await createOTP({
-      identifier,
-      otp,
-      method,
-      surveyTitle,
-      expiryMinutes: OTP_EXPIRY_MINUTES,
-    });
-
-    console.log(`✅ OTP stored successfully in database`);
-  } catch (error) {
-    console.error(`❌ Failed to store OTP in database:`, error);
-    throw error;
-  }
-};
-
-// Send OTP via Email
-export const sendOTPEmail = async (
-  email: string,
-  otp: string,
-  surveyTitle?: string
-): Promise<boolean> => {
-  try {
-    let transporter = await createEmailTransporter();
-
-    // If main transporter fails, try alternative configurations
-    if (!transporter) {
-      console.log("⚠️ Main Gmail configuration failed, trying alternatives...");
-      transporter = await createAlternativeEmailTransporter();
-    }
-
-    // Log what we're using
-    if (transporter) {
-      console.log("✅ Email transporter created successfully");
-    } else {
-      console.log(
-        "❌ No email transporter available, falling back to test mode"
-      );
-    }
-
-    // If no transporter (test mode), just log the OTP
-    if (!transporter) {
-      console.log(`🔐 [TEST MODE] OTP for ${email}: ${otp}`);
-      console.log(
-        `📧 Email would be sent with subject: ${
-          surveyTitle
-            ? `Survey Access Code - ${surveyTitle}`
-            : "Your Survey Access Code"
-        }`
-      );
-      return true; // Return true in test mode
-    }
 
     const mailOptions = {
       from: process.env.EMAIL_USER || "noreply@surveyjs.com",
@@ -270,7 +188,7 @@ export const sendOTPEmail = async (
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`✅ OTP email sent to ${email}`);
+    console.log(`📧 OTP email sent successfully to ${email}`);
     return true;
   } catch (error) {
     console.error(`❌ Failed to send OTP email to ${email}:`, error);
@@ -279,29 +197,30 @@ export const sendOTPEmail = async (
 };
 
 // Send OTP via SMS
-export const sendOTPSMS = async (
+const sendOTPSMS = async (
   phone: string,
   otp: string,
   surveyTitle?: string
 ): Promise<boolean> => {
   try {
-    const client = createTwilioClient();
-    if (!client) {
+    // Check if Twilio is configured
+    if (
+      !process.env.TWILIO_ACCOUNT_SID ||
+      !process.env.TWILIO_AUTH_TOKEN ||
+      !process.env.TWILIO_PHONE_NUMBER ||
+      process.env.TWILIO_ACCOUNT_SID === "your-account-sid" ||
+      process.env.TWILIO_AUTH_TOKEN === "your-auth-token" ||
+      process.env.TWILIO_PHONE_NUMBER === "your-twilio-phone-number"
+    ) {
       console.log(`📱 Twilio not configured - cannot send SMS to ${phone}`);
-      console.log(
-        `💡 To enable SMS, configure TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env.local`
-      );
+      console.log(`💡 Add TWILIO credentials to your .env.local file`);
       return false;
     }
 
-    // Check if Twilio phone number is configured
-    if (!process.env.TWILIO_PHONE_NUMBER) {
-      console.log(
-        `📱 Twilio phone number not configured - cannot send SMS to ${phone}`
-      );
-      console.log(`💡 Add TWILIO_PHONE_NUMBER to your .env.local file`);
-      return false;
-    }
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
 
     const message = await client.messages.create({
       body: `Your survey access code is: ${otp}. Expires in ${OTP_EXPIRY_MINUTES} minutes.${
@@ -311,46 +230,36 @@ export const sendOTPSMS = async (
       to: phone,
     });
 
-    console.log(`✅ OTP SMS sent to ${phone}, SID: ${message.sid}`);
+    console.log(`📱 OTP SMS sent successfully to ${phone}: ${message.sid}`);
     return true;
-  } catch (error) {
+  } catch (error: any) {
     console.error(`❌ Failed to send OTP SMS to ${phone}:`, error);
-
-    // Provide specific error information
-    if (error instanceof Error) {
-      if (error.message.includes("not a valid phone number")) {
-        console.log(`📱 Invalid phone number format: ${phone}`);
-      } else if (error.message.includes("not verified")) {
-        console.log(`📱 Phone number not verified in Twilio: ${phone}`);
-      } else if (error.message.includes("insufficient funds")) {
-        console.log(`📱 Twilio account has insufficient funds`);
-      }
-    }
-
     return false;
   }
 };
 
-// Send OTP with smart fallback
+// Main function to send OTP
 export const sendOTP = async (
   identifier: string,
   method: "email" | "sms" | "both" = "both",
   surveyTitle?: string
 ): Promise<{
   success: boolean;
+  error?: string;
   method: "email" | "sms" | "none";
   message: string;
-  otp?: string; // Optional OTP for test mode
+  otp?: string;
 }> => {
   try {
     console.log(`🚀 Starting OTP send for identifier: "${identifier}"`);
-    console.log(`🔑 Identifier type: ${typeof identifier}`);
+    console.log(`🔑 Method requested: ${method}`);
     console.log(`📧 Is email: ${identifier.includes("@")}`);
 
     // Check rate limiting
     if (!checkRateLimit(identifier)) {
       return {
         success: false,
+        error: "Too many OTP requests. Please wait before trying again.",
         method: "none",
         message: "Too many OTP requests. Please wait before trying again.",
       };
@@ -358,17 +267,19 @@ export const sendOTP = async (
 
     // Generate OTP
     const otp = generateOTP();
+    console.log(`🔐 Generated OTP: ${otp}`);
 
-    // Determine identifier type and method
-    const isEmail = identifier.includes("@");
-    const isPhone = /^\+?[\d\s\-\(\)]+$/.test(identifier);
+    // Determine if identifier is email or phone
+    const isEmailIdentifier = identifier.includes("@");
+    const isPhone =
+      !isEmailIdentifier && identifier.replace(/\D/g, "").length >= 7;
 
     let emailSuccess = false;
     let smsSuccess = false;
 
-    // Send based on method preference
+    // Send OTP based on method and identifier type
     if (method === "email" || method === "both") {
-      if (isEmail) {
+      if (isEmailIdentifier) {
         emailSuccess = await sendOTPEmail(identifier, otp, surveyTitle);
       }
     }
@@ -381,7 +292,7 @@ export const sendOTP = async (
 
     // Fallback logic - only try email fallback if the identifier is actually an email
     if (!emailSuccess && !smsSuccess) {
-      if (isEmail) {
+      if (isEmailIdentifier) {
         // Retry email if it's an email address
         emailSuccess = await sendOTPEmail(identifier, otp, surveyTitle);
       } else if (isPhone && !smsSuccess) {
@@ -397,23 +308,18 @@ export const sendOTP = async (
     if (emailSuccess || smsSuccess) {
       console.log(`💾 About to store OTP for identifier: "${identifier}"`);
       const method = emailSuccess ? "email" : "sms";
-      await storeOTP(identifier, otp, method, surveyTitle);
 
-      // Check if we're in test mode (no real email credentials)
-      const isTestMode =
-        !process.env.EMAIL_USER ||
-        !process.env.EMAIL_PASS ||
-        process.env.EMAIL_USER === "your-email@gmail.com" ||
-        process.env.EMAIL_PASS === "your-app-password" ||
-        process.env.EMAIL_PASS === "YOUR_16_CHAR_APP_PASSWORD_HERE";
+      // Store OTP in users table
+      await storeOTP(identifier, otp);
+      console.log(`✅ OTP stored successfully for ${identifier}`);
 
       return {
         success: true,
-        method: emailSuccess ? "email" : "sms",
+        method,
         message: emailSuccess
           ? `OTP sent successfully via email`
           : `OTP sent successfully via ${emailSuccess ? "email" : "sms"}`,
-        otp: isTestMode ? otp : undefined, // Include OTP in test mode
+        otp: process.env.NODE_ENV === "development" ? otp : undefined,
       };
     }
 
@@ -421,13 +327,17 @@ export const sendOTP = async (
     if (isPhone && !smsSuccess) {
       return {
         success: false,
+        error:
+          "SMS service is not configured. Please use an email address or contact support to enable SMS.",
         method: "none",
         message:
           "SMS service is not configured. Please use an email address or contact support to enable SMS.",
       };
-    } else if (isEmail && !emailSuccess) {
+    } else if (isEmailIdentifier && !emailSuccess) {
       return {
         success: false,
+        error:
+          "Failed to send OTP via email. Please check your email address and try again.",
         method: "none",
         message:
           "Failed to send OTP via email. Please check your email address and try again.",
@@ -435,94 +345,170 @@ export const sendOTP = async (
     } else {
       return {
         success: false,
+        error: "Failed to send OTP via any method. Please try again later.",
         method: "none",
         message: "Failed to send OTP via any method. Please try again later.",
       };
     }
   } catch (error) {
-    console.error("❌ Error sending OTP:", error);
+    console.error(`❌ Error in sendOTP:`, error);
     return {
       success: false,
+      error: "An error occurred while sending OTP. Please try again.",
       method: "none",
       message: "An error occurred while sending OTP. Please try again.",
     };
   }
 };
 
-// Verify OTP using database
+// Verify OTP from users table
 export const verifyOTP = async (
   identifier: string,
-  otp: string
+  input: string
 ): Promise<{
   valid: boolean;
   message: string;
+  record?: any;
 }> => {
-  console.log(`🔍 Verifying OTP for ${identifier}: ${otp}`);
-
   try {
-    const result = await verifyOTPDB(identifier, otp);
-    console.log(`✅ OTP verification result:`, result);
-    return result;
+    console.log(`🔍 Verifying OTP for ${identifier}: ${input}`);
+
+    const row = await getOTPRow(identifier);
+    if (!row?.otp) {
+      console.log(`❌ No OTP found for ${identifier}`);
+      return { valid: false, message: "OTP expired or not found." };
+    }
+
+    console.log(`✅ OTP row found:`, {
+      hasOtp: !!row.otp,
+      updatedAt: row.updatedAt,
+      email: row.email,
+      phone: row.phone,
+    });
+
+    // Check if expired (30 minutes from updatedAt)
+    const expiryTime =
+      (row.updatedAt || Date.now()) + OTP_EXPIRY_MINUTES * 60 * 1000;
+    const now = Date.now();
+
+    console.log(`⏰ OTP expiry check:`, {
+      now: new Date(now).toISOString(),
+      expiryTime: new Date(expiryTime).toISOString(),
+      isExpired: now > expiryTime,
+      timeRemaining: Math.round((expiryTime - now) / 1000 / 60),
+    });
+
+    if (now > expiryTime) {
+      console.log(`⏰ OTP expired for ${identifier}, clearing it`);
+      await clearOTP(identifier);
+      return {
+        valid: false,
+        message: "OTP has expired. Please request a new one.",
+      };
+    }
+
+    // Verify OTP
+    if (row.otp !== input) {
+      console.log(
+        `❌ OTP mismatch for ${identifier}: expected ${row.otp}, got ${input}`
+      );
+      return { valid: false, message: "Invalid OTP. Please try again." };
+    }
+
+    console.log(`✅ OTP verified successfully for ${identifier}, clearing it`);
+    await clearOTP(identifier);
+    return { valid: true, message: "OTP verified successfully!" };
   } catch (error) {
-    console.error(`❌ Error verifying OTP:`, error);
+    console.error("Error verifying OTP:", error);
     return {
       valid: false,
-      message: "An error occurred during verification. Please try again.",
+      message: "Error verifying OTP. Please try again.",
     };
   }
 };
 
-// Get OTP status from database
+// Get OTP status
 export const getOTPStatus = async (
   identifier: string
 ): Promise<{
   exists: boolean;
-  attempts: number;
-  expiresAt: number | null;
+  attempts?: number;
+  expiresAt?: number;
 }> => {
   try {
-    const record = await getOTP(identifier);
+    const record = await getOTPRow(identifier);
 
-    if (!record) {
+    if (!record || !record.otp) {
       return {
         exists: false,
         attempts: 0,
-        expiresAt: null,
+        expiresAt: undefined,
       };
     }
 
     return {
       exists: true,
-      attempts: record.attempts || 0,
-      expiresAt: record.expiresAt || null,
+      attempts: 0, // Not tracked in users table
+      expiresAt:
+        (record.updatedAt || Date.now()) + OTP_EXPIRY_MINUTES * 60 * 1000,
     };
   } catch (error) {
-    console.error(`❌ Error getting OTP status:`, error);
+    console.error("Error getting OTP status:", error);
     return {
       exists: false,
       attempts: 0,
-      expiresAt: null,
+      expiresAt: undefined,
     };
   }
 };
 
-// Clean up expired OTPs from database
+// Clean up expired OTPs from users table
 export const cleanupExpiredOTPs = async (): Promise<number> => {
   try {
-    const cleanedCount = await cleanupExpiredOTPsDB();
-    console.log(`🧹 Cleaned up ${cleanedCount} expired OTPs from database`);
+    const now = Date.now();
+    const expiryTime = now - OTP_EXPIRY_MINUTES * 60 * 1000;
+
+    console.log(`🧹 Starting cleanup of expired OTPs`);
+    console.log(`⏰ Current time: ${new Date(now).toISOString()}`);
+    console.log(`⏰ Expiry threshold: ${new Date(expiryTime).toISOString()}`);
+
+    // Find users with OTPs
+    const usersWithOTPs = await db
+      .select({
+        id: users.id,
+        email: users.email,
+        otp: users.otp,
+        updatedAt: users.updatedAt,
+      })
+      .from(users)
+      .where(sql`${users.otp} IS NOT NULL`);
+
+    console.log(`📊 Found ${usersWithOTPs.length} users with OTPs`);
+
+    let cleanedCount = 0;
+    for (const user of usersWithOTPs) {
+      const userExpiryTime =
+        (user.updatedAt || now) + OTP_EXPIRY_MINUTES * 60 * 1000;
+      if (now > userExpiryTime) {
+        await db.update(users).set({ otp: null }).where(eq(users.id, user.id));
+        cleanedCount++;
+        console.log(`🧹 Cleared expired OTP for user: ${user.email}`);
+      }
+    }
+
+    console.log(`✅ Cleaned up ${cleanedCount} expired OTPs from users table`);
     return cleanedCount;
   } catch (error) {
-    console.error(`❌ Error cleaning up expired OTPs:`, error);
+    console.error("Error cleaning up expired OTPs:", error);
     return 0;
   }
 };
 
-// Run cleanup every 5 minutes
+// Run cleanup every 30 minutes to avoid clearing active OTPs
 setInterval(async () => {
   try {
     await cleanupExpiredOTPs();
   } catch (error) {
     console.error(`❌ Error in cleanup interval:`, error);
   }
-}, 5 * 60 * 1000);
+}, 30 * 60 * 1000);

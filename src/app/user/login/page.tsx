@@ -27,70 +27,88 @@ export default function UserLogin() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [authStep, setAuthStep] = useState<
-    "contact" | "otp" | "authenticating" | "redirecting"
+    "contact" | "otp" | "verifying-access" | "redirecting"
   >("contact");
   const [testModeOTP, setTestModeOTP] = useState(""); // For displaying OTP in test mode
+  const [stableSurveyId, setStableSurveyId] = useState<string | null>(null);
+
   const router = useRouter();
   const searchParams = useSearchParams();
-  const surveyId = searchParams.get("redirect");
 
   // Clear any existing session when arriving at login
   useEffect(() => {
     fetch("/api/auth/logout", { method: "POST" }).catch(console.error);
   }, []);
 
-  // Function to detect input type and format phone numbers
+  // Capture/normalize surveyId once and persist it as redirectSurveyId
+  useEffect(() => {
+    const sid =
+      searchParams.get("surveyId") ??
+      searchParams.get("redirect") ??
+      sessionStorage.getItem("redirectSurveyId");
+
+    if (sid) {
+      setStableSurveyId(sid);
+      sessionStorage.setItem("redirectSurveyId", sid);
+      console.log("✅ Stable surveyId stored:", sid);
+    } else {
+      // Try to get from legacy surveyId key
+      const legacySid = sessionStorage.getItem("surveyId");
+      if (legacySid) {
+        setStableSurveyId(legacySid);
+        sessionStorage.setItem("redirectSurveyId", legacySid);
+        sessionStorage.removeItem("surveyId"); // Clean up legacy key
+        console.log(
+          "✅ Migrated legacy surveyId to redirectSurveyId:",
+          legacySid
+        );
+      } else {
+        console.warn("⚠️ No surveyId found in URL or sessionStorage");
+      }
+    }
+
+    // Debug logging
+    console.log(
+      "🔍 URL search params:",
+      Object.fromEntries(searchParams.entries())
+    );
+    console.log("🔍 stableSurveyId resolved:", sid);
+    console.log(
+      "🔍 Full URL:",
+      typeof window !== "undefined" ? window.location.href : ""
+    );
+  }, [searchParams]);
+
+  // Detect input type
   const detectInputType = (input: string): "email" | "phone" | "unknown" => {
-    if (input.includes("@")) {
-      return "email";
-    }
-
-    // Remove all non-digit characters and check if it's a phone number
+    if (input.includes("@")) return "email";
     const digitsOnly = input.replace(/\D/g, "");
-    if (digitsOnly.length >= 7 && digitsOnly.length <= 15) {
-      return "phone";
-    }
-
+    if (digitsOnly.length >= 7 && digitsOnly.length <= 15) return "phone";
     return "unknown";
   };
 
-  // Function to format phone number with Egyptian code
+  // Format phone to +20...
   const formatPhoneNumber = (input: string): string => {
     const digitsOnly = input.replace(/\D/g, "");
-
-    // If it already starts with +20, return as is
-    if (input.startsWith("+20")) {
-      return input;
-    }
-
-    // If it starts with 20, add +
-    if (digitsOnly.startsWith("20")) {
-      return `+${digitsOnly}`;
-    }
-
-    // If it starts with 0, replace with +20
-    if (digitsOnly.startsWith("0")) {
-      return `+20${digitsOnly.substring(1)}`;
-    }
-
-    // Default: add +20 prefix
+    if (input.startsWith("+20")) return input;
+    if (digitsOnly.startsWith("20")) return `+${digitsOnly}`;
+    if (digitsOnly.startsWith("0")) return `+20${digitsOnly.substring(1)}`;
     return `+20${digitsOnly}`;
   };
 
-  // Handle contact input changes
   const handleContactInputChange = (value: string) => {
     setContactInput(value);
     setInputType(detectInputType(value));
-    setError(""); // Clear any previous errors
+    setError("");
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!contactInput.trim()) {
       setError("Please enter your email or phone number");
       return;
     }
-
     if (inputType === "unknown") {
       setError("Please enter a valid email address or phone number");
       return;
@@ -100,13 +118,11 @@ export default function UserLogin() {
     setError("");
 
     try {
-      // Format the identifier based on input type
+      // Format identifier
       let identifier = contactInput;
-      if (inputType === "phone") {
-        identifier = formatPhoneNumber(contactInput);
-      }
+      if (inputType === "phone") identifier = formatPhoneNumber(contactInput);
 
-      // Store contact info temporarily
+      // Persist contact context for step 2
       sessionStorage.setItem(
         "userContact",
         JSON.stringify({
@@ -115,29 +131,22 @@ export default function UserLogin() {
         })
       );
 
-      // Send OTP via our service
-      const method = inputType === "email" ? "email" : "sms"; // Ensure valid method
-
-      // Debug: Log what we're sending
+      const method = inputType === "email" ? "email" : "sms";
       const requestData = {
         identifier,
         method,
-        surveyId: surveyId || undefined, // Ensure undefined instead of null
+        surveyId: stableSurveyId || undefined, // include if present
         surveyTitle: "Survey Access",
       };
-
-      // Clean the data - remove any null/undefined values
       const cleanRequestData = Object.fromEntries(
-        Object.entries(requestData).filter(([_, value]) => value != null)
+        Object.entries(requestData).filter(([, v]) => v != null)
       );
 
       console.log("🔍 Sending to /api/auth/send-otp:", cleanRequestData);
 
       const response = await fetch("/api/auth/send-otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(cleanRequestData),
       });
 
@@ -147,17 +156,14 @@ export default function UserLogin() {
         setOtpStep(true);
         setAuthStep("otp");
         setError("");
-
-        // Check if we're in test mode (no real email sent)
-        if (data.message && data.message.includes("test mode")) {
-          // Extract OTP from response if available
+        if (data.message && data.message.toLowerCase().includes("test mode")) {
           setTestModeOTP(data.otp || "Check server console for OTP");
         }
       } else {
         setError(data.error || "Failed to send OTP. Please try again.");
       }
-    } catch (error) {
-      console.error("Error sending OTP:", error);
+    } catch (err) {
+      console.error("Error sending OTP:", err);
       setError("Failed to send OTP. Please try again.");
     } finally {
       setLoading(false);
@@ -165,38 +171,29 @@ export default function UserLogin() {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return; // Only allow single digit
-
+    if (value.length > 1) return;
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
-
-    // Move to next input
     if (value && index < 5) {
       const nextInput = document.getElementById(
         `otp-${index + 1}`
-      ) as HTMLInputElement;
-      if (nextInput) nextInput.focus();
+      ) as HTMLInputElement | null;
+      nextInput?.focus();
     }
   };
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prevent double submission
-    if (loading || submitting) {
-      console.log("⚠️ Form already submitting, ignoring duplicate submission");
-      return;
-    }
+    if (loading || submitting) return;
 
     const otpString = otp.join("");
-
     if (otpString.length !== 6) {
       setError("Please enter the complete 6-digit OTP");
       return;
     }
 
-    // Check if user has completed the contact step
     const userContact = JSON.parse(
       sessionStorage.getItem("userContact") || "{}"
     );
@@ -206,36 +203,35 @@ export default function UserLogin() {
       return;
     }
 
+    if (!stableSurveyId) {
+      setError("Survey ID is missing. Please refresh the page and try again.");
+      setLoading(false);
+      setSubmitting(false);
+      return;
+    }
+
     setLoading(true);
     setSubmitting(true);
     setError("");
 
     try {
-      const userContact = JSON.parse(
-        sessionStorage.getItem("userContact") || "{}"
-      );
-
-      // Debug logging
       console.log("🔍 userContact:", userContact);
       console.log("🔍 inputType:", userContact.inputType);
       console.log("🔍 identifier:", userContact[userContact.inputType]);
       console.log("🔍 otp:", otpString);
-      console.log("🔍 surveyId:", surveyId);
+      console.log("🔍 stableSurveyId:", stableSurveyId);
 
       const requestBody = {
         [userContact.inputType]: userContact[userContact.inputType],
         otp: otpString,
-        surveyId, // Pass the requested survey ID
+        surveyId: stableSurveyId, // guaranteed by earlier guard
       };
-
       console.log("🔍 Request body:", requestBody);
 
-      // First verify OTP
+      // 1) Verify OTP
       const otpResponse = await fetch("/api/auth/verify-otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           identifier: userContact[userContact.inputType],
           otp: otpString,
@@ -243,60 +239,100 @@ export default function UserLogin() {
       });
 
       const otpData = await otpResponse.json();
-
       if (!otpResponse.ok || !otpData.verified) {
         setError(otpData.error || "Invalid OTP");
         return;
       }
 
-      // Show authenticating step
-      setAuthStep("authenticating");
-
-      // Now authenticate with the verified OTP (skip verification since already done)
+      // 2) Comprehensive access verification
+      setAuthStep("verifying-access");
       const response = await fetch("/api/users/otp", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...requestBody,
-          skipOtpVerification: true, // Skip OTP verification since already done
+          skipOtpVerification: true,
         }),
       });
 
       const data = await response.json();
 
-      if (response.status == 403) {
-        setError(data.error);
+      if (response.status === 403) {
+        setError(data.error || "Access denied");
         setAuthStep("contact");
-        setLoading(false);
-      } else if (response.ok) {
-        // Clear contact storage
-        sessionStorage.removeItem("userContact");
-
-        // Check if user has already submitted a one-time survey
-        if (data.user.hasSubmitted && !data.survey?.canTakeMultiple) {
-          setError("You have already submitted this survey");
-          return;
-        }
-
-        // Show redirecting step
-        setAuthStep("redirecting");
-
-        // Redirect to the appropriate survey
-        const targetSurveyId = surveyId || data.user.assignedSurveys[0];
-        if (targetSurveyId) {
-          // Add a small delay to show the redirecting state
-          setTimeout(() => {
-            router.push(`/user/survey/${targetSurveyId}`);
-          }, 1000);
-        } else {
-          setError("No survey assigned to this user");
-        }
-      } else {
-        setError(data.error || "Invalid OTP");
+        return;
       }
-    } catch (error) {
+
+      if (!response.ok) {
+        setError(data.error || "Invalid OTP");
+        return;
+      }
+
+      // Clear contact storage
+      sessionStorage.removeItem("userContact");
+
+      // Clear any previous errors
+      setError("");
+
+      console.log("🔍 API Response:", data);
+      console.log("🔍 Access verification complete:", data.access);
+
+      // ✅ ENHANCED: Handle access status and redirect appropriately
+      setAuthStep("redirecting");
+
+      const targetSurveyId = data.surveyId || stableSurveyId;
+      if (!targetSurveyId) {
+        setError("No survey ID found for redirection");
+        return;
+      }
+
+      // Clear any previous session data
+      sessionStorage.removeItem("authResponse");
+
+      // Redirect based on access status
+      setTimeout(() => {
+        try {
+          if (data.access.canAccess) {
+            // Direct access to survey
+            console.log("✅ Access granted - redirecting to survey");
+            router.push(`/user/survey/${targetSurveyId}`);
+          } else {
+            // Redirect to appropriate status page
+            console.log(`❌ Access denied: ${data.access.reason}`);
+            if (data.access.reason === "not-assigned") {
+              router.push(
+                `/user/status/not-assigned?surveyId=${encodeURIComponent(
+                  targetSurveyId
+                )}`
+              );
+            } else if (data.access.reason === "already-submitted") {
+              router.push(
+                `/user/status/already-submitted?surveyId=${encodeURIComponent(
+                  targetSurveyId
+                )}`
+              );
+            } else {
+              router.push(
+                `/user/status/access-denied?surveyId=${encodeURIComponent(
+                  targetSurveyId
+                )}`
+              );
+            }
+          }
+        } catch (err) {
+          console.error("❌ router.push failed:", err);
+          // Fallback to window.location
+          if (data.access.canAccess) {
+            window.location.href = `/user/survey/${targetSurveyId}`;
+          } else {
+            window.location.href = `/user/status/${
+              data.access.reason
+            }?surveyId=${encodeURIComponent(targetSurveyId)}`;
+          }
+        }
+      }, 1000);
+    } catch (err) {
+      console.error(err);
       setError("An error occurred during verification");
     } finally {
       setLoading(false);
@@ -322,22 +358,30 @@ export default function UserLogin() {
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             {authStep === "contact" && "Access Survey"}
             {authStep === "otp" && "Verify OTP"}
-            {authStep === "authenticating" && "Authenticating..."}
-            {authStep === "redirecting" && "Redirecting to Survey..."}
+            {authStep === "verifying-access" && "Verifying Access..."}
+            {authStep === "redirecting" && "Redirecting..."}
           </h2>
           <p className="text-gray-600 text-sm mb-8">
             {authStep === "contact" &&
               "Enter your contact information to access the survey"}
             {authStep === "otp" && "Enter the 6-digit OTP sent to your contact"}
-            {authStep === "authenticating" &&
-              "Verifying your credentials and checking survey access..."}
+            {authStep === "verifying-access" &&
+              "Checking your credentials and survey access permissions..."}
             {authStep === "redirecting" &&
-              "Preparing to redirect you to the survey..."}
+              "Taking you to the appropriate page..."}
           </p>
 
           {error && (
-            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg text-center">
+            <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg text-center mb-4">
               {error}
+            </div>
+          )}
+
+          {/* Optional notice if no surveyId yet */}
+          {!stableSurveyId && (
+            <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded">
+              Missing survey link. If this persists, please open the survey
+              invitation link again.
             </div>
           )}
 
@@ -348,28 +392,30 @@ export default function UserLogin() {
                 <div
                   className={`w-3 h-3 rounded-full ${
                     authStep === "otp" ||
-                    authStep === "authenticating" ||
+                    authStep === "verifying-access" ||
                     authStep === "redirecting"
                       ? "bg-green-500"
                       : "bg-gray-300"
                   }`}
-                ></div>
+                />
                 <div
                   className={`w-3 h-3 rounded-full ${
-                    authStep === "authenticating" || authStep === "redirecting"
+                    authStep === "verifying-access" ||
+                    authStep === "redirecting"
                       ? "bg-green-500"
                       : "bg-gray-300"
                   }`}
-                ></div>
+                />
                 <div
                   className={`w-3 h-3 rounded-full ${
                     authStep === "redirecting" ? "bg-green-500" : "bg-gray-300"
                   }`}
-                ></div>
+                />
               </div>
               <div className="text-xs text-gray-500">
                 {authStep === "otp" && "Step 1/3: OTP Sent"}
-                {authStep === "authenticating" && "Step 2/3: Verifying Access"}
+                {authStep === "verifying-access" &&
+                  "Step 2/3: Verifying Access"}
                 {authStep === "redirecting" && "Step 3/3: Redirecting"}
               </div>
             </div>
@@ -384,7 +430,7 @@ export default function UserLogin() {
                 </span>
               </div>
               <p className="text-yellow-700 text-sm mb-2">
-                Since email is not configured, here&apos;s your OTP:
+                Since email/SMS may not be configured, here&apos;s your OTP:
               </p>
               <div className="bg-white p-3 rounded border border-yellow-300 text-center">
                 <span className="text-2xl font-mono font-bold text-yellow-800 tracking-wider">
@@ -392,7 +438,7 @@ export default function UserLogin() {
                 </span>
               </div>
               <p className="text-yellow-600 text-xs mt-2">
-                In production, this would be sent to your email
+                In production, this would be sent to your email or phone.
               </p>
             </div>
           )}
@@ -457,12 +503,6 @@ export default function UserLogin() {
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg text-center">
-                {error}
-              </div>
-            )}
-
             <button
               type="submit"
               disabled={loading}
@@ -519,12 +559,6 @@ export default function UserLogin() {
               </div>
             </div>
 
-            {error && (
-              <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg text-center">
-                {error}
-              </div>
-            )}
-
             <div className="flex space-x-4">
               <button
                 type="button"
@@ -573,14 +607,14 @@ export default function UserLogin() {
               </button>
             </div>
           </form>
-        ) : authStep === "authenticating" ? (
+        ) : authStep === "verifying-access" ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-primary mx-auto mb-6"></div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Verifying Your Access
             </h3>
             <p className="text-gray-600 mb-4">
-              Please wait while we check your survey permissions
+              Checking your credentials and survey access permissions
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
@@ -593,10 +627,10 @@ export default function UserLogin() {
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-green-500 mx-auto mb-6"></div>
             <h3 className="text-lg font-medium text-green-600 mb-2">
-              Authentication Successful!
+              Access Verified!
             </h3>
             <p className="text-gray-600 mb-4">
-              Redirecting you to the survey...
+              Taking you to the appropriate page...
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
