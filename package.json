@@ -30,6 +30,7 @@
     "chart.js": "^4.5.0",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.4",
+    "fast-glob": "3.2.12",
     "jspdf": "^2.4.0",
     "jspdf-autotable": "^3.5.20",
     "lucide-react": "^0.539.0",
@@ -55,6 +56,7 @@
   },
   "devDependencies": {
     "@next/bundle-analyzer": "^15.4.6",
+    "@tailwindcss/postcss": "^4.1.12",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
@@ -63,8 +65,11 @@
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
     "postcss": "^8",
-    "tailwindcss": "^3.3.0",
+    "tailwindcss": "^4.1.12",
     "tsx": "^4.20.3",
     "typescript": "^5"
+  },
+  "overrides": {
+    "fast-glob": "3.2.12"
   }
 }

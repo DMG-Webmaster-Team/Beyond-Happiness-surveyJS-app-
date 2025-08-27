@@ -165,18 +165,24 @@ export async function POST(request: NextRequest) {
     }
 
     const canTakeMultiple = Boolean(survey.canTakeMultiple);
+    const isAnonymous = Boolean(survey.isAnonymous);
 
-    // Block duplicates only for one-time surveys
-    if (!canTakeMultiple && resultData.userId) {
-      const hasSubmitted = await hasUserSubmittedSurvey(
-        resultData.userId,
-        resultData.surveyId
-      );
-      if (hasSubmitted) {
-        return NextResponse.json(
-          { error: "Survey already submitted by this user" },
-          { status: 400 }
+    // ✅ NEW: Skip all restrictions for anonymous surveys
+    if (isAnonymous) {
+      console.log("🌐 Anonymous survey submission - bypassing restrictions");
+    } else {
+      // Block duplicates only for one-time surveys (non-anonymous only)
+      if (!canTakeMultiple && resultData.userId) {
+        const hasSubmitted = await hasUserSubmittedSurvey(
+          resultData.userId,
+          resultData.surveyId
         );
+        if (hasSubmitted) {
+          return NextResponse.json(
+            { error: "Survey already submitted by this user" },
+            { status: 400 }
+          );
+        }
       }
     }
 
@@ -188,8 +194,8 @@ export async function POST(request: NextRequest) {
       data: resultData.data || {},
     });
 
-    // Update user assignment status to "completed" when survey is submitted
-    if (resultData.userId) {
+    // Update user assignment status to "completed" when survey is submitted (non-anonymous only)
+    if (resultData.userId && !isAnonymous) {
       try {
         await updateAssignmentStatus(
           resultData.userId,

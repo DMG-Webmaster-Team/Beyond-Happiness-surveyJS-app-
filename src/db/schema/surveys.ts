@@ -12,6 +12,7 @@ export const surveys = sqliteTable(
     description: text("description"),
     definition: text("definition").notNull(), // SurveyJS JSON definition as text
     canTakeMultiple: integer("can_take_multiple").default(0), // Match actual DB column name
+    isAnonymous: integer("is_anonymous").default(0), // New: boolean field for anonymous surveys
     companyId: text("company_id"),
     companyName: text("company_name"),
     metadata: text("metadata"), // JSON string for additional data

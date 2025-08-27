@@ -10,6 +10,7 @@ export const createSurveySchema = z.object({
   definition: z.union([z.string(), z.any()]).optional(), // SurveyJS JSON as string or object
   json: z.union([z.string(), z.any()]).optional(), // Alternative field name for frontend compatibility
   canTakeMultiple: z.union([z.boolean(), z.number()]).default(false), // Accept both boolean and number
+  isAnonymous: z.union([z.boolean(), z.number()]).default(false),
   createdBy: z.string(),
   companyId: z.string().optional(),
   companyName: z.string().optional(),
@@ -22,6 +23,7 @@ export const updateSurveySchema = z
     definition: z.union([z.string(), z.any()]).optional(),
     json: z.union([z.string(), z.any()]).optional(),
     canTakeMultiple: z.union([z.boolean(), z.number()]).optional(),
+    isAnonymous: z.union([z.boolean(), z.number()]).optional(),
     companyId: z.string().optional(),
     companyName: z.string().optional(),
   })
@@ -55,6 +57,14 @@ export async function createSurvey(surveyData: any): Promise<Survey> {
         : 0
       : validatedData.canTakeMultiple;
 
+  // Convert boolean to integer for isAnonymous
+  const isAnonymous =
+    typeof validatedData.isAnonymous === "boolean"
+      ? validatedData.isAnonymous
+        ? 1
+        : 0
+      : validatedData.isAnonymous ?? 0;
+
   // Handle company information
   let companyName = null;
   let metadata = null;
@@ -79,6 +89,7 @@ export async function createSurvey(surveyData: any): Promise<Survey> {
     ...validatedData,
     definition: definitionString,
     canTakeMultiple,
+    isAnonymous,
     companyName,
     metadata,
   };
@@ -126,6 +137,16 @@ export async function updateSurvey(
           ? 1
           : 0
         : surveyData.canTakeMultiple;
+  }
+
+  // Convert boolean to integer for isAnonymous if present
+  if (surveyData.isAnonymous !== undefined) {
+    dataToUpdate.isAnonymous =
+      typeof surveyData.isAnonymous === "boolean"
+        ? surveyData.isAnonymous
+          ? 1
+          : 0
+        : surveyData.isAnonymous;
   }
 
   // Handle company information

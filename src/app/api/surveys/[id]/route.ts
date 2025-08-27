@@ -22,6 +22,7 @@ export async function GET(
       title: survey.title,
       description: survey.description,
       canTakeMultiple: survey.canTakeMultiple,
+      isAnonymous: survey.isAnonymous,
       createdAt: survey.createdAt, // Already ISO string format
       updatedAt: survey.updatedAt, // Already ISO string format
       adminId: survey.createdBy,
@@ -62,6 +63,7 @@ export async function PUT(
       description: updateData.description,
       definition: updateData.json,
       canTakeMultiple: updateData.canTakeMultiple,
+      isAnonymous: updateData.isAnonymous,
       companyId: updateData.companyId,
       companyName: updateData.companyName,
     });
@@ -76,6 +78,7 @@ export async function PUT(
       title: updatedSurvey.title,
       description: updatedSurvey.description,
       canTakeMultiple: updatedSurvey.canTakeMultiple,
+      isAnonymous: updatedSurvey.isAnonymous,
       createdAt: updatedSurvey.createdAt, // Already ISO string format
       updatedAt: updatedSurvey.updatedAt, // Already ISO string format
       adminId: updatedSurvey.createdBy,

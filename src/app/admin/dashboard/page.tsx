@@ -183,7 +183,7 @@ export default function AdminDashboard() {
           <div className="text-xl text-red-600 mb-4">Error: {error}</div>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-500"
           >
             Retry
           </button>
@@ -212,7 +212,7 @@ export default function AdminDashboard() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 href="/admin/creator"
-                className="inline-flex  items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
+                className="inline-flex  items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-700"
               >
                 Create New Survey
               </motion.a>
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
                               {survey.companyName && (
                                 <span className="mr-4">
                                   Company:{" "}
-                                  <span className="font-medium text-brand-primary">
+                                  <span className="font-medium text-blue-600">
                                     {survey.companyName}
                                   </span>
                                 </span>

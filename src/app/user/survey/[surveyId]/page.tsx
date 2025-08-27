@@ -8,6 +8,7 @@ import useSWR from "swr";
 import dynamic from "next/dynamic";
 import "survey-core/survey-core.css";
 import UserNavbar from "@/components/shared/UserNavbar";
+import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import PDFExportButton from "@/components/PDFExportButton";
 
 // Dynamically import Survey component to avoid SSR issues
@@ -41,7 +42,7 @@ const SurveyFallback = ({
         <div className="mt-4 space-x-3">
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             Try Again
           </button>
@@ -76,6 +77,7 @@ interface SurveyData {
   title: string;
   description: string;
   canTakeMultiple: boolean;
+  isAnonymous: boolean;
   adminId: string;
   json: any;
 }
@@ -96,15 +98,54 @@ export default function UserSurvey() {
   const [mounted, setMounted] = useState(false);
   const [surveyLoadError, setSurveyLoadError] = useState(false);
   const [preloading, setPreloading] = useState(false);
+  const [isAnonymousSurvey, setIsAnonymousSurvey] = useState(false);
+  const [anonymousSurveyChecked, setAnonymousSurveyChecked] = useState(false);
   // ✅ REMOVED: statusPageData - no longer needed with consolidated flow
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
 
+  // Conditional navbar based on survey type (memoized to prevent re-renders)
+  const navbarComponent = useMemo(() => {
+    return isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />;
+  }, [isAnonymousSurvey]);
+
   // Ensure component is mounted before rendering survey
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // ✅ NEW: Check if survey is anonymous before any auth checks
+  useEffect(() => {
+    const checkAnonymousSurvey = async () => {
+      try {
+        const response = await fetch(`/api/surveys/${surveyId}`);
+        if (response.ok) {
+          const surveyData = await response.json();
+          if (surveyData.isAnonymous) {
+            console.log("🌐 Anonymous survey detected - bypassing auth checks");
+            setIsAnonymousSurvey(true);
+            // Note: Don't set loading false here, let other effects handle it
+          }
+        }
+      } catch (error) {
+        console.error("Error checking survey anonymity:", error);
+      } finally {
+        setAnonymousSurveyChecked(true);
+      }
+    };
+
+    if (surveyId && mounted) {
+      checkAnonymousSurvey();
+    }
+  }, [surveyId, mounted]);
+
+  // ✅ NEW: Handle loading state for anonymous surveys
+  useEffect(() => {
+    if (isAnonymousSurvey && anonymousSurveyChecked) {
+      setLoading(false);
+    }
+  }, [isAnonymousSurvey, anonymousSurveyChecked]);
 
   // ✅ REMOVED: Auth response checking - now handled in login flow
 
@@ -168,9 +209,14 @@ export default function UserSurvey() {
     }
   }, [mounted, surveyLoadError]);
 
-  // Check user session
+  // Check user session (skip for anonymous surveys)
   useEffect(() => {
     const checkSession = async () => {
+      // Skip session check for anonymous surveys
+      if (isAnonymousSurvey) {
+        console.log("🌐 Skipping session check for anonymous survey");
+        return;
+      }
       // prevent setState on unmounted
       let cancelled = false;
       const cancel = () => {
@@ -262,21 +308,26 @@ export default function UserSurvey() {
       }
     };
 
-    checkSession();
-  }, [surveyId, router]);
+    // Only run session check after anonymous check is complete and survey is not anonymous
+    if (anonymousSurveyChecked && !isAnonymousSurvey) {
+      checkSession();
+    }
+  }, [surveyId, router, isAnonymousSurvey, anonymousSurveyChecked]);
 
-  // Use SWR for live survey data fetching - only when user is authenticated AND assigned to this survey
+  // Use SWR for live survey data fetching
   const {
     data: survey,
     error: fetchError,
     isLoading,
   } = useSWR<SurveyData>(
-    user &&
-      surveyId &&
-      user.assignments &&
-      user.assignments.some(
-        (a: { surveyId: string }) => a.surveyId === surveyId
-      )
+    // ✅ FIXED: Allow fetching for anonymous surveys OR authenticated users with assignments
+    surveyId &&
+      (isAnonymousSurvey ||
+        (user &&
+          user.assignments &&
+          user.assignments.some(
+            (a: { surveyId: string }) => a.surveyId === surveyId
+          )))
       ? `/api/surveys/${surveyId}`
       : null,
     fetcher,
@@ -325,60 +376,78 @@ export default function UserSurvey() {
   // This eliminates the race condition and inconsistency issues.
 
   const handleSurveyComplete = async (sender: any) => {
-    if (!user || !survey) return;
+    // ✅ UPDATED: Allow anonymous survey submissions
+    if (!survey) return;
+    if (!isAnonymousSurvey && !user) return;
 
     setSubmitting(true);
     setError("");
 
     try {
+      // ✅ UPDATED: Conditional userId for anonymous surveys
+      const submissionData = {
+        surveyId: survey.id,
+        adminId: survey.adminId,
+        data: sender.data,
+        ...(isAnonymousSurvey ? {} : { userId: user!.id }), // Only include userId for non-anonymous
+      };
+
+      console.log(
+        isAnonymousSurvey
+          ? "🌐 Submitting anonymous survey"
+          : "👤 Submitting authenticated survey"
+      );
+
       const response = await fetch("/api/results", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          surveyId: survey.id,
-          userId: user.id,
-          adminId: survey.adminId,
-          data: sender.data,
-        }),
+        body: JSON.stringify(submissionData),
       });
 
       if (response.ok) {
         // Immediately show completion without refresh
         setSurveySubmitted(true);
 
-        // Update user data to reflect submission
-        const updatedUser = {
-          ...user,
-          hasSubmitted: true,
-          submittedAt: new Date().toISOString(),
-        };
-        setUser(updatedUser);
+        // ✅ UPDATED: Handle post-submission differently for anonymous vs authenticated
+        if (isAnonymousSurvey) {
+          console.log("🌐 Anonymous survey completed - staying on page");
+          // For anonymous surveys, just show completion state
+          // User stays on the same page and can retake if desired
+        } else {
+          // Update user data to reflect submission (authenticated surveys only)
+          const updatedUser = {
+            ...user!,
+            hasSubmitted: true,
+            submittedAt: new Date().toISOString(),
+          };
+          setUser(updatedUser);
 
-        // Auto-logout after 5 seconds for completed surveys
-        setTimeout(() => {
-          fetch("/api/auth/logout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ surveyId }),
-          })
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.redirect) {
-                router.push(data.redirect);
-              } else {
-                const fallbackRedirect =
-                  sessionStorage.getItem("redirectSurveyId");
-                if (fallbackRedirect) {
-                  router.push(`/user/login?redirect=${fallbackRedirect}`);
-                } else {
-                  router.push("/user/login");
-                }
-              }
+          // Auto-logout after 5 seconds for completed surveys
+          setTimeout(() => {
+            fetch("/api/auth/logout", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ surveyId }),
             })
-            .catch(console.error);
-        }, 5000);
+              .then((res) => res.json())
+              .then((data) => {
+                if (data.redirect) {
+                  router.push(data.redirect);
+                } else {
+                  const fallbackRedirect =
+                    sessionStorage.getItem("redirectSurveyId");
+                  if (fallbackRedirect) {
+                    router.push(`/user/login?redirect=${fallbackRedirect}`);
+                  } else {
+                    router.push("/user/login");
+                  }
+                }
+              })
+              .catch(console.error);
+          }, 5000);
+        }
       } else {
         const data = await response.json();
         setError(data.error || "Failed to submit survey");
@@ -404,7 +473,7 @@ export default function UserSurvey() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {navbarComponent}
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-xl">Loading survey...</div>
         </div>
@@ -415,7 +484,7 @@ export default function UserSurvey() {
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {navbarComponent}
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
             <div className="text-red-600 text-xl mb-4">{error}</div>
@@ -428,7 +497,7 @@ export default function UserSurvey() {
   if (surveySubmitted) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {navbarComponent}
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="max-w-md w-full space-y-8">
             <div className="text-center">
@@ -470,13 +539,13 @@ export default function UserSurvey() {
               </div>
             )}
 
-            {survey?.canTakeMultiple ? (
+            {survey?.canTakeMultiple || isAnonymousSurvey ? (
               <div className="text-center">
                 <button
                   onClick={handleRetakeSurvey}
                   className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
                 >
-                  Retake Survey
+                  {isAnonymousSurvey ? "Take Again" : "Retake Survey"}
                 </button>
               </div>
             ) : (
@@ -495,7 +564,7 @@ export default function UserSurvey() {
   if (!survey || !surveyModel) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {navbarComponent}
         <div className="flex flex-col gap-10 items-center justify-center h-[calc(100vh-64px)]">
           <img
             src="/beyond-happiness-logo.svg"
@@ -512,11 +581,11 @@ export default function UserSurvey() {
     );
   }
 
-  // SECURITY CHECK: Ensure user is authenticated and assigned to this survey
-  if (!user) {
+  // SECURITY CHECK: Ensure user is authenticated and assigned to this survey (skip for anonymous)
+  if (!isAnonymousSurvey && !user) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {navbarComponent}
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
             <div className="text-red-600 text-xl mb-4">
@@ -531,14 +600,18 @@ export default function UserSurvey() {
     );
   }
 
-  // SECURITY CHECK: Ensure user is assigned to this specific survey
+  // SECURITY CHECK: Ensure user is assigned to this specific survey (skip for anonymous)
   if (
-    !user.assignments ||
-    !user.assignments.some((a: { surveyId: string }) => a.surveyId === surveyId)
+    !isAnonymousSurvey &&
+    user &&
+    (!user.assignments ||
+      !user.assignments.some(
+        (a: { surveyId: string }) => a.surveyId === surveyId
+      ))
   ) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {navbarComponent}
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="text-center">
             <div className="text-red-600 text-xl mb-4">
@@ -566,7 +639,7 @@ export default function UserSurvey() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <UserNavbar />
+      {navbarComponent}
       <div className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="px-4 py-6 sm:px-0">

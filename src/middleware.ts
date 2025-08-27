@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Get the pathname of the request
   const path = request.nextUrl.pathname;
 
@@ -12,14 +12,36 @@ export function middleware(request: NextRequest) {
   const protectedPaths = ["/user/survey/"];
 
   // Check if the current path is protected
-  const isProtectedPath = protectedPaths.some((prefix) => path.startsWith(prefix));
+  const isProtectedPath = protectedPaths.some((prefix) =>
+    path.startsWith(prefix)
+  );
 
-  // If it's a protected path and there's no session, redirect to login
-  if (isProtectedPath && !userSession) {
-    const redirectUrl = new URL("/user/login", request.url);
-    // Add the current path as a redirect parameter
-    redirectUrl.searchParams.set("redirect", path.split("/").pop() || "");
-    return NextResponse.redirect(redirectUrl);
+  // If it's a protected path, check if survey is anonymous before enforcing auth
+  if (isProtectedPath) {
+    try {
+      const surveyId = path.split("/").pop();
+      if (surveyId) {
+        const apiUrl = new URL(`/api/surveys/${surveyId}`, request.url);
+        const resp = await fetch(apiUrl.toString(), { cache: "no-store" });
+        if (resp.ok) {
+          const data = await resp.json();
+          const isAnonymous = Boolean(data?.isAnonymous);
+          if (isAnonymous) {
+            // Bypass auth for anonymous surveys
+            return NextResponse.next();
+          }
+        }
+      }
+    } catch {
+      // On any error, fall back to requiring auth below
+    }
+
+    // If not anonymous and there's no session, redirect to login
+    if (!userSession) {
+      const redirectUrl = new URL("/user/login", request.url);
+      redirectUrl.searchParams.set("redirect", path.split("/").pop() || "");
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   // If user is logged in and tries to access login page, redirect to their assigned survey
@@ -33,7 +55,9 @@ export function middleware(request: NextRequest) {
       }
     } catch (error) {
       // If there's an error parsing the session, clear it
-      const response = NextResponse.redirect(new URL("/user/login", request.url));
+      const response = NextResponse.redirect(
+        new URL("/user/login", request.url)
+      );
       response.cookies.delete("user_session");
       return response;
     }

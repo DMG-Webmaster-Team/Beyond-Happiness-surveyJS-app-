@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, color } from "motion/react";
 import { Plus, Edit, Trash2, Building2 } from "lucide-react";
 import AdminNavbar from "@/components/shared/AdminNavbar";
 
@@ -166,7 +166,7 @@ export default function CompaniesPage() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleCreate}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
+              className="inline-flex svc-creator items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm  hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Company
@@ -194,7 +194,7 @@ export default function CompaniesPage() {
                 <div className="mt-6">
                   <button
                     onClick={handleCreate}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-brand-primary/90"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Company
@@ -259,7 +259,7 @@ export default function CompaniesPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50 z-40"
+              className="fixed inset-0 bg-black/70  z-40"
               onClick={() => setIsModalOpen(false)}
             />
 
@@ -267,12 +267,12 @@ export default function CompaniesPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              exit={{ opacity: 1, scale: 0.95, y: 20 }}
               transition={{ duration: 0.2 }}
               className="fixed inset-0 z-50 overflow-y-auto"
             >
               <div className="flex items-center justify-center min-h-full p-4">
-                <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md">
+                <div className="relative bg-white rounded-lg shadow-lg w-full max-w-md">
                   {/* Header */}
                   <div className="flex items-center justify-between p-6 border-b border-gray-200">
                     <h2 className="text-xl font-semibold text-gray-900">
@@ -341,7 +341,7 @@ export default function CompaniesPage() {
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 text-sm font-medium text-white bg-brand-primary border border-transparent rounded-md hover:bg-brand-primary/90"
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-400 border hover:bg-blue-500 border-transparent rounded-md hover:bg-brand-primary/90"
                       >
                         {editingCompany ? "Update" : "Create"}
                       </button>

@@ -54,14 +54,14 @@ export default function AdminNavbar() {
                 href="/admin/dashboard"
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
                   pathname === "/admin/dashboard"
-                    ? "text-brand-primary"
-                    : "text-gray-700 hover:text-brand-primary"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
                 }`}
               >
                 Dashboard
               </motion.a>
               {pathname === "/admin/dashboard" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
               )}
             </div>
             <div className="relative">
@@ -71,14 +71,14 @@ export default function AdminNavbar() {
                 href="/admin/users"
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
                   pathname === "/admin/users"
-                    ? "text-brand-primary"
-                    : "text-gray-700 hover:text-brand-primary"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
                 }`}
               >
                 Users
               </motion.a>
               {pathname === "/admin/users" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
               )}
             </div>
             <div className="relative">
@@ -88,14 +88,14 @@ export default function AdminNavbar() {
                 href="/admin/companies"
                 className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
                   pathname === "/admin/companies"
-                    ? "text-brand-primary"
-                    : "text-gray-700 hover:text-brand-primary"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
                 }`}
               >
                 Companies
               </motion.a>
               {pathname === "/admin/companies" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
               )}
             </div>
           </div>
@@ -105,7 +105,7 @@ export default function AdminNavbar() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleLogout}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-700"
               >
                 Logout
               </motion.button>

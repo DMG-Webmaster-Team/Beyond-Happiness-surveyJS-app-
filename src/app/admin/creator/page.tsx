@@ -28,6 +28,7 @@ interface Survey {
   title: string;
   description: string;
   canTakeMultiple: boolean;
+  isAnonymous: boolean;
   companyId?: string;
   companyName?: string;
   json: any;
@@ -94,6 +95,7 @@ export default function AdminCreator() {
   const [mounted, setMounted] = useState(false);
   const [newSurveySettings, setNewSurveySettings] = useState({
     canTakeMultiple: false,
+    isAnonymous: false,
   });
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
     null
@@ -264,6 +266,7 @@ export default function AdminCreator() {
         description: surveyJson.description || localSurvey?.description || "",
         canTakeMultiple:
           localSurvey?.canTakeMultiple ?? newSurveySettings.canTakeMultiple,
+        isAnonymous: localSurvey?.isAnonymous ?? newSurveySettings.isAnonymous,
         companyId: selectedCompanyId,
         adminId: adminData.id,
         json: surveyJson,
@@ -342,7 +345,7 @@ export default function AdminCreator() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90 disabled:opacity-50"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-500 hover:bg-blue-700 disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Survey"}
               </button>
@@ -403,6 +406,40 @@ export default function AdminCreator() {
                     Allow multiple submissions per user
                   </span>
                 </label>
+              </div>
+              <div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      localSurvey
+                        ? localSurvey.isAnonymous
+                        : newSurveySettings.isAnonymous
+                    }
+                    onChange={(e) => {
+                      if (localSurvey) {
+                        setLocalSurvey({
+                          ...localSurvey,
+                          isAnonymous: e.target.checked,
+                        });
+                      } else {
+                        setNewSurveySettings({
+                          ...newSurveySettings,
+                          isAnonymous: e.target.checked,
+                        });
+                      }
+                    }}
+                    className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-offset-0 focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">
+                    Anonymous survey (no login required)
+                  </span>
+                </label>
+                <p className="ml-6 mt-1 text-xs text-gray-500">
+                  When enabled, anyone with the link can take this survey
+                  without logging in. Assignment checks and one-time limits are
+                  ignored.
+                </p>
               </div>
             </div>
           </div>
