@@ -173,7 +173,7 @@ export default function TableView({
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading survey data...</p>
         </div>
       </div>
@@ -188,7 +188,7 @@ export default function TableView({
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-brand-primary text-white rounded hover:bg-brand-primary/90"
+            className="px-4 py-2 bg-blue-400 text-white rounded hover:bg-blue-600"
           >
             Retry
           </button>

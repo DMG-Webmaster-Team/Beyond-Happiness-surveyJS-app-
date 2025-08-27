@@ -140,12 +140,17 @@ export default function ResultsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        <div className="p-4 border-b bg-brand-primary text-white relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="fixed inset-0 bg-black/70 z-40"
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <div className="relative z-50 bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-hidden">
+        <div className="p-4 border-b bg-blue-400 text-white relative">
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 text-white hover:text-gray-200 p-2"
+            className="absolute top-2 right-2 text-black hover:text-gray-700 p-2"
             aria-label="Close"
           >
             ✕
@@ -186,7 +191,7 @@ export default function ResultsModal({
                       onClick={() => setSelectedResult(result)}
                       className={`p-3 rounded cursor-pointer transition-colors ${
                         selectedResult?.id === result.id
-                          ? "bg-brand-primary text-white"
+                          ? "bg-blue-400 text-white"
                           : "hover:bg-gray-100"
                       }`}
                     >
@@ -211,7 +216,7 @@ export default function ResultsModal({
                         onClick={() => setPage(i + 1)}
                         className={`px-3 py-1 rounded ${
                           page === i + 1
-                            ? "bg-brand-primary text-white"
+                            ? "bg-blue-400 text-white"
                             : "bg-gray-200"
                         }`}
                       >

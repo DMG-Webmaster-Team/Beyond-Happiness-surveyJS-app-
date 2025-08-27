@@ -179,13 +179,18 @@ export default function AnalyticsModal({
     resultsData?.surveyName || surveyData?.title || "Unknown Survey";
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div
+        className="fixed inset-0 bg-black/70 z-40"
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <div className="relative z-50 bg-white rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="p-4 border-b bg-brand-primary text-white relative">
+        <div className="p-4 border-b bg-blue-400 text-white relative">
           <button
             onClick={onClose}
-            className="absolute top-2 right-2 text-white hover:text-gray-200 p-2"
+            className="absolute top-2 right-2 text-black hover:text-gray-700 p-2"
             aria-label="Close"
           >
             ✕
@@ -209,7 +214,7 @@ export default function AnalyticsModal({
             {isLoading ? (
               <div className="flex items-center justify-center h-full">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
                   <p className="text-gray-600">Loading analytics...</p>
                 </div>
               </div>
@@ -221,7 +226,7 @@ export default function AnalyticsModal({
                   </div>
                   <button
                     onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-brand-primary text-white rounded hover:bg-brand-primary/90"
+                    className="px-4 py-2 bg-blue-400 text-white rounded hover:bg-blue-600"
                   >
                     Retry
                   </button>

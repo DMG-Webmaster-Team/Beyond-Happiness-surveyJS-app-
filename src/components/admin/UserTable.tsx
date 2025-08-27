@@ -241,13 +241,13 @@ export default function UserTable() {
               placeholder="Search by email, name, or phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
           >
             <option value="">All Statuses</option>
             <option value="active">Active</option>
@@ -258,7 +258,7 @@ export default function UserTable() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             type="submit"
-            className="px-4 py-2 bg-brand-primary text-white rounded-md hover:bg-brand-primary/90"
+            className="px-4 py-2 bg-blue-400 text-white rounded-md hover:bg-blue-600"
           >
             Search
           </motion.button>
@@ -276,7 +276,7 @@ export default function UserTable() {
       <div className="overflow-x-auto">
         {isLoading ? (
           <div className="px-6 py-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
             <p className="mt-2 text-gray-600">Loading users...</p>
           </div>
         ) : users.length === 0 ? (
@@ -382,7 +382,7 @@ export default function UserTable() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => handleEditUser(user)}
-                        className="text-brand-primary hover:text-brand-primary/80"
+                        className="text-blue-400 hover:text-blue-600"
                       >
                         Edit
                       </motion.button>
@@ -478,7 +478,7 @@ export default function UserTable() {
                   type="text"
                   name="name"
                   defaultValue={editingUser.name || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
               </div>
               <div className="mb-3">
@@ -490,7 +490,7 @@ export default function UserTable() {
                   name="phone"
                   defaultValue={editingUser.phone || ""}
                   placeholder="+201234567890"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
                 <p className="mt-1 text-xs text-gray-500">
                   Optional. Include country code, e.g. +20XXXXXXXXXX.
@@ -503,7 +503,7 @@ export default function UserTable() {
                 <select
                   name="status"
                   defaultValue={editingUser.status}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -547,7 +547,7 @@ export default function UserTable() {
                             e.target.checked
                           )
                         }
-                        className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                        className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
                       />
                       <span className="text-sm text-gray-700">
                         {survey.title}
@@ -565,7 +565,7 @@ export default function UserTable() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
-                  className="flex-1 bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-brand-primary/90"
+                  className="flex-1 bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-600"
                 >
                   Save Changes
                 </motion.button>

@@ -42,7 +42,7 @@ const SurveyFallback = ({
         <div className="mt-4 space-x-3">
           <button
             onClick={onRetry}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="px-4 py-2 bg-blue-400 text-white rounded-md hover:bg-blue-600 transition-colors"
           >
             Try Again
           </button>
@@ -526,24 +526,11 @@ export default function UserSurvey() {
               </p>
             </div>
 
-            {/* PDF Export Option */}
-            {survey && (
-              <div className="text-center">
-                <PDFExportButton
-                  surveyJson={survey.json}
-                  surveyData={surveyModel?.data}
-                  className="w-full py-2 px-4 text-sm font-medium rounded-md"
-                >
-                  📄 Export Survey to PDF
-                </PDFExportButton>
-              </div>
-            )}
-
             {survey?.canTakeMultiple || isAnonymousSurvey ? (
               <div className="text-center">
                 <button
                   onClick={handleRetakeSurvey}
-                  className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-brand-primary hover:bg-brand-primary/90"
+                  className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-blue-600"
                 >
                   {isAnonymousSurvey ? "Take Again" : "Retake Survey"}
                 </button>

@@ -229,7 +229,7 @@ export default function TableViewModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-7xl max-h-[90vh] overflow-hidden">
-        <div className="p-4 border-b bg-brand-primary text-white relative">
+        <div className="p-4 border-b bg-blue-400 text-white relative">
           <button
             onClick={onClose}
             className="absolute top-2 right-2 text-white hover:text-gray-200 p-2"
@@ -247,7 +247,7 @@ export default function TableViewModal({
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading table data...</p>
               </div>
             </div>
@@ -259,7 +259,7 @@ export default function TableViewModal({
                 </div>
                 <button
                   onClick={() => window.location.reload()}
-                  className="px-4 py-2 bg-brand-primary text-white rounded hover:bg-brand-primary/90"
+                  className="px-4 py-2 bg-blue-400 text-white rounded hover:bg-blue-600"
                 >
                   Retry
                 </button>

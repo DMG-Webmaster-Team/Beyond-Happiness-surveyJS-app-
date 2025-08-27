@@ -143,7 +143,7 @@ export default function SurveyStatusPage({
                   survey?.canTakeMultiple === true && (
                     <button
                       onClick={() => router.push(`/user/survey/${survey.id}`)}
-                      className="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-brand-primary/90 transition-colors"
+                      className="w-full bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
                     >
                       Take Survey Again
                     </button>

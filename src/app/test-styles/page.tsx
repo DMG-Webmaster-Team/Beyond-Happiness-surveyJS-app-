@@ -15,7 +15,7 @@ export default function TestStyles() {
           <li className="text-green-600">✅ Proper spacing and typography</li>
         </ul>
         <div className="mt-6">
-          <button className="bg-brand-primary text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+          <button className="bg-blue-400 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
             Custom Brand Color Test
           </button>
         </div>

@@ -158,7 +158,7 @@ user3@example.com,Bob Johnson,+201234567892,`;
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="font-medium text-brand-primary hover:text-brand-primary/80"
+                  className="font-medium text-blue-400 hover:text-blue-400/80"
                 >
                   Click to upload
                 </button>{" "}
@@ -234,7 +234,7 @@ user3@example.com,Bob Johnson,+201234567892,`;
           id="survey-select"
           value={selectedSurveyId}
           onChange={(e) => setSelectedSurveyId(e.target.value)}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary"
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400"
           required
         >
           <option value="">Choose a survey...</option>
@@ -257,7 +257,7 @@ user3@example.com,Bob Johnson,+201234567892,`;
             type="checkbox"
             checked={dryRun}
             onChange={(e) => setDryRun(e.target.checked)}
-            className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+            className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
           />
           <span className="ml-2 text-sm text-gray-700">
             Dry run (validate only, don&apos;t import)
@@ -270,7 +270,7 @@ user3@example.com,Bob Johnson,+201234567892,`;
         <button
           type="button"
           onClick={downloadTemplate}
-          className="text-sm text-brand-primary hover:text-brand-primary/80 underline"
+          className="text-sm text-blue-400 hover:text-blue-400/80 underline"
         >
           Download CSV template
         </button>
@@ -283,7 +283,7 @@ user3@example.com,Bob Johnson,+201234567892,`;
           whileTap={{ scale: 0.98 }}
           onClick={handleUpload}
           disabled={!file || isUploading}
-          className="w-full bg-brand-primary text-white py-2 px-4 rounded-md hover:bg-brand-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading ? (
             <div className="flex items-center justify-center">

@@ -9,6 +9,7 @@ import AdminNavbar from "@/components/shared/AdminNavbar";
 import { motion, AnimatePresence } from "motion/react";
 import useSWR, { mutate } from "swr";
 import { useDebounce } from "@/hooks/useDebounce";
+import { select } from "survey-creator-core";
 
 // Dynamic imports for heavy components (client-only)
 const AnalyticsModal = dynamic(() => import("@/components/AnalyticsModal"), {
@@ -25,6 +26,11 @@ const TableViewModal = dynamic(
     ),
   }
 );
+// New: PDF modal
+const PDFExportModal = dynamic(() => import("@/components/PDFExportModal"), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded"></div>,
+});
 
 interface Survey {
   id: string;
@@ -53,6 +59,7 @@ export default function AdminDashboard() {
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isTableViewModalOpen, setIsTableViewModalOpen] = useState(false);
+  const [IsPDFModalOpen, setIsPDFModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const router = useRouter();
 
@@ -386,13 +393,17 @@ export default function AdminDashboard() {
                             <motion.div
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
+                              exit={{ opacity: 0 }}
                             >
-                              <Link
-                                href={`/pdf-export?surveyId=${survey.id}`}
+                              <button
+                                onClick={() => {
+                                  setSelectedSurveyId(survey.id);
+                                  setIsPDFModalOpen(true);
+                                }}
                                 className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
                               >
                                 PDF
-                              </Link>
+                              </button>
                             </motion.div>
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -446,6 +457,17 @@ export default function AdminDashboard() {
           isOpen={isTableViewModalOpen}
           onClose={() => {
             setIsTableViewModalOpen(false);
+            setSelectedSurveyId(null);
+          }}
+        />
+      )}
+      {/* PDF Modal */}
+      {selectedSurveyId && (
+        <PDFExportModal
+          surveyId={selectedSurveyId}
+          isOpen={IsPDFModalOpen}
+          onClose={() => {
+            setIsPDFModalOpen(false);
             setSelectedSurveyId(null);
           }}
         />

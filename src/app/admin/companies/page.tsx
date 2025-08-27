@@ -144,7 +144,7 @@ export default function CompaniesPage() {
       <div className="min-h-screen bg-gray-50">
         <AdminNavbar />
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
         </div>
       </div>
     );
@@ -159,14 +159,14 @@ export default function CompaniesPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
-              <Building2 className="h-8 w-8 text-brand-primary mr-3" />
+              <Building2 className="h-8 w-8 text-blue-400 mr-3" />
               <h1 className="text-3xl font-bold text-gray-900">Companies</h1>
             </div>
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleCreate}
-              className="inline-flex svc-creator items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm  hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
+              className="inline-flex svc-creator items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm  hover:bg-blue-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Company
@@ -194,7 +194,7 @@ export default function CompaniesPage() {
                 <div className="mt-6">
                   <button
                     onClick={handleCreate}
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-brand-primary/90"
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-blue-600"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Company
@@ -280,7 +280,7 @@ export default function CompaniesPage() {
                     </h2>
                     <button
                       onClick={() => setIsModalOpen(false)}
-                      className="text-gray-400 hover:text-gray-600"
+                      className="text-black hover:text-gray-700"
                     >
                       ✕
                     </button>
@@ -304,7 +304,7 @@ export default function CompaniesPage() {
                           onChange={(e) =>
                             setFormData({ ...formData, name: e.target.value })
                           }
-                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
 
@@ -325,7 +325,7 @@ export default function CompaniesPage() {
                               description: e.target.value,
                             })
                           }
-                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-primary focus:border-brand-primary"
+                          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
                     </div>
@@ -341,7 +341,7 @@ export default function CompaniesPage() {
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 text-sm font-medium text-white bg-blue-400 border hover:bg-blue-500 border-transparent rounded-md hover:bg-brand-primary/90"
+                        className="px-4 py-2 text-sm font-medium text-white bg-blue-400 border hover:bg-blue-600 border-transparent rounded-md hover:bg-blue-600"
                       >
                         {editingCompany ? "Update" : "Create"}
                       </button>

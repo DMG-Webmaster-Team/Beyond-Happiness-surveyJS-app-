@@ -16,7 +16,7 @@ export default function LogoutConfirmModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg w-full max-w-md overflow-hidden">
-        <div className="p-4 border-b bg-brand-primary text-white">
+        <div className="p-4 border-b bg-blue-400 text-white">
           <h2 className="text-xl font-semibold">Confirm Logout</h2>
         </div>
 
@@ -32,7 +32,7 @@ export default function LogoutConfirmModal({
             </button>
             <button
               onClick={onConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary"
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-400 hover:bg-blue-600 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Log out
             </button>

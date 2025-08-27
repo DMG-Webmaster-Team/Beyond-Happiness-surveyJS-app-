@@ -459,7 +459,7 @@ export default function UserLogin() {
                   name="contact"
                   type="text"
                   autoComplete="off"
-                  className="block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-brand-primary focus:border-transparent transition duration-150 ease-in-out"
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-400 focus:border-transparent transition duration-150 ease-in-out"
                   placeholder="Enter your email or phone number"
                   value={contactInput}
                   onChange={(e) => handleContactInputChange(e.target.value)}
@@ -506,7 +506,7 @@ export default function UserLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
             >
               {loading ? (
                 <span className="flex items-center">
@@ -550,7 +550,7 @@ export default function UserLogin() {
                     id={`otp-${index}`}
                     type="text"
                     maxLength={1}
-                    className="w-12 h-12 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent text-lg font-semibold"
+                    className="w-12 h-12 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-lg font-semibold"
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onFocus={(e) => e.target.select()}
@@ -575,7 +575,7 @@ export default function UserLogin() {
               <button
                 type="submit"
                 disabled={loading || submitting}
-                className="flex-1 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-primary hover:bg-brand-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-primary disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
+                className="flex-1 py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
               >
                 {loading || submitting ? (
                   <span className="flex items-center justify-center">
@@ -609,7 +609,7 @@ export default function UserLogin() {
           </form>
         ) : authStep === "verifying-access" ? (
           <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-brand-primary mx-auto mb-6"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mx-auto mb-6"></div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               Verifying Your Access
             </h3>
@@ -618,7 +618,7 @@ export default function UserLogin() {
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div
-                className="bg-brand-primary h-2 rounded-full animate-pulse"
+                className="bg-blue-400 h-2 rounded-full animate-pulse"
                 style={{ width: "60%" }}
               ></div>
             </div>

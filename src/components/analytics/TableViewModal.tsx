@@ -28,7 +28,7 @@ export default function TableViewModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            className="fixed inset-0 bg-black/70 z-40"
             onClick={onClose}
           />
 
@@ -43,7 +43,7 @@ export default function TableViewModal({
             <div className="flex items-center justify-center min-h-full p-4">
               <div className="relative bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-full overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center text-white justify-between p-6 border-b bg-brand-primary border-gray-200">
+                <div className="flex items-center text-white justify-between p-6 border-b bg-blue-400 border-gray-200">
                   <div>
                     <h2 className="text-xl font-semibold ">
                       Survey Data Table
@@ -54,7 +54,7 @@ export default function TableViewModal({
                   </div>
                   <button
                     onClick={onClose}
-                    className="p-2 hover:text-gray-600 transition-colors"
+                    className="p-2 text-black hover:text-gray-700 transition-colors"
                   >
                     <X size={24} />
                   </button>
