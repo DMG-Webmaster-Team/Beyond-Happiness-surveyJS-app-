@@ -1,0 +1,244 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": "How often do you feel grateful for the small things in life?",
+      "category": "Meaning",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 2,
+      "question": "How connected do you feel to your life's purpose?",
+      "category": "Meaning",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 3,
+      "question": "How often do you reflect on what truly matters to you?",
+      "category": "Meaning",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 4,
+      "question": "How aligned are your daily actions with your core values?",
+      "category": "Meaning",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 5,
+      "question": "How often do you feel a sense of spiritual connection?",
+      "category": "Meaning",
+      "values": [150, 350, 550, 750, 950]
+    },
+    {
+      "id": 6,
+      "question": "How much do you feel your life has direction?",
+      "category": "Meaning",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 7,
+      "question": "How often do you feel a sense of accomplishment?",
+      "category": "Meaning",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 8,
+      "question": "How connected do you feel to nature and the world around you?",
+      "category": "Meaning",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 9,
+      "question": "How much joy do you find in simple pleasures?",
+      "category": "Delight",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 10,
+      "question": "How often do you laugh or feel playful?",
+      "category": "Delight",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 11,
+      "question": "How much do you enjoy creative activities?",
+      "category": "Delight",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 12,
+      "question": "How often do you feel excited about new experiences?",
+      "category": "Delight",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 13,
+      "question": "How much pleasure do you take in beauty and aesthetics?",
+      "category": "Delight",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 14,
+      "question": "How often do you feel wonder or awe?",
+      "category": "Delight",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 15,
+      "question": "How much do you enjoy social interactions?",
+      "category": "Delight",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 16,
+      "question": "How often do you feel inspired or moved?",
+      "category": "Delight",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 17,
+      "question": "How free do you feel to make your own choices?",
+      "category": "Freedom",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 18,
+      "question": "How much control do you feel over your life direction?",
+      "category": "Freedom",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 19,
+      "question": "How often do you feel constrained by external pressures?",
+      "category": "Freedom",
+      "values": [1000, 800, 600, 400, 200]
+    },
+    {
+      "id": 20,
+      "question": "How much autonomy do you have in your daily decisions?",
+      "category": "Freedom",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 21,
+      "question": "How free do you feel to express your true self?",
+      "category": "Freedom",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 22,
+      "question": "How often do you feel spontaneous and carefree?",
+      "category": "Freedom",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 23,
+      "question": "How much do you feel you can change your circumstances?",
+      "category": "Freedom",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 24,
+      "question": "How often do you feel you're living authentically?",
+      "category": "Freedom",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 25,
+      "question": "How engaged do you feel in your work or activities?",
+      "category": "Engagement",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 26,
+      "question": "How often do you experience 'flow' or deep focus?",
+      "category": "Engagement",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 27,
+      "question": "How much do you feel challenged in a positive way?",
+      "category": "Engagement",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 28,
+      "question": "How often do you feel absorbed in what you're doing?",
+      "category": "Engagement",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 29,
+      "question": "How much do you feel your skills are being utilized?",
+      "category": "Engagement",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 30,
+      "question": "How often do you feel motivated to learn new things?",
+      "category": "Engagement",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 31,
+      "question": "How much do you feel your work contributes to something larger?",
+      "category": "Engagement",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 32,
+      "question": "How much do you feel you're growing as a person?",
+      "category": "Engagement",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 33,
+      "question": "How energetic do you feel on most days?",
+      "category": "Vitality",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 34,
+      "question": "How well do you sleep and feel rested?",
+      "category": "Vitality",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 35,
+      "question": "How often do you engage in physical activity?",
+      "category": "Vitality",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 36,
+      "question": "How healthy do you feel overall?",
+      "category": "Vitality",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 37,
+      "question": "How much do you feel mentally sharp and alert?",
+      "category": "Vitality",
+      "values": [250, 450, 650, 850, 1050]
+    },
+    {
+      "id": 38,
+      "question": "How often do you feel optimistic about the future?",
+      "category": "Vitality",
+      "values": [200, 400, 600, 800, 1000]
+    },
+    {
+      "id": 39,
+      "question": "How much do you feel emotionally balanced?",
+      "category": "Vitality",
+      "values": [300, 500, 700, 900, 1100]
+    },
+    {
+      "id": 40,
+      "question": "How often do you feel resilient when facing challenges?",
+      "category": "Vitality",
+      "values": [250, 450, 650, 850, 1050]
+    }
+  ]
+}

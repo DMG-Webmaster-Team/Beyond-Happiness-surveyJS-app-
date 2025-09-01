@@ -16,10 +16,15 @@ interface ImportResult {
 export default function UserImport() {
   const [file, setFile] = useState<File | null>(null);
   const [selectedSurveyId, setSelectedSurveyId] = useState<string>("");
+  const [selectedHappinessSurveyId, setSelectedHappinessSurveyId] =
+    useState<string>("");
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
     null
   );
   const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
+  const [happinessSurveys, setHappinessSurveys] = useState<
+    { id: string; title: string }[]
+  >([]);
   const [dryRun, setDryRun] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -41,7 +46,20 @@ export default function UserImport() {
       }
     };
 
+    const fetchHappinessSurveys = async () => {
+      try {
+        const response = await fetch("/api/happiness/surveys");
+        if (response.ok) {
+          const data = await response.json();
+          setHappinessSurveys(data.surveys || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch happiness surveys:", error);
+      }
+    };
+
     fetchSurveys();
+    fetchHappinessSurveys();
   }, []);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,8 +77,10 @@ export default function UserImport() {
       return;
     }
 
-    if (!selectedSurveyId) {
-      setError("Please select a survey to assign users to");
+    if (!selectedSurveyId && !selectedHappinessSurveyId) {
+      setError(
+        "Please select either a regular survey or a happiness survey to assign users to"
+      );
       return;
     }
 
@@ -71,7 +91,16 @@ export default function UserImport() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("surveyId", selectedSurveyId);
+
+      // Add survey info - either regular or happiness survey
+      if (selectedSurveyId) {
+        formData.append("surveyId", selectedSurveyId);
+        formData.append("surveyType", "regular");
+      } else if (selectedHappinessSurveyId) {
+        formData.append("surveyId", selectedHappinessSurveyId);
+        formData.append("surveyType", "happiness");
+      }
+
       if (selectedCompanyId) {
         formData.append("companyId", selectedCompanyId);
       }
@@ -222,22 +251,24 @@ user3@example.com,Bob Johnson,+201234567892,`;
         </p>
       </div>
 
-      {/* Survey Selection */}
+      {/* Regular Survey Selection */}
       <div className="mb-6">
         <label
           htmlFor="survey-select"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Select Survey to Assign Users
+          Select Regular Survey to Assign Users
         </label>
         <select
           id="survey-select"
           value={selectedSurveyId}
-          onChange={(e) => setSelectedSurveyId(e.target.value)}
+          onChange={(e) => {
+            setSelectedSurveyId(e.target.value);
+            if (e.target.value) setSelectedHappinessSurveyId(""); // Clear happiness survey selection
+          }}
           className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400"
-          required
         >
-          <option value="">Choose a survey...</option>
+          <option value="">Choose a regular survey...</option>
           {surveys.map((survey) => (
             <option key={survey.id} value={survey.id}>
               {survey.title}
@@ -245,10 +276,61 @@ user3@example.com,Bob Johnson,+201234567892,`;
           ))}
         </select>
         <p className="mt-1 text-sm text-gray-500">
-          All users in the uploaded file will be assigned to the selected
-          survey.
+          Select a regular survey to assign users. This will clear any happiness
+          survey selection.
         </p>
       </div>
+
+      {/* Happiness Survey Selection */}
+      <div className="mb-6">
+        <label
+          htmlFor="happiness-survey-select"
+          className="block text-sm font-medium text-gray-700 mb-2"
+        >
+          Select Happiness Survey to Assign Users
+        </label>
+        <select
+          id="happiness-survey-select"
+          value={selectedHappinessSurveyId}
+          onChange={(e) => {
+            setSelectedHappinessSurveyId(e.target.value);
+            if (e.target.value) setSelectedSurveyId(""); // Clear regular survey selection
+          }}
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400"
+        >
+          <option value="">Choose a happiness survey...</option>
+          {happinessSurveys.map((survey) => (
+            <option key={survey.id} value={survey.id}>
+              {survey.title}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-sm text-gray-500">
+          Select a happiness survey to assign users. This will clear any regular
+          survey selection.
+        </p>
+      </div>
+
+      {/* Selection Info */}
+      {(selectedSurveyId || selectedHappinessSurveyId) && (
+        <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
+          <p className="text-sm text-blue-800">
+            <strong>Selected:</strong>{" "}
+            {selectedSurveyId
+              ? `Regular Survey - ${
+                  surveys.find((s) => s.id === selectedSurveyId)?.title
+                }`
+              : `Happiness Survey - ${
+                  happinessSurveys.find(
+                    (s) => s.id === selectedHappinessSurveyId
+                  )?.title
+                }`}
+          </p>
+          <p className="text-xs text-blue-600 mt-1">
+            All users in the uploaded file will be assigned to this survey.
+          </p>
+        </div>
+      )}
 
       {/* Options */}
       <div className="mb-6">

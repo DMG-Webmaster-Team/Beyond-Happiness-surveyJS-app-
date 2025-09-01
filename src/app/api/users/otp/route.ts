@@ -7,6 +7,11 @@ import {
   userAssignments,
   results,
 } from "../../../../db/schema";
+import {
+  happinessSurveys,
+  happinessAssignments,
+  happinessResults,
+} from "../../../../db/schema/happiness";
 import { eq, and } from "drizzle-orm";
 import { verifyOTP } from "../../../../lib/services/otp-service";
 
@@ -22,6 +27,186 @@ export async function POST(req: NextRequest) {
         surveyId?: string;
         skipOtpVerification?: boolean;
       };
+
+    // Helper function to determine survey type and get survey details
+    const getSurveyDetails = async (id: string) => {
+      // First check regular surveys
+      const regularSurvey = await db
+        .select({
+          id: surveys.id,
+          title: surveys.title,
+          can_take_multiple: surveys.canTakeMultiple,
+        })
+        .from(surveys)
+        .where(eq(surveys.id, id))
+        .limit(1);
+
+      if (regularSurvey.length > 0) {
+        return {
+          type: "regular" as const,
+          survey: {
+            id: regularSurvey[0].id,
+            title: regularSurvey[0].title,
+            canTakeMultiple: !!regularSurvey[0].can_take_multiple,
+          },
+        };
+      }
+
+      // Then check happiness surveys
+      const happinessSurvey = await db
+        .select({
+          id: happinessSurveys.id,
+          title: happinessSurveys.title,
+          retakeCooldownDays: happinessSurveys.retakeCooldownDays,
+        })
+        .from(happinessSurveys)
+        .where(eq(happinessSurveys.id, id))
+        .limit(1);
+
+      if (happinessSurvey.length > 0) {
+        return {
+          type: "happiness" as const,
+          survey: {
+            id: happinessSurvey[0].id,
+            title: happinessSurvey[0].title,
+            retakeCooldownDays: happinessSurvey[0].retakeCooldownDays,
+          },
+        };
+      }
+
+      return null;
+    };
+
+    // Helper function to handle happiness survey access
+    const handleHappinessSurveyAccess = async (
+      user: any,
+      survey: any,
+      surveyId: string
+    ) => {
+      // Check if user is assigned to this happiness survey
+      const assignment = await db
+        .select()
+        .from(happinessAssignments)
+        .where(
+          and(
+            eq(happinessAssignments.userId, user.id),
+            eq(happinessAssignments.surveyId, surveyId),
+            eq(happinessAssignments.isActive, true)
+          )
+        )
+        .limit(1);
+
+      if (assignment.length === 0) {
+        return NextResponse.json({
+          ok: true,
+          assigned: false,
+          hasSubmitted: false,
+          surveyId: surveyId,
+          survey: {
+            id: survey.id,
+            title: survey.title,
+            canTakeMultiple: false,
+          },
+          user: user,
+          message: "You are not assigned to this happiness survey.",
+          access: {
+            assigned: false,
+            hasSubmitted: false,
+            canAccess: false,
+            reason: "not-assigned",
+            message: "You are not assigned to this happiness survey.",
+          },
+        });
+      }
+
+      // Check if user has already submitted this survey
+      const existingResult = await db
+        .select()
+        .from(happinessResults)
+        .where(
+          and(
+            eq(happinessResults.surveyId, surveyId),
+            eq(happinessResults.userId, user.id)
+          )
+        )
+        .limit(1);
+
+      const hasSubmitted = existingResult.length > 0;
+
+      // Check cooldown if there are existing results
+      let canAccess = true;
+      let cooldownMessage = null;
+
+      if (hasSubmitted && survey.retakeCooldownDays > 0) {
+        const lastSubmission = existingResult[0];
+        if (lastSubmission.createdAt) {
+          const cooldownPeriod = survey.retakeCooldownDays * 24 * 60 * 60; // Convert days to seconds
+          const timeSinceLastSubmission =
+            Date.now() / 1000 - lastSubmission.createdAt;
+
+          if (timeSinceLastSubmission < cooldownPeriod) {
+            const remainingTime = Math.ceil(
+              (cooldownPeriod - timeSinceLastSubmission) / (24 * 60 * 60)
+            );
+            canAccess = false;
+            cooldownMessage = `You must wait ${remainingTime} more day(s) before retaking this survey`;
+          }
+        }
+      }
+
+      // ✅ ENHANCED: Comprehensive access status matching regular survey format
+      const accessReason = !canAccess ? "cooldown" : "access-granted";
+      const accessMessage = !canAccess
+        ? cooldownMessage
+        : "Access granted to happiness survey.";
+
+      const responseData = {
+        ok: true,
+        assigned: true,
+        hasSubmitted: hasSubmitted,
+        surveyId: surveyId,
+        survey: {
+          id: survey.id,
+          title: survey.title,
+          canTakeMultiple: false,
+        },
+        user: user,
+        message: accessMessage,
+        // ✅ NEW: Comprehensive access status matching regular survey format
+        access: {
+          assigned: true,
+          hasSubmitted: hasSubmitted,
+          canAccess: canAccess,
+          reason: accessReason,
+          message: accessMessage,
+        },
+        // ✅ NEW: Include existing result data for cooldown period
+        existingResult: !canAccess && hasSubmitted ? existingResult[0] : null,
+      };
+
+      console.log("✅ Successful happiness survey response:", responseData);
+
+      const res = NextResponse.json(responseData);
+
+      // Set session cookie (authenticated user)
+      res.cookies.set(
+        "user_session",
+        JSON.stringify({
+          id: user.id,
+          email: user.email,
+          phone: user.phone,
+          loginTime: new Date().toISOString(),
+        }),
+        {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === "production",
+          sameSite: "lax",
+          maxAge: 60 * 60 * 24, // 24h
+        }
+      );
+
+      return res;
+    };
 
     const normalizedIdentifier = identifier || email || phone || "";
     const looksLikeEmail = normalizedIdentifier.includes("@");
@@ -84,23 +269,22 @@ export async function POST(req: NextRequest) {
       } | null = null;
 
       if (surveyId) {
-        const s = await db
-          .select({
-            id: surveys.id,
-            title: surveys.title,
-            // robust casting: works if boolean or int
-            can_take_multiple: surveys.canTakeMultiple,
-          })
-          .from(surveys)
-          .where(eq(surveys.id, surveyId))
-          .limit(1);
-
-        if (s.length > 0) {
-          surveyMeta = {
-            id: s[0].id,
-            title: s[0].title,
-            canTakeMultiple: !!s[0].can_take_multiple,
-          };
+        const surveyDetails = await getSurveyDetails(surveyId);
+        if (surveyDetails) {
+          if (surveyDetails.type === "regular") {
+            surveyMeta = {
+              id: surveyDetails.survey.id,
+              title: surveyDetails.survey.title,
+              canTakeMultiple: surveyDetails.survey.canTakeMultiple,
+            };
+          } else {
+            // For happiness surveys, we'll use a different structure
+            surveyMeta = {
+              id: surveyDetails.survey.id,
+              title: surveyDetails.survey.title,
+              canTakeMultiple: false, // Happiness surveys don't have this concept
+            };
+          }
         }
       }
 
@@ -131,36 +315,36 @@ export async function POST(req: NextRequest) {
 
     // 3) If surveyId provided, check assignment + submission status
     if (surveyId) {
-      // Get survey details
-      const s = await db
-        .select({
-          id: surveys.id,
-          title: surveys.title,
-          can_take_multiple: surveys.canTakeMultiple,
-        })
-        .from(surveys)
-        .where(eq(surveys.id, surveyId))
-        .limit(1);
-
-      if (!s || s.length === 0) {
+      // Get survey details and type
+      const surveyDetails = await getSurveyDetails(surveyId);
+      if (!surveyDetails) {
         return NextResponse.json(
           { error: "Survey not found" },
           { status: 404 }
         );
       }
 
-      // robust boolean cast
+      if (surveyDetails.type === "happiness") {
+        // Handle happiness survey logic
+        return await handleHappinessSurveyAccess(
+          userData,
+          surveyDetails.survey,
+          surveyId
+        );
+      }
+
+      // Regular survey logic
       const surveySafe = {
-        id: s[0].id,
-        title: s[0].title,
-        canTakeMultiple: !!s[0].can_take_multiple, // Cast to boolean robustly
+        id: surveyDetails.survey.id,
+        title: surveyDetails.survey.title,
+        canTakeMultiple: surveyDetails.survey.canTakeMultiple,
       };
 
       console.log("🔍 Survey details:", {
         id: surveySafe.id,
         title: surveySafe.title,
         canTakeMultiple: surveySafe.canTakeMultiple,
-        rawCanTakeMultiple: s[0].can_take_multiple,
+        rawCanTakeMultiple: surveyDetails.survey.canTakeMultiple,
       });
 
       // Check assignment

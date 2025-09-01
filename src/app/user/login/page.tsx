@@ -31,9 +31,29 @@ export default function UserLogin() {
   >("contact");
   const [testModeOTP, setTestModeOTP] = useState(""); // For displaying OTP in test mode
   const [stableSurveyId, setStableSurveyId] = useState<string | null>(null);
+  const [surveyType, setSurveyType] = useState<"regular" | "happiness" | null>(
+    null
+  );
 
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Function to check if a survey is a happiness survey
+  const checkSurveyType = async (surveyId: string) => {
+    try {
+      const response = await fetch(`/api/happiness/surveys/${surveyId}/access`);
+      if (response.ok) {
+        setSurveyType("happiness");
+        console.log("🎯 Happiness survey detected via API check");
+      } else {
+        setSurveyType("regular");
+        console.log("🎯 Regular survey detected via API check");
+      }
+    } catch (error) {
+      console.log("🎯 Defaulting to regular survey due to API error");
+      setSurveyType("regular");
+    }
+  };
 
   // Clear any existing session when arriving at login
   useEffect(() => {
@@ -42,10 +62,33 @@ export default function UserLogin() {
 
   // Capture/normalize surveyId once and persist it as redirectSurveyId
   useEffect(() => {
+    // Fallback to window.location.search if searchParams is not ready
+    const urlParams = new URLSearchParams(window.location.search);
     const sid =
       searchParams.get("surveyId") ??
       searchParams.get("redirect") ??
+      urlParams.get("surveyId") ??
+      urlParams.get("redirect") ??
       sessionStorage.getItem("redirectSurveyId");
+
+    // Check if this is a happiness survey
+    const type = searchParams.get("type") ?? urlParams.get("type");
+
+    console.log("🔍 searchParams.get('type'):", searchParams.get("type"));
+    console.log("🔍 urlParams.get('type'):", urlParams.get("type"));
+    console.log("🔍 resolved type:", type);
+
+    if (type === "happiness") {
+      setSurveyType("happiness");
+      console.log("🎯 Happiness survey detected via URL parameter");
+    } else {
+      // Fallback: check if this surveyId exists in happiness surveys
+      if (sid) {
+        checkSurveyType(sid);
+      } else {
+        setSurveyType("regular");
+      }
+    }
 
     if (sid) {
       setStableSurveyId(sid);
@@ -69,10 +112,18 @@ export default function UserLogin() {
 
     // Debug logging
     console.log(
-      "🔍 URL search params:",
+      "🔍 URL search params (searchParams):",
       Object.fromEntries(searchParams.entries())
     );
+    console.log(
+      "🔍 URL search params (urlParams):",
+      Object.fromEntries(urlParams.entries())
+    );
     console.log("🔍 stableSurveyId resolved:", sid);
+    console.log("🔍 surveyType:", type || "regular");
+    console.log("🔍 Raw type param (searchParams):", searchParams.get("type"));
+    console.log("🔍 Raw type param (urlParams):", urlParams.get("type"));
+    console.log("🔍 All search params:", Array.from(searchParams.entries()));
     console.log(
       "🔍 Full URL:",
       typeof window !== "undefined" ? window.location.href : ""
@@ -257,12 +308,6 @@ export default function UserLogin() {
 
       const data = await response.json();
 
-      if (response.status === 403) {
-        setError(data.error || "Access denied");
-        setAuthStep("contact");
-        return;
-      }
-
       if (!response.ok) {
         setError(data.error || "Invalid OTP");
         return;
@@ -289,16 +334,33 @@ export default function UserLogin() {
       // Clear any previous session data
       sessionStorage.removeItem("authResponse");
 
-      // Redirect based on access status
+      // Redirect based on access status and survey type
       setTimeout(() => {
         try {
           if (data.access.canAccess) {
             // Direct access to survey
             console.log("✅ Access granted - redirecting to survey");
-            router.push(`/user/survey/${targetSurveyId}`);
+            if (surveyType === "happiness") {
+              // Cache access grant for happiness survey to prevent flash
+              const accessGrant = {
+                assigned: data.access.canAccess,
+                hasSubmitted: data.access.reason === "already-submitted",
+                surveyId: targetSurveyId,
+                canTakeMultiple: data.survey?.canTakeMultiple ?? false,
+                grantedAt: Date.now(),
+              };
+              sessionStorage.setItem(
+                `happiness:access:${targetSurveyId}`,
+                JSON.stringify(accessGrant)
+              );
+
+              router.push(`/happiness/${targetSurveyId}?fromLogin=true`);
+            } else {
+              router.push(`/user/survey/${targetSurveyId}`);
+            }
           } else {
             // Redirect to appropriate status page
-            console.log(`❌ Access denied: ${data.access.reason}`);
+
             if (data.access.reason === "not-assigned") {
               router.push(
                 `/user/status/not-assigned?surveyId=${encodeURIComponent(
@@ -311,6 +373,28 @@ export default function UserLogin() {
                   targetSurveyId
                 )}`
               );
+            } else if (
+              data.access.reason === "cooldown" &&
+              surveyType === "happiness"
+            ) {
+              // For happiness surveys in cooldown, show results with avatar
+              const existingResult = data.existingResult;
+              if (existingResult) {
+                // Store the result data for the results page
+                sessionStorage.setItem(
+                  "happinessCooldownResult",
+                  JSON.stringify(existingResult)
+                );
+                router.push(
+                  `/happiness/${targetSurveyId}/results?cooldown=true`
+                );
+              } else {
+                router.push(
+                  `/user/status/access-denied?surveyId=${encodeURIComponent(
+                    targetSurveyId
+                  )}`
+                );
+              }
             } else {
               router.push(
                 `/user/status/access-denied?surveyId=${encodeURIComponent(
@@ -323,11 +407,35 @@ export default function UserLogin() {
           console.error("❌ router.push failed:", err);
           // Fallback to window.location
           if (data.access.canAccess) {
-            window.location.href = `/user/survey/${targetSurveyId}`;
+            if (surveyType === "happiness") {
+              window.location.href = `/happiness/${targetSurveyId}?fromLogin=true`;
+            } else {
+              window.location.href = `/user/survey/${targetSurveyId}`;
+            }
           } else {
-            window.location.href = `/user/status/${
-              data.access.reason
-            }?surveyId=${encodeURIComponent(targetSurveyId)}`;
+            if (
+              data.access.reason === "cooldown" &&
+              surveyType === "happiness"
+            ) {
+              // For happiness surveys in cooldown, show results with avatar
+              const existingResult = data.existingResult;
+              if (existingResult) {
+                // Store the result data for the results page
+                sessionStorage.setItem(
+                  "happinessCooldownResult",
+                  JSON.stringify(existingResult)
+                );
+                window.location.href = `/happiness/${targetSurveyId}/results?cooldown=true`;
+              } else {
+                window.location.href = `/user/status/access-denied?surveyId=${encodeURIComponent(
+                  targetSurveyId
+                )}`;
+              }
+            } else {
+              window.location.href = `/user/status/${
+                data.access.reason
+              }?surveyId=${encodeURIComponent(targetSurveyId)}`;
+            }
           }
         }
       }, 1000);
@@ -378,12 +486,6 @@ export default function UserLogin() {
           )}
 
           {/* Optional notice if no surveyId yet */}
-          {!stableSurveyId && (
-            <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-3 rounded">
-              Missing survey link. If this persists, please open the survey
-              invitation link again.
-            </div>
-          )}
 
           {/* Progress Indicator */}
           {authStep !== "contact" && (
@@ -463,6 +565,11 @@ export default function UserLogin() {
                   placeholder="Enter your email or phone number"
                   value={contactInput}
                   onChange={(e) => handleContactInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !loading) {
+                      handleContactSubmit(e);
+                    }
+                  }}
                 />
 
                 {/* Input type indicator */}
@@ -554,6 +661,11 @@ export default function UserLogin() {
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
                     onFocus={(e) => e.target.select()}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !loading && !submitting) {
+                        handleOtpSubmit(e);
+                      }
+                    }}
                   />
                 ))}
               </div>

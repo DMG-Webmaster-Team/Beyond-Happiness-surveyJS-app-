@@ -8,7 +8,12 @@ import {
   upsertUserAssignment,
   getUsersByEmails,
 } from "../../../../db/queries/users";
-import { inArray, eq } from "drizzle-orm";
+import {
+  happinessAssignments,
+  happinessSurveys,
+} from "../../../../db/schema/happiness";
+import { inArray, eq, and } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 // File size limit: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -20,12 +25,21 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file") as File;
     const surveyId = formData.get("surveyId") as string;
+    const surveyType = formData.get("surveyType") as string; // "regular" or "happiness"
     const companyId = formData.get("companyId") as string;
     const dryRun = formData.get("dryRun") === "1";
 
     if (!surveyId) {
       return NextResponse.json(
         { error: "Survey ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate survey type
+    if (surveyType && !["regular", "happiness"].includes(surveyType)) {
+      return NextResponse.json(
+        { error: "Survey type must be 'regular' or 'happiness'" },
         { status: 400 }
       );
     }
@@ -172,7 +186,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Process valid rows in database transaction
-    const importResults = await processImport(validRows, surveyId, companyId);
+    const importResults = await processImport(
+      validRows,
+      surveyId,
+      surveyType,
+      companyId
+    );
 
     return NextResponse.json({
       message: "Import completed successfully",
@@ -194,6 +213,7 @@ export async function POST(request: NextRequest) {
 async function processImport(
   validRows: any[],
   surveyId: string,
+  surveyType: string,
   companyId?: string
 ) {
   const startTime = Date.now();
@@ -293,21 +313,60 @@ async function processImport(
             console.log(`🔄 User updated: ${userResult.user.id}`);
           }
 
-          // Upsert user assignment
+          // Create assignment based on survey type
           console.log(
-            `🔗 Creating assignment: ${userResult.user.id} -> ${surveyId}`
+            `🔗 Creating ${surveyType || "regular"} assignment: ${
+              userResult.user.id
+            } -> ${surveyId}`
           );
-          const assignmentResult = await upsertUserAssignment({
-            userId: userResult.user.id,
-            surveyId: surveyId,
-            status: "pending", // Default status
-          });
 
-          if (assignmentResult) {
-            stats.insertedAssignments++;
-            console.log(
-              `✅ Assignment created: ${assignmentResult.userId} -> ${assignmentResult.surveyId}`
-            );
+          if (surveyType === "happiness") {
+            // Check if happiness assignment already exists
+            const existingHappinessAssignment = await db
+              .select()
+              .from(happinessAssignments)
+              .where(
+                and(
+                  eq(happinessAssignments.surveyId, surveyId),
+                  eq(happinessAssignments.userId, userResult.user.id),
+                  eq(happinessAssignments.isActive, true)
+                )
+              )
+              .limit(1);
+
+            if (existingHappinessAssignment.length === 0) {
+              const happinessAssignmentResult = await db
+                .insert(happinessAssignments)
+                .values({
+                  id: nanoid(),
+                  surveyId: surveyId,
+                  userId: userResult.user.id,
+                  assignedBy: "admin",
+                  notes: "Imported via CSV",
+                })
+                .returning();
+
+              if (happinessAssignmentResult.length > 0) {
+                stats.insertedAssignments++;
+                console.log(
+                  `✅ Happiness assignment created: ${userResult.user.id} -> ${surveyId}`
+                );
+              }
+            }
+          } else {
+            // Regular survey assignment
+            const assignmentResult = await upsertUserAssignment({
+              userId: userResult.user.id,
+              surveyId: surveyId,
+              status: "pending", // Default status
+            });
+
+            if (assignmentResult) {
+              stats.insertedAssignments++;
+              console.log(
+                `✅ Regular assignment created: ${assignmentResult.userId} -> ${assignmentResult.surveyId}`
+              );
+            }
           }
         } catch (rowError) {
           console.error(`❌ Error processing row ${i + 1}:`, row, rowError);

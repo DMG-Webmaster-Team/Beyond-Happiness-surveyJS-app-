@@ -1,0 +1,134 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db";
+import { happinessQuestions } from "@/db/schema/happiness";
+import { eq } from "drizzle-orm";
+
+// PUT - Update happiness question
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const questionId = parseInt(params.id);
+    if (isNaN(questionId)) {
+      return NextResponse.json(
+        { error: "Invalid question ID" },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const { text, category, values, isActive } = body;
+
+    // Validation
+    if (values && (!Array.isArray(values) || values.length !== 5)) {
+      return NextResponse.json(
+        { error: "Values must be an array of exactly 5 integers" },
+        { status: 400 }
+      );
+    }
+
+    if (category) {
+      const validCategories = [
+        "Meaning",
+        "Delight",
+        "Freedom",
+        "Engagement",
+        "Vitality",
+      ];
+      if (!validCategories.includes(category)) {
+        return NextResponse.json(
+          { error: "Invalid category" },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Build update object
+    const updateData: any = {
+      updatedAt: Date.now(),
+    };
+
+    if (text !== undefined) updateData.text = text;
+    if (category !== undefined) updateData.category = category;
+    if (values !== undefined) updateData.values = JSON.stringify(values);
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedQuestion = await db
+      .update(happinessQuestions)
+      .set(updateData)
+      .where(eq(happinessQuestions.id, questionId))
+      .returning();
+
+    if (updatedQuestion.length === 0) {
+      return NextResponse.json(
+        { error: "Question not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      question: {
+        ...updatedQuestion[0],
+        values: JSON.parse(updatedQuestion[0].values),
+      },
+    });
+  } catch (error) {
+    console.error("Error updating happiness question:", error);
+    return NextResponse.json(
+      { error: "Failed to update question" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE - Delete happiness question (soft delete by setting isActive = false)
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const questionId = parseInt(params.id);
+    if (isNaN(questionId)) {
+      return NextResponse.json(
+        { error: "Invalid question ID" },
+        { status: 400 }
+      );
+    }
+
+    // Check if question exists
+    const existing = await db
+      .select()
+      .from(happinessQuestions)
+      .where(eq(happinessQuestions.id, questionId))
+      .limit(1);
+
+    if (existing.length === 0) {
+      return NextResponse.json(
+        { error: "Question not found" },
+        { status: 404 }
+      );
+    }
+
+    // Soft delete by setting isActive = false
+    await db
+      .update(happinessQuestions)
+      .set({
+        isActive: false,
+        updatedAt: Date.now(),
+      })
+      .where(eq(happinessQuestions.id, questionId));
+
+    return NextResponse.json({
+      success: true,
+      message: "Question deactivated successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting happiness question:", error);
+    return NextResponse.json(
+      { error: "Failed to delete question" },
+      { status: 500 }
+    );
+  }
+}

@@ -1,0 +1,228 @@
+{
+  "characters": [
+    {
+      "id": 1,
+      "name": "Curious Nomad",
+      "description": "A free-spirited explorer who finds joy in discovery and new experiences. You value freedom and delight in life's surprises.",
+      "match": "00000",
+      "avatar_url": "/characters/00000.png"
+    },
+    {
+      "id": 2,
+      "name": "Mindful Seeker",
+      "description": "A contemplative soul who finds deep meaning in life's purpose and spiritual connections. You prioritize reflection and growth.",
+      "match": "10000",
+      "avatar_url": "/characters/10000.png"
+    },
+    {
+      "id": 3,
+      "name": "Joyful Creator",
+      "description": "A vibrant artist who finds delight in creativity and beauty. You bring color and playfulness to everything you do.",
+      "match": "01000",
+      "avatar_url": "/characters/01000.png"
+    },
+    {
+      "id": 4,
+      "name": "Balanced Dreamer",
+      "description": "A harmonious soul who balances meaning and delight. You find purpose in joy and joy in purpose.",
+      "match": "11000",
+      "avatar_url": "/characters/11000.png"
+    },
+    {
+      "id": 5,
+      "name": "Free Spirit",
+      "description": "An independent soul who values freedom above all. You chart your own course and live by your own rules.",
+      "match": "00100",
+      "avatar_url": "/characters/00100.png"
+    },
+    {
+      "id": 6,
+      "name": "Purposeful Wanderer",
+      "description": "A focused explorer who combines freedom with meaning. You seek purpose while maintaining independence.",
+      "match": "10100",
+      "avatar_url": "/characters/10100.png"
+    },
+    {
+      "id": 7,
+      "name": "Playful Rebel",
+      "description": "A carefree spirit who finds joy in freedom. You delight in breaking boundaries and living spontaneously.",
+      "match": "01100",
+      "avatar_url": "/characters/01100.png"
+    },
+    {
+      "id": 8,
+      "name": "Harmonious Explorer",
+      "description": "A balanced adventurer who finds meaning, delight, and freedom in equal measure. You live life fully and authentically.",
+      "match": "11100",
+      "avatar_url": "/characters/11100.png"
+    },
+    {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You're committed to excellence and growth.",
+      "match": "00010",
+      "avatar_url": "/characters/00010.png"
+    },
+    {
+      "id": 10,
+      "name": "Spiritual Professional",
+      "description": "A mindful worker who combines engagement with spiritual meaning. You find purpose in your professional growth.",
+      "match": "10010",
+      "avatar_url": "/characters/10010.png"
+    },
+    {
+      "id": 11,
+      "name": "Creative Professional",
+      "description": "An engaged artist who finds joy in their work. You bring creativity and delight to your professional life.",
+      "match": "01010",
+      "avatar_url": "/characters/01010.png"
+    },
+    {
+      "id": 12,
+      "name": "Fulfilled Professional",
+      "description": "A satisfied worker who finds meaning, delight, and engagement in their career. You've found your calling.",
+      "match": "11010",
+      "avatar_url": "/characters/11010.png"
+    },
+    {
+      "id": 13,
+      "name": "Independent Professional",
+      "description": "A self-directed worker who values freedom and engagement. You chart your own professional path.",
+      "match": "00110",
+      "avatar_url": "/characters/00110.png"
+    },
+    {
+      "id": 14,
+      "name": "Purposeful Professional",
+      "description": "A focused worker who combines freedom, meaning, and engagement. You've found your professional purpose.",
+      "match": "10110",
+      "avatar_url": "/characters/10110.png"
+    },
+    {
+      "id": 15,
+      "name": "Joyful Professional",
+      "description": "A happy worker who finds freedom, delight, and engagement in their career. You love what you do.",
+      "match": "01110",
+      "avatar_url": "/characters/01110.png"
+    },
+    {
+      "id": 16,
+      "name": "Complete Professional",
+      "description": "A fulfilled worker who has achieved the perfect balance of freedom, meaning, delight, and engagement. You're living your dream career.",
+      "match": "11110",
+      "avatar_url": "/characters/11110.png"
+    },
+    {
+      "id": 17,
+      "name": "Vital Achiever",
+      "description": "A healthy professional who combines engagement with vitality. You're energized and focused in your work.",
+      "match": "00011",
+      "avatar_url": "/characters/00011.png"
+    },
+    {
+      "id": 18,
+      "name": "Spiritual Vitalist",
+      "description": "A mindful person who combines vitality with spiritual meaning. You're healthy in body and soul.",
+      "match": "10001",
+      "avatar_url": "/characters/10001.png"
+    },
+    {
+      "id": 19,
+      "name": "Joyful Vitalist",
+      "description": "A healthy person who finds delight in vitality. You're energized and happy in your daily life.",
+      "match": "01001",
+      "avatar_url": "/characters/01001.png"
+    },
+    {
+      "id": 20,
+      "name": "Fulfilled Vitalist",
+      "description": "A healthy person who finds meaning and delight in vitality. You're energized, happy, and purposeful.",
+      "match": "11001",
+      "avatar_url": "/characters/11001.png"
+    },
+    {
+      "id": 21,
+      "name": "Free Vitalist",
+      "description": "A healthy person who values freedom and vitality. You're energized and independent in your lifestyle.",
+      "match": "00101",
+      "avatar_url": "/characters/00101.png"
+    },
+    {
+      "id": 22,
+      "name": "Purposeful Vitalist",
+      "description": "A healthy person who combines freedom, meaning, and vitality. You're energized, independent, and purposeful.",
+      "match": "10101",
+      "avatar_url": "/characters/10101.png"
+    },
+    {
+      "id": 23,
+      "name": "Joyful Free Vitalist",
+      "description": "A healthy person who finds freedom, delight, and vitality. You're energized, independent, and happy.",
+      "match": "01101",
+      "avatar_url": "/characters/01101.png"
+    },
+    {
+      "id": 24,
+      "name": "Complete Vitalist",
+      "description": "A healthy person who has achieved the perfect balance of freedom, meaning, delight, and vitality. You're living your best life.",
+      "match": "11101",
+      "avatar_url": "/characters/11101.png"
+    },
+    {
+      "id": 25,
+      "name": "Engaged Vitalist",
+      "description": "A healthy person who combines vitality with deep engagement. You're energized and focused in your activities.",
+      "match": "00011",
+      "avatar_url": "/characters/00011.png"
+    },
+    {
+      "id": 26,
+      "name": "Spiritual Engaged Vitalist",
+      "description": "A healthy person who combines vitality, engagement, and spiritual meaning. You're energized, focused, and purposeful.",
+      "match": "10011",
+      "avatar_url": "/characters/10011.png"
+    },
+    {
+      "id": 27,
+      "name": "Joyful Engaged Vitalist",
+      "description": "A healthy person who combines vitality, engagement, and delight. You're energized, focused, and happy.",
+      "match": "01011",
+      "avatar_url": "/characters/01011.png"
+    },
+    {
+      "id": 28,
+      "name": "Fulfilled Engaged Vitalist",
+      "description": "A healthy person who combines vitality, engagement, meaning, and delight. You're energized, focused, happy, and purposeful.",
+      "match": "11011",
+      "avatar_url": "/characters/11011.png"
+    },
+    {
+      "id": 29,
+      "name": "Free Engaged Vitalist",
+      "description": "A healthy person who combines vitality, engagement, and freedom. You're energized, focused, and independent.",
+      "match": "00111",
+      "avatar_url": "/characters/00111.png"
+    },
+    {
+      "id": 30,
+      "name": "Purposeful Free Engaged Vitalist",
+      "description": "A healthy person who combines vitality, engagement, freedom, and meaning. You're energized, focused, independent, and purposeful.",
+      "match": "10111",
+      "avatar_url": "/characters/10111.png"
+    },
+    {
+      "id": 31,
+      "name": "Joyful Free Engaged Vitalist",
+      "description": "A healthy person who combines vitality, engagement, freedom, and delight. You're energized, focused, independent, and happy.",
+      "match": "01111",
+      "avatar_url": "/characters/01111.png"
+    },
+    {
+      "id": 32,
+      "name": "Complete Human",
+      "description": "You've achieved the perfect balance of all five happiness dimensions: Meaning, Delight, Freedom, Engagement, and Vitality. You're living your fullest, most authentic life.",
+      "match": "11111",
+      "avatar_url": "/characters/11111.png"
+    }
+  ]
+}

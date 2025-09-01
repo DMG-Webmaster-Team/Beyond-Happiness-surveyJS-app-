@@ -16,12 +16,12 @@ export default function PDFExportModal({
   isOpen,
   onClose,
 }: PDFExportModalProps) {
-  if (!isOpen) return null;
-
   const { data, error, isLoading } = useSWR(
     surveyId ? `/api/surveys/${surveyId}` : null,
     fetcher
   );
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">

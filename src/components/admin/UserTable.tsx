@@ -31,6 +31,9 @@ interface Pagination {
 export default function UserTable() {
   const [users, setUsers] = useState<User[]>([]);
   const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
+  const [happinessSurveys, setHappinessSurveys] = useState<
+    { id: string; title: string }[]
+  >([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
@@ -44,6 +47,9 @@ export default function UserTable() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [selectedSurveys, setSelectedSurveys] = useState<string[]>([]);
+  const [selectedHappinessSurveys, setSelectedHappinessSurveys] = useState<
+    string[]
+  >([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
     null
   );
@@ -95,10 +101,24 @@ export default function UserTable() {
     }
   };
 
+  // Fetch happiness surveys
+  const fetchHappinessSurveys = async () => {
+    try {
+      const response = await fetch("/api/happiness/surveys");
+      if (response.ok) {
+        const data = await response.json();
+        setHappinessSurveys(data.surveys || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch happiness surveys:", error);
+    }
+  };
+
   // Load users and surveys on component mount and when filters change
   useEffect(() => {
     fetchUsers(1, searchQuery, statusFilter);
     fetchSurveys();
+    fetchHappinessSurveys();
   }, [searchQuery, statusFilter]);
 
   // Handle search
@@ -121,11 +141,42 @@ export default function UserTable() {
     }
   };
 
+  // Handle happiness survey selection change
+  const handleHappinessSurveySelectionChange = (
+    surveyId: string,
+    checked: boolean
+  ) => {
+    if (checked) {
+      setSelectedHappinessSurveys((prev) => [...prev, surveyId]);
+    } else {
+      setSelectedHappinessSurveys((prev) =>
+        prev.filter((id) => id !== surveyId)
+      );
+    }
+  };
+
   // Initialize selected surveys when editing user
-  const handleEditUser = (user: User) => {
+  const handleEditUser = async (user: User) => {
     setEditingUser(user);
     setSelectedSurveys(user.assignments?.map((a) => a.surveyId) || []);
     setSelectedCompanyId(user.companyId || null);
+
+    // Fetch happiness survey assignments for this user
+    try {
+      const response = await fetch(
+        `/api/happiness/assignments?userId=${user.id}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSelectedHappinessSurveys(
+          data.assignments?.map((a: any) => a.surveyId) || []
+        );
+      }
+    } catch (error) {
+      console.error("Failed to fetch happiness assignments:", error);
+      setSelectedHappinessSurveys([]);
+    }
+
     setIsEditing(true);
   };
 
@@ -154,6 +205,7 @@ export default function UserTable() {
   const handleUpdateUser = async (
     userData: Partial<User> & {
       surveyAssignments?: string[];
+      happinessSurveyAssignments?: string[];
       companyId?: string | null;
     }
   ) => {
@@ -161,7 +213,12 @@ export default function UserTable() {
 
     try {
       // Extract survey assignments and company from userData
-      const { surveyAssignments, companyId, ...userUpdateData } = userData;
+      const {
+        surveyAssignments,
+        happinessSurveyAssignments,
+        companyId,
+        ...userUpdateData
+      } = userData;
 
       // Update user data including company
       const updateData = {
@@ -182,7 +239,7 @@ export default function UserTable() {
         throw new Error(data.error || "Failed to update user");
       }
 
-      // Update survey assignments if provided
+      // Update regular survey assignments if provided
       if (surveyAssignments) {
         const assignmentResponse = await fetch(
           `/api/users/${editingUser.id}/assignments`,
@@ -201,11 +258,59 @@ export default function UserTable() {
         }
       }
 
+      // Update happiness survey assignments if provided
+      if (happinessSurveyAssignments !== undefined) {
+        // First, deactivate all existing happiness assignments for this user
+        const existingAssignments = await fetch(
+          `/api/happiness/assignments?userId=${editingUser.id}`
+        );
+        if (existingAssignments.ok) {
+          const existingData = await existingAssignments.json();
+          // Delete existing assignments (we'll recreate the ones that should exist)
+          for (const assignment of existingData.assignments || []) {
+            await fetch(`/api/happiness/assignments/${assignment.id}`, {
+              method: "DELETE",
+            });
+          }
+        }
+
+        // Create new happiness survey assignments
+        if (happinessSurveyAssignments.length > 0) {
+          for (const surveyId of happinessSurveyAssignments) {
+            const happinessAssignmentResponse = await fetch(
+              `/api/happiness/assignments`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  surveyId: surveyId,
+                  userIds: [editingUser.id],
+                  assignedBy: "admin",
+                  notes: "Updated via admin panel",
+                }),
+              }
+            );
+
+            if (!happinessAssignmentResponse.ok) {
+              const data = await happinessAssignmentResponse.json();
+              console.error(
+                "Failed to create happiness assignment:",
+                data.error
+              );
+            }
+          }
+        }
+      }
+
       // Refresh users list
       fetchUsers(pagination.page, searchQuery, statusFilter);
       setEditingUser(null);
       setIsEditing(false);
       setSelectedCompanyId(null);
+      setSelectedSurveys([]);
+      setSelectedHappinessSurveys([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update user");
     }
@@ -441,130 +546,172 @@ export default function UserTable() {
 
       {/* Edit User Modal */}
       {isEditing && editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Edit User
-            </h3>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const formData = new FormData(e.currentTarget);
-                handleUpdateUser({
-                  name: formData.get("name") as string,
-                  phone: formData.get("phone") as string,
-                  status: formData.get("status") as string,
-                  companyId: selectedCompanyId || undefined,
-                  surveyAssignments: selectedSurveys,
-                });
-              }}
-            >
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={editingUser.email}
-                  disabled
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  defaultValue={editingUser.name || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Phone
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  defaultValue={editingUser.phone || ""}
-                  placeholder="+201234567890"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Optional. Include country code, e.g. +20XXXXXXXXXX.
-                </p>
-              </div>
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  defaultValue={editingUser.status}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="pending">Pending</option>
-                </select>
-              </div>
-
-              <div className="mb-3">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Company
-                </label>
-                <CompanySelect
-                  value={selectedCompanyId}
-                  onChange={setSelectedCompanyId}
-                  allowNone={true}
-                  placeholder="Choose a company (optional)"
-                  className="w-full"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Select a company for this user. Leave empty if no company
-                  assignment is needed.
-                </p>
-              </div>
-
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Survey Assignments
-                </label>
-                <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                  {surveys.map((survey) => (
-                    <label
-                      key={survey.id}
-                      className="flex items-center space-x-2 py-0.5"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedSurveys.includes(survey.id)}
-                        onChange={(e) =>
-                          handleSurveySelectionChange(
-                            survey.id,
-                            e.target.checked
-                          )
-                        }
-                        className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                      />
-                      <span className="text-sm text-gray-700">
-                        {survey.title}
-                      </span>
-                    </label>
-                  ))}
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Edit User</h3>
+            </div>
+            {/* Modal Content - Scrollable */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <form
+                id="edit-user-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.currentTarget);
+                  handleUpdateUser({
+                    name: formData.get("name") as string,
+                    phone: formData.get("phone") as string,
+                    status: formData.get("status") as string,
+                    companyId: selectedCompanyId || undefined,
+                    surveyAssignments: selectedSurveys,
+                    happinessSurveyAssignments: selectedHappinessSurveys,
+                  });
+                }}
+              >
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    value={editingUser.email}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                  />
                 </div>
-                <p className="mt-1 text-xs text-gray-500">
-                  Select surveys to assign to this user. Currently assigned
-                  surveys are pre-selected.
-                </p>
-              </div>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    defaultValue={editingUser.name || ""}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    defaultValue={editingUser.phone || ""}
+                    placeholder="+201234567890"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Optional. Include country code, e.g. +20XXXXXXXXXX.
+                  </p>
+                </div>
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    name="status"
+                    defaultValue={editingUser.status}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company
+                  </label>
+                  <CompanySelect
+                    value={selectedCompanyId}
+                    onChange={setSelectedCompanyId}
+                    allowNone={true}
+                    placeholder="Choose a company (optional)"
+                    className="w-full"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Select a company for this user. Leave empty if no company
+                    assignment is needed.
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Regular Survey Assignments
+                  </label>
+                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                    {surveys.map((survey) => (
+                      <label
+                        key={survey.id}
+                        className="flex items-center space-x-2 py-0.5"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedSurveys.includes(survey.id)}
+                          onChange={(e) =>
+                            handleSurveySelectionChange(
+                              survey.id,
+                              e.target.checked
+                            )
+                          }
+                          className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {survey.title}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Select regular surveys to assign to this user.
+                  </p>
+                </div>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Happiness Survey Assignments
+                  </label>
+                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
+                    {happinessSurveys.map((survey) => (
+                      <label
+                        key={survey.id}
+                        className="flex items-center space-x-2 py-0.5"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedHappinessSurveys.includes(survey.id)}
+                          onChange={(e) =>
+                            handleHappinessSurveySelectionChange(
+                              survey.id,
+                              e.target.checked
+                            )
+                          }
+                          className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {survey.title}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Select happiness surveys to assign to this user.
+                  </p>
+                </div>
+              </form>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
               <div className="flex space-x-3">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   type="submit"
+                  form="edit-user-form"
                   className="flex-1 bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-600"
                 >
                   Save Changes
@@ -577,13 +724,15 @@ export default function UserTable() {
                     setIsEditing(false);
                     setEditingUser(null);
                     setSelectedCompanyId(null);
+                    setSelectedSurveys([]);
+                    setSelectedHappinessSurveys([]);
                   }}
                   className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
                 >
                   Cancel
                 </motion.button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

@@ -98,6 +98,23 @@ export default function AdminNavbar() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
               )}
             </div>
+            <div className="relative">
+              <motion.a
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                href="/admin/happiness-survey"
+                className={`inline-flex items-center px-3 py-2 text-sm font-medium ${
+                  pathname === "/admin/happiness-survey"
+                    ? "text-blue-600"
+                    : "text-gray-700 hover:text-blue-600"
+                }`}
+              >
+                Happiness Survey
+              </motion.a>
+              {pathname === "/admin/happiness-survey" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"></div>
+              )}
+            </div>
           </div>
           <div className="flex items-center">
             {admin && (

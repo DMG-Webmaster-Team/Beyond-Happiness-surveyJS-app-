@@ -52,9 +52,25 @@ export default function UserNavbar() {
   const handleLogoutConfirm = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
+
+      // Clear happiness survey authentication
+      sessionStorage.removeItem("happinessAuthenticated");
+      localStorage.removeItem("happinessAuthenticated");
+
       setIsLoggedIn(false);
       setShowLogoutModal(false);
-      router.push("/user/login");
+
+      // Get current survey ID from URL to preserve context
+      const currentPath = window.location.pathname;
+      const surveyIdMatch = currentPath.match(/\/happiness\/([^\/]+)/);
+      const surveyId = surveyIdMatch ? surveyIdMatch[1] : null;
+
+      // Redirect with survey context preserved
+      if (surveyId) {
+        router.push(`/user/login?redirect=${surveyId}&type=happiness`);
+      } else {
+        router.push("/user/login");
+      }
     } catch (error) {
       console.error("Logout error:", error);
     }
