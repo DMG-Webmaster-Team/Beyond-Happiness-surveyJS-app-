@@ -35,6 +35,28 @@ export default function HappinessResultsPage({
   const [result, setResult] = useState<HappinessResult | null>(null);
   const [survey, setSurvey] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentAccessData, setCurrentAccessData] = useState<any>(null);
+  const [accessLoading, setAccessLoading] = useState(false);
+
+  // Function to fetch current access data for retake button
+  const fetchCurrentAccessData = async () => {
+    try {
+      setAccessLoading(true);
+      const response = await fetch(
+        `/api/happiness/surveys/${params.surveyId}/access`,
+        { credentials: "include" } // Ensure cookies are sent
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentAccessData(data);
+        console.log("🔍 Current access data for retake button:", data);
+      }
+    } catch (error) {
+      console.error("Error fetching current access data:", error);
+    } finally {
+      setAccessLoading(false);
+    }
+  };
 
   useEffect(() => {
     console.log("🔍 Results page loading...");
@@ -55,6 +77,9 @@ export default function HappinessResultsPage({
     };
 
     fetchSurveyData();
+
+    // Fetch current access data for retake button state
+    fetchCurrentAccessData();
 
     // Check URL parameters to determine the case
     const urlParams = new URLSearchParams(window.location.search);
@@ -91,61 +116,10 @@ export default function HappinessResultsPage({
         return;
       }
     } else {
-      // Fallback: try to get from sessionStorage for cooldown cases
-      if (isCooldown) {
-        const cooldownResult = sessionStorage.getItem(
-          "happinessCooldownResult"
-        );
-        if (cooldownResult) {
-          try {
-            const parsedResult = JSON.parse(cooldownResult);
-            console.log(
-              "🔍 Parsed cooldown result from sessionStorage:",
-              parsedResult
-            );
-
-            // Use the character data from the database if available, otherwise transform
-            const transformedResult: HappinessResult = {
-              ok: true,
-              surveyId: parsedResult.surveyId,
-              code: parsedResult.code,
-              character: parsedResult.character
-                ? {
-                    id: parsedResult.character.id,
-                    name: parsedResult.character.name,
-                    description: parsedResult.character.description,
-                    avatarUrl: parsedResult.character.avatarUrl,
-                  }
-                : {
-                    id: parsedResult.characterId,
-                    name: parsedResult.characterName || "Unknown Character",
-                    description: "Your character from previous submission",
-                    avatarUrl: `/characters/${parsedResult.code}.png`,
-                  },
-              categoryTotals: JSON.parse(parsedResult.categoryTotals),
-            };
-            console.log("🔍 Transformed result:", transformedResult);
-            setResult(transformedResult);
-
-            // Clear from sessionStorage after loading
-            sessionStorage.removeItem("happinessCooldownResult");
-            console.log("🔍 Cooldown result cleared from sessionStorage");
-          } catch (error) {
-            console.error("❌ Error parsing cooldown result:", error);
-            router.push(`/happiness/${params.surveyId}`);
-            return;
-          }
-        } else {
-          console.log("🔍 No cooldown result found, redirecting to survey");
-          router.push(`/happiness/${params.surveyId}`);
-          return;
-        }
-      } else {
-        // No result found, redirect back to survey
-        console.log("🔍 No stored result found, redirecting to survey");
-        router.push(`/happiness/${params.surveyId}`);
-        return;
-      }
+      // No result found - redirect back to survey (no sessionStorage fallback)
+      console.log("🔍 No stored result found, redirecting to survey");
+      router.push(`/happiness/${params.surveyId}`);
+      return;
     }
 
     setIsLoading(false);
@@ -371,47 +345,58 @@ export default function HappinessResultsPage({
             </p>
           </div>
 
-          {/* Retake Survey Button */}
+          {/* Retake Survey Button - Based on current backend state */}
           <div className="mt-6 text-center">
-            {window.location.search.includes("cooldown=true") ? (
-              <div className="space-y-3">
-                {(result.cooldownRemaining ?? 0) > 0 ? (
-                  <div className="space-y-2">
-                    <button
-                      disabled
-                      className="bg-gray-300 text-gray-500 px-6 py-3 rounded-md text-sm font-medium cursor-not-allowed"
-                      title={`Retake available in ${
-                        result.cooldownRemaining ?? 0
-                      } more day(s)`}
-                    >
-                      Retake Survey
-                    </button>
-                    <div className="text-sm text-gray-500">
-                      Retake available in {result.cooldownRemaining ?? 0} more
-                      day(s)
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        // Clear localStorage and navigate back to survey
-                        localStorage.removeItem(
-                          `happiness:lastResult:${params.surveyId}`
-                        );
-                        router.push(`/happiness/${params.surveyId}?retake=1`);
-                      }}
-                      className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
-                    >
-                      Retake Survey
-                    </button>
-                    <div className="text-sm text-gray-500">
-                      You can retake this survey now
-                    </div>
-                  </div>
-                )}
+            {accessLoading ? (
+              <div className="space-y-2">
+                <button
+                  disabled
+                  className="bg-gray-300 text-gray-500 px-6 py-3 rounded-md text-sm font-medium cursor-not-allowed"
+                >
+                  Checking availability...
+                </button>
+                <div className="text-sm text-gray-500">
+                  Checking retake availability
+                </div>
               </div>
+            ) : currentAccessData ? (
+              // Use current backend state for retake button
+              currentAccessData.cooldown === true &&
+              (currentAccessData.cooldownRemaining ?? 0) > 0 ? (
+                <div className="space-y-2">
+                  <button
+                    disabled
+                    className="bg-gray-300 text-gray-500 px-6 py-3 rounded-md text-sm font-medium cursor-not-allowed"
+                    title={`Retake available in ${currentAccessData.cooldownRemaining} more day(s)`}
+                  >
+                    Retake Survey
+                  </button>
+                  <div className="text-sm text-gray-500">
+                    Retake available in {currentAccessData.cooldownRemaining}{" "}
+                    more day(s)
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      // Clear localStorage and navigate back to survey
+                      localStorage.removeItem(
+                        `happiness:lastResult:${params.surveyId}`
+                      );
+                      router.push(`/happiness/${params.surveyId}?retake=1`);
+                    }}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
+                  >
+                    Retake Survey
+                  </button>
+                  <div className="text-sm text-gray-500">
+                    You can retake this survey now
+                  </div>
+                </div>
+              )
             ) : (
+              // Fallback when no current access data
               <button
                 onClick={() => {
                   // Clear localStorage and navigate back to survey

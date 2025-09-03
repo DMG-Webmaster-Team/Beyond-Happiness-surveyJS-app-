@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -9,6 +10,8 @@ interface HappinessResult {
   id: string;
   surveyId: string;
   userId: string | null;
+  userEmail: string | null;
+  userName: string | null;
   answers: Array<{ questionId: number; valueIndex: number }>;
   categoryTotals: {
     Meaning: number;
@@ -27,19 +30,29 @@ interface HappinessResult {
 export default function ResultsTab() {
   const [filters, setFilters] = useState({
     surveyId: "",
-    userId: "",
+    userEmail: "",
     startDate: "",
     endDate: "",
   });
+  const [userEmailInput, setUserEmailInput] = useState("");
   const [selectedResult, setSelectedResult] = useState<HappinessResult | null>(
     null
   );
   const [page, setPage] = useState(1);
 
+  // Debounce the user email input with 2 second delay
+  const debouncedUserEmail = useDebounce(userEmailInput, 2000);
+
+  // Update filters when debounced value changes
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, userEmail: debouncedUserEmail }));
+    setPage(1); // Reset to first page when search changes
+  }, [debouncedUserEmail]);
+
   // Build query string
   const queryParams = new URLSearchParams();
   if (filters.surveyId) queryParams.set("surveyId", filters.surveyId);
-  if (filters.userId) queryParams.set("userId", filters.userId);
+  if (filters.userEmail) queryParams.set("userEmail", filters.userEmail);
   if (filters.startDate) queryParams.set("startDate", filters.startDate);
   if (filters.endDate) queryParams.set("endDate", filters.endDate);
   queryParams.set("page", page.toString());
@@ -138,15 +151,23 @@ export default function ResultsTab() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            User ID
+            User Email
           </label>
-          <input
-            type="text"
-            value={filters.userId}
-            onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            placeholder="Filter by user ID..."
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={userEmailInput}
+              onChange={(e) => setUserEmailInput(e.target.value)}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Filter by user email..."
+            />
+            {userEmailInput !== debouncedUserEmail &&
+              userEmailInput.length > 0 && (
+                <div className="absolute right-2 top-2 text-xs text-gray-500">
+                  Searching...
+                </div>
+              )}
+          </div>
         </div>
 
         <div>
@@ -210,7 +231,7 @@ export default function ResultsTab() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">
-                        {result.userId || "Anonymous"}
+                        {result.userEmail || "Anonymous"}
                       </div>
                       <div className="text-gray-500">{result.surveyTitle}</div>
                     </div>
@@ -308,7 +329,7 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
                 Survey Result Details
               </h3>
               <p className="text-sm text-black opacity-90">
-                {result.userId || "Anonymous"} • {result.surveyTitle}
+                {result.userEmail || "Anonymous"} • {result.surveyTitle}
               </p>
             </div>
             <button

@@ -20,6 +20,7 @@ export default function SurveysTab() {
     null
   );
   const [showAddForm, setShowAddForm] = useState(false);
+  const [copiedSurveyId, setCopiedSurveyId] = useState<string | null>(null);
 
   const { data, error, isLoading, mutate } = useSWR(
     "/api/happiness/surveys",
@@ -170,14 +171,18 @@ export default function SurveysTab() {
                       {getSurveyUrl(survey.id, survey.anonymous)}
                     </code>
                     <button
-                      onClick={() =>
+                      onClick={() => {
                         navigator.clipboard.writeText(
                           getSurveyUrl(survey.id, survey.anonymous)
-                        )
-                      }
-                      className="ml-2 text-blue-600 hover:text-blue-800 text-xs"
+                        );
+                        setCopiedSurveyId(survey.id);
+                        setTimeout(() => setCopiedSurveyId(null), 3000);
+                      }}
+                      className="ml-3 text-white  bg-blue-600 hover:bg-blue-800 text-md px-3 py-1 rounded-md"
                     >
-                      Copy
+                      {copiedSurveyId === survey.id
+                        ? "Copied ..."
+                        : "Copy Link"}
                     </button>
                   </div>
                 </div>

@@ -5,7 +5,8 @@ import {
   happinessSurveys,
   happinessCharacters,
 } from "@/db/schema/happiness";
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { users } from "@/db/schema/users";
+import { eq, and, desc, gte, lte, like } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import {
   computeHappinessScore,
@@ -18,19 +19,45 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const surveyId = searchParams.get("surveyId");
     const userId = searchParams.get("userId");
+    const userEmail = searchParams.get("userEmail");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
 
-    // Build the query with all operations in one chain to avoid type issues
-    // TODO: Add filtering when Drizzle ORM type issues are resolved
+    // Build the query with filtering
     const offset = (page - 1) * limit;
-    const results = await db
+
+    // Build where conditions
+    const whereConditions = [];
+    if (surveyId) {
+      whereConditions.push(eq(happinessResults.surveyId, surveyId));
+    }
+    if (userId) {
+      whereConditions.push(eq(happinessResults.userId, userId));
+    }
+    if (userEmail) {
+      whereConditions.push(like(users.email, `%${userEmail}%`));
+    }
+    if (startDate) {
+      const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+      whereConditions.push(gte(happinessResults.createdAt, startTimestamp));
+    }
+    if (endDate) {
+      const endTimestamp = Math.floor(
+        new Date(endDate + "T23:59:59").getTime() / 1000
+      );
+      whereConditions.push(lte(happinessResults.createdAt, endTimestamp));
+    }
+
+    // Build the query
+    const baseQuery = db
       .select({
         id: happinessResults.id,
         surveyId: happinessResults.surveyId,
         userId: happinessResults.userId,
+        userEmail: users.email,
+        userName: users.name,
         answers: happinessResults.answers,
         categoryTotals: happinessResults.categoryTotals,
         code: happinessResults.code,
@@ -48,9 +75,19 @@ export async function GET(request: NextRequest) {
         happinessCharacters,
         eq(happinessResults.characterId, happinessCharacters.id)
       )
-      .orderBy(desc(happinessResults.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .leftJoin(users, eq(happinessResults.userId, users.id));
+
+    const results =
+      whereConditions.length > 0
+        ? await baseQuery
+            .where(and(...whereConditions))
+            .orderBy(desc(happinessResults.createdAt))
+            .limit(limit)
+            .offset(offset)
+        : await baseQuery
+            .orderBy(desc(happinessResults.createdAt))
+            .limit(limit)
+            .offset(offset);
 
     // Parse JSON fields
     const parsedResults = results.map((result) => ({
@@ -79,7 +116,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { surveyId, answers, userId } = body;
+    const { surveyId, answers } = body;
 
     // Validation
     if (!surveyId || !answers || !Array.isArray(answers)) {
@@ -87,6 +124,19 @@ export async function POST(request: NextRequest) {
         { error: "Missing required fields: surveyId, answers" },
         { status: 400 }
       );
+    }
+
+    // Extract userId from session cookies
+    let userId: string | null = null;
+    const userSession = request.cookies.get("user_session");
+    if (userSession) {
+      try {
+        const sessionData = JSON.parse(userSession.value);
+        userId = sessionData.id;
+      } catch (error) {
+        console.error("Error parsing user session:", error);
+        // Continue without userId for anonymous surveys
+      }
     }
 
     // Validate answers format

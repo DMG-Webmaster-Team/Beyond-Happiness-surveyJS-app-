@@ -39,26 +39,121 @@ export default function HappinessSurveyPage({
   const [questionsData, setQuestionsData] = useState<any>(null);
   const [questionsError, setQuestionsError] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [accessLoading, setAccessLoading] = useState(true);
+  const [accessCheckComplete, setAccessCheckComplete] = useState(false);
 
-  // Check survey access (cooldown, permissions)
+  // SINGLE AUTHORITATIVE ACCESS CHECK - No sessionStorage, optional cache with TTL
   useEffect(() => {
-    const fetchAccessData = async () => {
+    let isMounted = true; // Prevent state updates if component unmounts
+
+    const performSingleAccessCheck = async () => {
       try {
-        const response = await fetch(
-          `/api/happiness/surveys/${params.surveyId}/access`
+        setAccessLoading(true);
+        setAccessCheckError(null);
+
+        console.log(
+          "🔍 CROSS-TAB TEST - Single access check starting for:",
+          params.surveyId,
+          {
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent.substring(0, 100),
+            tabId: Math.random().toString(36).substr(2, 9), // Random tab identifier
+          }
         );
+
+        // Check for cached access data (120s TTL) to avoid flicker, but always revalidate
+        const cacheKey = `happiness:access:${params.surveyId}`;
+        let cachedData = null;
+        try {
+          const cached = localStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            const now = Date.now();
+            if (parsed.timestamp && now - parsed.timestamp < 120000) {
+              // 120s TTL
+              cachedData = parsed.data;
+              console.log("🔍 Using cached access data (will revalidate)");
+              if (isMounted) {
+                setAccessData(cachedData);
+                setAccessLoading(false);
+                setAccessCheckComplete(true);
+              }
+            } else {
+              localStorage.removeItem(cacheKey); // Expired cache
+            }
+          }
+        } catch (error) {
+          console.warn("Cache read error:", error);
+          localStorage.removeItem(cacheKey);
+        }
+
+        // Always revalidate with server (single source of truth)
+        const response = await fetch(
+          `/api/happiness/surveys/${params.surveyId}/access`,
+          { credentials: "include" } // Ensure cookies are sent
+        );
+
+        if (!isMounted) return; // Component unmounted, don't update state
+
         if (response.ok) {
           const data = await response.json();
+          console.log(
+            "🔍 CROSS-TAB TEST - Access check response (authoritative):",
+            {
+              ...data,
+              timestamp: new Date().toISOString(),
+              cacheUsed: !!cachedData,
+            }
+          );
+
+          // Cache the response for 120s to avoid flicker on subsequent loads
+          try {
+            localStorage.setItem(
+              cacheKey,
+              JSON.stringify({
+                data: data,
+                timestamp: Date.now(),
+              })
+            );
+          } catch (error) {
+            console.warn("Cache write error:", error);
+          }
+
           setAccessData(data);
         } else {
-          setAccessCheckError(new Error("Failed to fetch access data"));
+          const errorData = await response
+            .json()
+            .catch(() => ({ error: "Unknown error" }));
+          console.error("❌ Access check failed:", errorData);
+          setAccessCheckError(
+            new Error(errorData.error || "Failed to fetch access data")
+          );
+
+          // Clear cache on error
+          localStorage.removeItem(cacheKey);
         }
       } catch (error) {
+        if (!isMounted) return;
+        console.error("❌ Access check exception:", error);
         setAccessCheckError(error);
+
+        // Clear cache on error
+        const cacheKey = `happiness:access:${params.surveyId}`;
+        localStorage.removeItem(cacheKey);
+      } finally {
+        if (isMounted) {
+          setAccessLoading(false);
+          setAccessCheckComplete(true);
+        }
       }
     };
 
-    fetchAccessData();
+    performSingleAccessCheck();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
   }, [params.surveyId]);
 
   // Fetch active questions
@@ -98,258 +193,101 @@ export default function HappinessSurveyPage({
   const questions = questionsData?.questions || [];
   const canAccess = accessData?.canAccess;
 
-  // Check if survey exists and is valid
+  // SINGLE AUTHORITATIVE ACCESS GATE - Backend is source of truth
   useEffect(() => {
-    if (accessCheckError || (accessData && !survey)) {
+    // Only process access decisions after the access check is complete
+    if (!accessCheckComplete || hasRedirected) return;
+
+    // Handle access check errors
+    if (accessCheckError) {
+      console.error("❌ Access check failed, redirecting to 404");
       router.push("/404");
-    } else if (accessData && !hasRedirected) {
-      // PRIORITY 1: Cooldown gate — redirect immediately to results if in cooldown
-      if (
-        !canAccess &&
-        accessData.hasPreviousResult &&
-        accessData.previousResult
-      ) {
-        console.log(
-          "⏰ User in cooldown, redirecting to previous results (priority gate)"
-        );
-        setHasRedirected(true);
-
-        const resultData = {
-          ok: true,
-          surveyId: params.surveyId,
-          code: accessData.previousResult.code,
-          character: accessData.previousResult.character
-            ? {
-                id: accessData.previousResult.character.id,
-                name: accessData.previousResult.character.name,
-                description: accessData.previousResult.character.description,
-                avatarUrl: accessData.previousResult.character.avatarUrl,
-              }
-            : {
-                id: accessData.previousResult.characterId,
-                name: "Your Previous Character",
-                description: "Your character from previous submission",
-                avatarUrl: `/characters/${accessData.previousResult.code}.png`,
-              },
-          categoryTotals: accessData.previousResult.categoryTotals,
-        };
-
-        localStorage.setItem(
-          `happiness:lastResult:${params.surveyId}`,
-          JSON.stringify(resultData)
-        );
-        router.push(`/happiness/${params.surveyId}/results?cooldown=true`);
-        return;
-      }
-
-      // PRIORITY 2: Zero-cooldown retake — show previous results with retake option
-      if (
-        canAccess &&
-        accessData.hasPreviousResult &&
-        accessData.canRetake &&
-        accessData.previousResult
-      ) {
-        console.log(
-          "🔄 User can retake (zero cooldown), showing previous results (priority gate)"
-        );
-        setHasRedirected(true);
-
-        const resultData = {
-          ok: true,
-          surveyId: params.surveyId,
-          code: accessData.previousResult.code,
-          character: accessData.previousResult.character
-            ? {
-                id: accessData.previousResult.character.id,
-                name: accessData.previousResult.character.name,
-                description: accessData.previousResult.character.description,
-                avatarUrl: accessData.previousResult.character.avatarUrl,
-              }
-            : {
-                id: accessData.previousResult.characterId,
-                name: "Your Previous Character",
-                description: "Your character from previous submission",
-                avatarUrl: `/characters/${accessData.previousResult.code}.png`,
-              },
-          categoryTotals: accessData.previousResult.categoryTotals,
-        };
-
-        localStorage.setItem(
-          `happiness:lastResult:${params.surveyId}`,
-          JSON.stringify(resultData)
-        );
-        router.push(`/happiness/${params.surveyId}/results?retake=true`);
-        return;
-      }
-
-      // Check for cached access grant to prevent flash
-      const cachedAccess = sessionStorage.getItem(
-        `happiness:access:${params.surveyId}`
-      );
-      let hasCachedAccess = false;
-
-      if (cachedAccess) {
-        try {
-          const accessData = JSON.parse(cachedAccess);
-          const cacheAge = Date.now() - accessData.grantedAt;
-          // Cache is valid for 5 minutes
-          if (cacheAge < 5 * 60 * 1000 && accessData.assigned) {
-            hasCachedAccess = true;
-            console.log("💾 Using cached access grant:", accessData);
-            // Mark as authenticated and proceed
-            sessionStorage.setItem("happinessAuthenticated", "true");
-            localStorage.setItem("happinessAuthenticated", "true");
-            setHasRedirected(true);
-            return; // Skip the rest of the logic
-          } else {
-            // Clear expired cache
-            sessionStorage.removeItem(`happiness:access:${params.surveyId}`);
-            console.log("🗑️ Cleared expired access cache");
-          }
-        } catch (error) {
-          console.error("❌ Error parsing cached access:", error);
-          sessionStorage.removeItem(`happiness:access:${params.surveyId}`);
-        }
-      }
-
-      // Check if user is coming from login flow (has been authenticated)
-      const urlParams = new URLSearchParams(window.location.search);
-      const fromLogin = urlParams.get("fromLogin");
-      const authenticated =
-        sessionStorage.getItem("happinessAuthenticated") ||
-        localStorage.getItem("happinessAuthenticated");
-      console.log("🔍 Checking authentication status:", {
-        fromLogin,
-        authenticated,
-        canAccess,
-        accessData,
-        hasCachedAccess,
-      });
-
-      if (accessData.requiresAuth && !fromLogin && !authenticated) {
-        // Redirect to the regular survey authentication flow
-        // The regular auth system will handle OTP and assignment checks
-        console.log(
-          "🔀 Redirecting to login for happiness survey:",
-          params.surveyId
-        );
-        setHasRedirected(true);
-
-        // Use router.push for more reliable navigation
-        const loginUrl = `/user/login?redirect=${params.surveyId}&type=happiness`;
-        console.log("🔀 Redirecting to:", loginUrl);
-        router.push(loginUrl);
-      } else if (fromLogin || authenticated) {
-        // User has been authenticated, check if they have cooldown
-        if (accessData.hasPreviousResult && accessData.previousResult) {
-          console.log(
-            "🔍 Previous result data received:",
-            accessData.previousResult
-          );
-          console.log(
-            "🔍 Character data from API:",
-            accessData.previousResult.character
-          );
-
-          if (accessData.canRetake) {
-            // User can retake (zero cooldown), show results with retake option
-            console.log(
-              "🔄 User can retake, showing previous results with retake option"
-            );
-            setHasRedirected(true);
-
-            // Store the previous result data for the results page
-            const resultData = {
-              ok: true,
-              surveyId: params.surveyId,
-              code: accessData.previousResult.code,
-              character: accessData.previousResult.character
-                ? {
-                    id: accessData.previousResult.character.id,
-                    name: accessData.previousResult.character.name,
-                    description:
-                      accessData.previousResult.character.description,
-                    avatarUrl: accessData.previousResult.character.avatarUrl,
-                  }
-                : {
-                    id: accessData.previousResult.characterId,
-                    name: "Your Previous Character",
-                    description: "Your character from previous submission",
-                    avatarUrl: `/characters/${accessData.previousResult.code}.png`,
-                  },
-              categoryTotals: accessData.previousResult.categoryTotals,
-            };
-
-            console.log("🔍 Final result data to be stored:", resultData);
-            console.log(
-              "🔍 Character data in final result:",
-              resultData.character
-            );
-            localStorage.setItem(
-              `happiness:lastResult:${params.surveyId}`,
-              JSON.stringify(resultData)
-            );
-            router.push(`/happiness/${params.surveyId}/results?retake=true`);
-          } else {
-            // User has previous result and is in cooldown, redirect to results page
-            console.log("⏰ User in cooldown, redirecting to previous results");
-            setHasRedirected(true);
-
-            // Store the previous result data for the results page
-            const resultData = {
-              ok: true,
-              surveyId: params.surveyId,
-              code: accessData.previousResult.code,
-              character: accessData.previousResult.character
-                ? {
-                    id: accessData.previousResult.character.id,
-                    name: accessData.previousResult.character.name,
-                    description:
-                      accessData.previousResult.character.description,
-                    avatarUrl: accessData.previousResult.character.avatarUrl,
-                  }
-                : {
-                    id: accessData.previousResult.characterId,
-                    name: "Your Previous Character",
-                    description: "Your character from previous submission",
-                    avatarUrl: `/characters/${accessData.previousResult.code}.png`,
-                  },
-              categoryTotals: accessData.previousResult.categoryTotals,
-            };
-
-            console.log(
-              "🔍 Final result data to be stored (cooldown):",
-              resultData
-            );
-            console.log(
-              "🔍 Character data in final result (cooldown):",
-              resultData.character
-            );
-            localStorage.setItem(
-              `happiness:lastResult:${params.surveyId}`,
-              JSON.stringify(resultData)
-            );
-            router.push(`/happiness/${params.surveyId}/results?cooldown=true`);
-          }
-        } else {
-          // User has been authenticated, mark as authenticated and don't redirect
-          console.log("✅ User authenticated, proceeding to survey");
-          sessionStorage.setItem("happinessAuthenticated", "true");
-          localStorage.setItem("happinessAuthenticated", "true");
-          setHasRedirected(true);
-        }
-      } else {
-        setAccessError(accessData.message);
-      }
+      return;
     }
+
+    // Handle missing survey data
+    if (accessData && !accessData.survey) {
+      console.error("❌ Survey not found, redirecting to 404");
+      router.push("/404");
+      return;
+    }
+
+    // If no access data yet, wait
+    if (!accessData) return;
+
+    console.log("🛡️ SINGLE ACCESS GATE - Backend Decision:", {
+      canAccess: accessData.canAccess,
+      requiresAuth: accessData.requiresAuth,
+      assigned: accessData.assigned,
+      cooldown: accessData.cooldown,
+      cooldownRemaining: accessData.cooldownRemaining,
+      hasPreviousResult: accessData.hasPreviousResult,
+    });
+
+    // Check if this is a retake request
+    const urlParams = new URLSearchParams(window.location.search);
+    const isRetake = urlParams.get("retake") === "1";
+
+    // PRIORITY 1: Handle cooldown (redirect to results)
+    if (accessData.cooldown === true) {
+      console.log("⏰ Cooldown active, redirecting to results");
+      setHasRedirected(true);
+
+      if (accessData.previousResult) {
+        localStorage.setItem(
+          `happiness:lastResult:${params.surveyId}`,
+          JSON.stringify(accessData.previousResult)
+        );
+      }
+
+      router.push(`/happiness/${params.surveyId}/results?cooldown=true`);
+      return;
+    }
+
+    // PRIORITY 2: Handle authentication requirement
+    if (accessData.requiresAuth === true && accessData.canAccess === false) {
+      console.log("🔐 Authentication required, redirecting to login");
+      setHasRedirected(true);
+      router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
+      return;
+    }
+
+    // PRIORITY 3: Handle assignment issues
+    if (accessData.assigned === false) {
+      console.log("❌ User not assigned, showing error");
+      setAccessError(
+        accessData.message || "You are not assigned to this survey"
+      );
+      return;
+    }
+
+    // PRIORITY 4: Handle retake requests when cooldown has expired
+    if (
+      isRetake &&
+      accessData.hasPreviousResult &&
+      accessData.canAccess === true
+    ) {
+      console.log("🔄 Valid retake request - clearing previous result");
+      localStorage.removeItem(`happiness:lastResult:${params.surveyId}`);
+      // Continue to render survey
+    }
+
+    // PRIORITY 5: Check final access permission
+    if (accessData.canAccess !== true) {
+      console.log("🚫 Access denied by backend");
+      setAccessError(accessData.message || "Access denied");
+      return;
+    }
+
+    // If we reach here, access is granted - survey will render
+    console.log("✅ Access granted - survey will render");
   }, [
-    accessCheckError,
+    accessCheckComplete,
     accessData,
-    survey,
-    canAccess,
-    router,
-    params.surveyId,
+    accessCheckError,
     hasRedirected,
+    params.surveyId,
+    router,
   ]);
 
   const handleAnswerSelect = (valueIndex: number) => {
@@ -459,14 +397,10 @@ export default function HappinessSurveyPage({
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", // Ensure cookies are sent
         body: JSON.stringify({
           surveyId: params.surveyId,
           answers: answers,
-          userId:
-            sessionStorage.getItem("happinessAuthenticated") ||
-            localStorage.getItem("happinessAuthenticated")
-              ? "user"
-              : null,
         }),
       });
 
@@ -571,17 +505,23 @@ export default function HappinessSurveyPage({
     );
   }
 
-  // Show loading state only if we're still fetching data
-  if (!accessData || !questionsData) {
+  // Show loading state while access check is in progress or data is loading
+  if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-pulse text-center">
           <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
+          <div className="h-4 bg-gray-200 rounded w-48 mx-auto mb-2"></div>
+          <div className="text-sm text-gray-500">
+            {accessLoading ? "Checking survey access..." : "Loading survey..."}
+          </div>
         </div>
       </div>
     );
   }
+
+  // Cooldown and other access checks are now handled in the single access gate above
+  // This eliminates race conditions and ensures backend is the single source of truth
 
   // Show error state if there are errors
   if (accessCheckError || questionsError) {
@@ -623,28 +563,8 @@ export default function HappinessSurveyPage({
   }
 
   // If we have data but no access, and user is not authenticated, redirect to login
-  if (!canAccess && !hasRedirected) {
-    // Check if user is coming from login flow (has been authenticated)
-    const urlParams = new URLSearchParams(window.location.search);
-    const fromLogin = urlParams.get("fromLogin");
-    const authenticated =
-      sessionStorage.getItem("happinessAuthenticated") ||
-      localStorage.getItem("happinessAuthenticated");
-
-    if (!fromLogin && !authenticated) {
-      // Redirect to login only if not already authenticated
-      console.log(
-        "🔀 Redirecting to login for happiness survey:",
-        params.surveyId
-      );
-      setHasRedirected(true);
-
-      const loginUrl = `/user/login?redirect=${params.surveyId}&type=happiness`;
-      console.log("🔀 Redirecting to:", loginUrl);
-      window.location.href = loginUrl;
-      return null; // Don't render anything while redirecting
-    }
-  }
+  // Backend handles all authentication and access control now
+  // No client-side authentication checks needed
 
   // If no survey or questions, show error
   if (!survey || questions.length === 0) {

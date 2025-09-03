@@ -34,6 +34,10 @@ export default function UserLogin() {
   const [surveyType, setSurveyType] = useState<"regular" | "happiness" | null>(
     null
   );
+  const [contactData, setContactData] = useState<{
+    identifier: string;
+    inputType: string;
+  } | null>(null);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,7 +45,12 @@ export default function UserLogin() {
   // Function to check if a survey is a happiness survey
   const checkSurveyType = async (surveyId: string) => {
     try {
-      const response = await fetch(`/api/happiness/surveys/${surveyId}/access`);
+      const response = await fetch(
+        `/api/happiness/surveys/${surveyId}/access`,
+        {
+          credentials: "include", // Ensure cookies are sent
+        }
+      );
       if (response.ok) {
         setSurveyType("happiness");
         console.log("🎯 Happiness survey detected via API check");
@@ -55,21 +64,17 @@ export default function UserLogin() {
     }
   };
 
-  // Clear any existing session when arriving at login
-  useEffect(() => {
-    fetch("/api/auth/logout", { method: "POST" }).catch(console.error);
-  }, []);
+  // Session management is now handled by the backend - no automatic logout
 
-  // Capture/normalize surveyId once and persist it as redirectSurveyId
+  // Capture/normalize surveyId from URL only (no sessionStorage)
   useEffect(() => {
-    // Fallback to window.location.search if searchParams is not ready
+    // Get surveyId from URL parameters only
     const urlParams = new URLSearchParams(window.location.search);
     const sid =
       searchParams.get("surveyId") ??
       searchParams.get("redirect") ??
       urlParams.get("surveyId") ??
-      urlParams.get("redirect") ??
-      sessionStorage.getItem("redirectSurveyId");
+      urlParams.get("redirect");
 
     // Check if this is a happiness survey
     const type = searchParams.get("type") ?? urlParams.get("type");
@@ -92,22 +97,9 @@ export default function UserLogin() {
 
     if (sid) {
       setStableSurveyId(sid);
-      sessionStorage.setItem("redirectSurveyId", sid);
-      console.log("✅ Stable surveyId stored:", sid);
+      console.log("✅ Stable surveyId from URL:", sid);
     } else {
-      // Try to get from legacy surveyId key
-      const legacySid = sessionStorage.getItem("surveyId");
-      if (legacySid) {
-        setStableSurveyId(legacySid);
-        sessionStorage.setItem("redirectSurveyId", legacySid);
-        sessionStorage.removeItem("surveyId"); // Clean up legacy key
-        console.log(
-          "✅ Migrated legacy surveyId to redirectSurveyId:",
-          legacySid
-        );
-      } else {
-        console.warn("⚠️ No surveyId found in URL or sessionStorage");
-      }
+      console.warn("⚠️ No surveyId found in URL parameters");
     }
 
     // Debug logging
@@ -173,14 +165,12 @@ export default function UserLogin() {
       let identifier = contactInput;
       if (inputType === "phone") identifier = formatPhoneNumber(contactInput);
 
-      // Persist contact context for step 2
-      sessionStorage.setItem(
-        "userContact",
-        JSON.stringify({
-          [inputType]: identifier,
-          inputType,
-        })
-      );
+      // Store contact context in component state (no sessionStorage)
+      const newContactData = {
+        identifier,
+        inputType,
+      };
+      setContactData(newContactData);
 
       const method = inputType === "email" ? "email" : "sms";
       const requestData = {
@@ -245,11 +235,7 @@ export default function UserLogin() {
       return;
     }
 
-    const userContact = JSON.parse(
-      sessionStorage.getItem("userContact") || "{}"
-    );
-
-    if (!userContact[userContact.inputType]) {
+    if (!contactData || !contactData.identifier) {
       setError("Please enter your contact information first");
       return;
     }
@@ -266,14 +252,14 @@ export default function UserLogin() {
     setError("");
 
     try {
-      console.log("🔍 userContact:", userContact);
-      console.log("🔍 inputType:", userContact.inputType);
-      console.log("🔍 identifier:", userContact[userContact.inputType]);
+      console.log("🔍 contactData:", contactData);
+      console.log("🔍 inputType:", contactData.inputType);
+      console.log("🔍 identifier:", contactData.identifier);
       console.log("🔍 otp:", otpString);
       console.log("🔍 stableSurveyId:", stableSurveyId);
 
       const requestBody = {
-        [userContact.inputType]: userContact[userContact.inputType],
+        [contactData.inputType]: contactData.identifier,
         otp: otpString,
         surveyId: stableSurveyId, // guaranteed by earlier guard
       };
@@ -283,8 +269,9 @@ export default function UserLogin() {
       const otpResponse = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Ensure cookies are sent/received
         body: JSON.stringify({
-          identifier: userContact[userContact.inputType],
+          identifier: contactData.identifier,
           otp: otpString,
         }),
       });
@@ -300,6 +287,7 @@ export default function UserLogin() {
       const response = await fetch("/api/users/otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Ensure cookies are sent/received
         body: JSON.stringify({
           ...requestBody,
           skipOtpVerification: true,
@@ -313,8 +301,8 @@ export default function UserLogin() {
         return;
       }
 
-      // Clear contact storage
-      sessionStorage.removeItem("userContact");
+      // Clear contact data from state
+      setContactData(null);
 
       // Clear any previous errors
       setError("");
@@ -331,36 +319,79 @@ export default function UserLogin() {
         return;
       }
 
-      // Clear any previous session data
-      sessionStorage.removeItem("authResponse");
+      // Clear any stale caches (no sessionStorage usage)
+
+      // Clear any stale access denial caches for this survey
+      if (targetSurveyId && surveyType === "happiness") {
+        // Remove any cached access denials that might be stale after login
+        const cacheKeys = Object.keys(localStorage).filter(
+          (key) =>
+            key.includes(`happiness:access:${targetSurveyId}`) ||
+            key.includes(`access:denied:${targetSurveyId}`)
+        );
+        cacheKeys.forEach((key) => localStorage.removeItem(key));
+        console.log("🧹 Cleared stale access caches:", cacheKeys);
+      }
 
       // Redirect based on access status and survey type
-      setTimeout(() => {
+      setTimeout(async () => {
         try {
-          if (data.access.canAccess) {
-            // Direct access to survey
-            console.log("✅ Access granted - redirecting to survey");
-            if (surveyType === "happiness") {
-              // Cache access grant for happiness survey to prevent flash
-              const accessGrant = {
-                assigned: data.access.canAccess,
-                hasSubmitted: data.access.reason === "already-submitted",
-                surveyId: targetSurveyId,
-                canTakeMultiple: data.survey?.canTakeMultiple ?? false,
-                grantedAt: Date.now(),
-              };
-              sessionStorage.setItem(
-                `happiness:access:${targetSurveyId}`,
-                JSON.stringify(accessGrant)
+          if (surveyType === "happiness") {
+            // Call happiness access API to get canonical decision
+            console.log("📊 Calling happiness access API after OTP success");
+            try {
+              const accessResponse = await fetch(
+                `/api/happiness/surveys/${targetSurveyId}/access`,
+                { credentials: "include" } // Ensure cookies are sent
               );
+              const accessData = await accessResponse.json();
 
-              router.push(`/happiness/${targetSurveyId}?fromLogin=true`);
-            } else {
-              router.push(`/user/survey/${targetSurveyId}`);
+              console.log("📊 CROSS-TAB TEST - AccessCheck After OTP →", {
+                canAccess: accessData.canAccess,
+                cooldown: accessData.cooldown,
+                cooldownRemaining: accessData.cooldownRemaining,
+                assigned: accessData.assigned,
+                requiresAuth: accessData.requiresAuth,
+                surveyId: targetSurveyId,
+                userId: data.user.id,
+                timestamp: new Date().toISOString(),
+              });
+
+              if (accessData.cooldown === true) {
+                // Store previousResult and redirect to results
+                localStorage.setItem(
+                  `happiness:lastResult:${targetSurveyId}`,
+                  JSON.stringify(accessData.previousResult)
+                );
+                router.push(
+                  `/happiness/${targetSurveyId}/results?cooldown=true`
+                );
+              } else if (accessData.canAccess === true) {
+                router.push(`/happiness/${targetSurveyId}`);
+              } else if (accessData.assigned === false) {
+                // Show the exact backend message for assignment issues
+                setError(
+                  accessData.message || "You are not assigned to this survey"
+                );
+                setAuthStep("contact"); // Return to contact step to show error
+                return;
+              } else {
+                // Other access denied reasons
+                setError(accessData.message || "Access denied to this survey");
+                setAuthStep("contact"); // Return to contact step to show error
+                return;
+              }
+            } catch (error) {
+              console.error("❌ Error calling happiness access API:", error);
+              // Fallback to regular survey flow
+              router.push(`/happiness/${targetSurveyId}`);
             }
+          } else if (data.access.canAccess) {
+            // Direct access to regular survey
+            console.log("✅ Access granted - redirecting to survey");
+            router.push(`/user/survey/${targetSurveyId}`);
           } else {
-            // Redirect to appropriate status page
-
+            // Redirect to appropriate status page for regular surveys
             if (data.access.reason === "not-assigned") {
               router.push(
                 `/user/status/not-assigned?surveyId=${encodeURIComponent(
@@ -373,28 +404,6 @@ export default function UserLogin() {
                   targetSurveyId
                 )}`
               );
-            } else if (
-              data.access.reason === "cooldown" &&
-              surveyType === "happiness"
-            ) {
-              // For happiness surveys in cooldown, show results with avatar
-              const existingResult = data.existingResult;
-              if (existingResult) {
-                // Store the result data for the results page
-                sessionStorage.setItem(
-                  "happinessCooldownResult",
-                  JSON.stringify(existingResult)
-                );
-                router.push(
-                  `/happiness/${targetSurveyId}/results?cooldown=true`
-                );
-              } else {
-                router.push(
-                  `/user/status/access-denied?surveyId=${encodeURIComponent(
-                    targetSurveyId
-                  )}`
-                );
-              }
             } else {
               router.push(
                 `/user/status/access-denied?surveyId=${encodeURIComponent(
@@ -406,36 +415,12 @@ export default function UserLogin() {
         } catch (err) {
           console.error("❌ router.push failed:", err);
           // Fallback to window.location
-          if (data.access.canAccess) {
-            if (surveyType === "happiness") {
-              window.location.href = `/happiness/${targetSurveyId}?fromLogin=true`;
-            } else {
-              window.location.href = `/user/survey/${targetSurveyId}`;
-            }
+          if (surveyType === "happiness") {
+            window.location.href = `/happiness/${targetSurveyId}`;
+          } else if (data.access.canAccess) {
+            window.location.href = `/user/survey/${targetSurveyId}`;
           } else {
-            if (
-              data.access.reason === "cooldown" &&
-              surveyType === "happiness"
-            ) {
-              // For happiness surveys in cooldown, show results with avatar
-              const existingResult = data.existingResult;
-              if (existingResult) {
-                // Store the result data for the results page
-                sessionStorage.setItem(
-                  "happinessCooldownResult",
-                  JSON.stringify(existingResult)
-                );
-                window.location.href = `/happiness/${targetSurveyId}/results?cooldown=true`;
-              } else {
-                window.location.href = `/user/status/access-denied?surveyId=${encodeURIComponent(
-                  targetSurveyId
-                )}`;
-              }
-            } else {
-              window.location.href = `/user/status/${
-                data.access.reason
-              }?surveyId=${encodeURIComponent(targetSurveyId)}`;
-            }
+            window.location.href = `/user/status/access-denied?surveyId=${targetSurveyId}`;
           }
         }
       }, 1000);
@@ -600,12 +585,6 @@ export default function UserLogin() {
                     <span className="text-gray-400 mx-2">|</span>
                     <span className="text-green-600">✓ SMS Available</span>
                   </span>
-                </div>
-
-                {/* Phone formatting info */}
-                <div className="text-xs text-gray-500 mt-2 text-center">
-                  💡 Phone numbers will automatically be formatted with Egyptian
-                  country code (+20)
                 </div>
               </div>
             </div>

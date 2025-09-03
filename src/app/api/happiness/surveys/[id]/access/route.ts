@@ -2,38 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import {
   happinessSurveys,
-  happinessResults,
   happinessAssignments,
+  happinessResults,
   happinessCharacters,
 } from "@/db/schema/happiness";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 
-// GET - Check if user can access survey (assignment and cooldown check)
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const surveyId = params.id;
-    const { searchParams } = new URL(request.url);
-    let userId = searchParams.get("userId");
 
-    // Fallback: infer user from session cookie if userId not provided
-    if (!userId) {
-      const sessionCookie = request.cookies.get("user_session");
-      if (sessionCookie) {
-        try {
-          const sessionData = JSON.parse(sessionCookie.value);
-          if (sessionData && sessionData.id) {
-            userId = sessionData.id;
-          }
-        } catch (e) {
-          // ignore parse errors, handled by requiresAuth check below
-        }
-      }
-    }
-
-    // Get survey details
+    // Get survey details first
     const survey = await db
       .select()
       .from(happinessSurveys)
@@ -46,26 +28,89 @@ export async function GET(
 
     const surveyData = survey[0];
 
-    // For anonymous surveys, always allow access
+    // For anonymous surveys, always allow access (subject to cooldown if configured)
     if (surveyData.anonymous) {
+      // For anonymous surveys, we could still enforce cooldown based on IP or other identifier
+      // But for now, we'll allow unlimited access to anonymous surveys
       return NextResponse.json({
+        assigned: true,
+        requiresAuth: false,
         canAccess: true,
-        message: "Access granted",
+        cooldown: false,
+        cooldownRemaining: 0,
+        hasPreviousResult: false,
+        message: "Access granted to anonymous survey",
         survey: surveyData,
       });
     }
 
-    // For non-anonymous surveys, require userId parameter
+    // For non-anonymous surveys, get userId from session cookie
+    const userSession = request.cookies.get("user_session");
+    let userId: string | null = null;
+
+    if (userSession) {
+      try {
+        const sessionData = JSON.parse(userSession.value);
+
+        // Validate session data structure
+        if (sessionData && sessionData.id && sessionData.loginTime) {
+          const loginTime = new Date(sessionData.loginTime).getTime();
+          const sessionAge = Date.now() - loginTime;
+          const thirtyMinutes = 30 * 60 * 1000;
+
+          if (sessionAge <= thirtyMinutes) {
+            userId = sessionData.id;
+          } else {
+            console.log("🔍 Session expired:", {
+              sessionAge: Math.round(sessionAge / 1000 / 60),
+              maxAge: 30,
+              userId: sessionData.id,
+            });
+          }
+        } else {
+          console.log("🔍 Invalid session data structure:", sessionData);
+        }
+      } catch (error) {
+        console.error("Error parsing session cookie:", error);
+      }
+    }
+
+    // Log session debugging info
+    console.log("🔍 CROSS-TAB TEST - Happiness Access API Debug:", {
+      path: "/access",
+      method: "GET",
+      surveyId,
+      hasSessionCookie: !!userSession,
+      userIdFromSession: userId,
+      sessionCookieValue: userSession
+        ? userSession.value.substring(0, 50) + "..."
+        : null,
+      anonymous: surveyData.anonymous,
+      timestamp: new Date().toISOString(),
+      userAgent:
+        request.headers.get("user-agent")?.substring(0, 100) || "unknown",
+    });
+
     if (!userId) {
       return NextResponse.json({
-        canAccess: false,
+        assigned: false,
         requiresAuth: true,
+        canAccess: false,
+        cooldown: false,
+        cooldownRemaining: 0,
+        hasPreviousResult: false,
         message: "Authentication required for this survey",
         survey: surveyData,
       });
     }
 
     // Check if user is assigned to this survey
+    console.log("🔍 Checking happiness assignment:", {
+      surveyId,
+      userId,
+      checkingTable: "happiness_assignments",
+    });
+
     const assignment = await db
       .select()
       .from(happinessAssignments)
@@ -78,9 +123,29 @@ export async function GET(
       )
       .limit(1);
 
+    console.log("🔍 CROSS-TAB TEST - Assignment check result:", {
+      assignmentFound: assignment.length > 0,
+      assignmentCount: assignment.length,
+      assignment: assignment[0] || null,
+      surveyId,
+      userId,
+      timestamp: new Date().toISOString(),
+    });
+
     if (assignment.length === 0) {
+      console.log("❌ User not assigned to happiness survey:", {
+        surveyId,
+        userId,
+        message: "No active assignment found in happiness_assignments table",
+      });
+
       return NextResponse.json({
+        assigned: false,
+        requiresAuth: true,
         canAccess: false,
+        cooldown: false,
+        cooldownRemaining: 0,
+        hasPreviousResult: false,
         message: "You are not assigned to this survey",
         survey: surveyData,
       });
@@ -108,7 +173,12 @@ export async function GET(
     if (recentResults.length === 0) {
       // No previous results, access allowed
       return NextResponse.json({
+        assigned: true,
+        requiresAuth: true,
         canAccess: true,
+        cooldown: false,
+        cooldownRemaining: 0,
+        hasPreviousResult: false,
         message: "Access granted",
         survey: surveyData,
       });
@@ -141,18 +211,18 @@ export async function GET(
             character: character[0] || null,
           });
 
-          // Return previous result data for cooldown period with actual character data
+          // Return canonical decision object for cooldown period
           return NextResponse.json({
+            assigned: true,
+            requiresAuth: true,
             canAccess: false,
-            message: `You must wait ${remainingTime} more day(s) before retaking this survey`,
+            cooldown: true,
             cooldownRemaining: remainingTime,
-            survey: surveyData,
             hasPreviousResult: true,
             previousResult: {
-              id: lastSubmission.id,
+              ok: true,
+              surveyId: surveyId,
               code: lastSubmission.code,
-              categoryTotals: JSON.parse(lastSubmission.categoryTotals),
-              characterId: lastSubmission.characterId,
               character: character[0]
                 ? {
                     id: character[0].id,
@@ -161,7 +231,10 @@ export async function GET(
                     avatarUrl: character[0].avatarUrl,
                   }
                 : null,
+              categoryTotals: JSON.parse(lastSubmission.categoryTotals),
             },
+            message: `You must wait ${remainingTime} more day(s) before retaking this survey`,
+            survey: surveyData,
           });
         }
       }
@@ -185,16 +258,16 @@ export async function GET(
       });
 
       return NextResponse.json({
+        assigned: true,
+        requiresAuth: true,
         canAccess: true,
-        message: "You can retake this survey. Here's your previous result:",
-        survey: surveyData,
+        cooldown: false,
+        cooldownRemaining: 0,
         hasPreviousResult: true,
-        canRetake: true,
         previousResult: {
-          id: lastSubmission.id,
+          ok: true,
+          surveyId: surveyId,
           code: lastSubmission.code,
-          categoryTotals: JSON.parse(lastSubmission.categoryTotals),
-          characterId: lastSubmission.characterId,
           character: character[0]
             ? {
                 id: character[0].id,
@@ -203,12 +276,20 @@ export async function GET(
                 avatarUrl: character[0].avatarUrl,
               }
             : null,
+          categoryTotals: JSON.parse(lastSubmission.categoryTotals),
         },
+        message: "You can retake this survey",
+        survey: surveyData,
       });
     }
 
     return NextResponse.json({
+      assigned: true,
+      requiresAuth: true,
       canAccess: true,
+      cooldown: false,
+      cooldownRemaining: 0,
+      hasPreviousResult: false,
       message: "Access granted",
       survey: surveyData,
     });
