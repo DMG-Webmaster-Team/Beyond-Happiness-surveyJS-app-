@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendOTP } from "../../../../lib/services/otp-service";
+import { verifyRecaptchaToken } from "../../../../components/shared/RecaptchaWrapper";
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
     console.log(" /api/auth/send-otp received:", body);
 
     // Validate request body
-    const { identifier, method, surveyId, surveyTitle } = body;
+    const { identifier, method, surveyId, surveyTitle, recaptchaToken } = body;
 
     if (!identifier) {
       return NextResponse.json(
@@ -25,8 +26,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Send OTP
-    const result = await sendOTP(identifier, method, surveyTitle);
+    // Verify reCAPTCHA if token provided
+    if (recaptchaToken) {
+      const isValidRecaptcha = await verifyRecaptchaToken(recaptchaToken);
+      if (!isValidRecaptcha) {
+        return NextResponse.json(
+          { success: false, error: "reCAPTCHA verification failed" },
+          { status: 400 }
+        );
+      }
+      console.log("✅ reCAPTCHA verification passed");
+    } else {
+      console.log(
+        "ℹ️ No reCAPTCHA token provided - proceeding without verification"
+      );
+    }
+
+    // Send OTP with request object for rate limiting
+    const result = await sendOTP(identifier, method, surveyTitle, req);
 
     if (result.success) {
       return NextResponse.json({
@@ -37,9 +54,16 @@ export async function POST(req: NextRequest) {
         otp: result.otp, // Include OTP in test mode
       });
     } else {
+      // Return 429 for rate limiting errors
+      const status = result.rateLimited ? 429 : 400;
+
       return NextResponse.json(
-        { success: false, error: result.error || result.message },
-        { status: 400 }
+        {
+          success: false,
+          error: result.error || result.message,
+          rateLimited: result.rateLimited,
+        },
+        { status }
       );
     }
   } catch (error) {

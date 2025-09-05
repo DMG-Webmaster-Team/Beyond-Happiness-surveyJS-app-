@@ -82,14 +82,36 @@ export async function GET(
   try {
     const { id } = params;
 
-    const assignments = await db
+    // Get regular assignments
+    const regularAssignments = await db
       .select()
       .from(userAssignments)
       .where(eq(userAssignments.userId, id));
 
+    // Get happiness assignments
+    const { happinessAssignments } = await import(
+      "../../../../db/schema/happiness"
+    );
+    const happinessAssignmentsResult = await db
+      .select()
+      .from(happinessAssignments)
+      .where(eq(happinessAssignments.userId, id));
+
+    // Combine all assignments
+    const allAssignments = [
+      ...regularAssignments.map((assignment) => ({
+        ...assignment,
+        type: "regular",
+      })),
+      ...happinessAssignmentsResult.map((assignment) => ({
+        ...assignment,
+        type: "happiness",
+      })),
+    ];
+
     return NextResponse.json({
       success: true,
-      assignments,
+      assignments: allAssignments,
     });
   } catch (error) {
     console.error("Error fetching user assignments:", error);

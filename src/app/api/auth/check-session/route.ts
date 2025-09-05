@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
 
       const userData = userRows[0];
 
-      // Load user's survey assignments
-      const assignmentRows = await db
+      // Load user's survey assignments (both regular and happiness)
+      const regularAssignmentRows = await db
         .select({
           surveyId: userAssignments.surveyId,
           surveyTitle: surveys.title,
@@ -51,14 +51,50 @@ export async function GET(request: NextRequest) {
         })
         .from(userAssignments)
         .innerJoin(surveys, eq(userAssignments.surveyId, surveys.id))
-        .where(eq(userAssignments.userId, userData.id));
+        .where(eq(userAssignments.userId, userData.id))
+        .catch((error) => {
+          console.error("Error fetching regular assignments:", error);
+          return []; // Return empty array on error
+        });
 
-      const assignments = assignmentRows.map((row) => ({
-        surveyId: row.surveyId,
-        surveyTitle: row.surveyTitle,
-        status: row.status,
-        dueAt: row.dueAt,
-      }));
+      // Load happiness assignments
+      const { happinessAssignments, happinessSurveys } = await import(
+        "../../../../db/schema/happiness"
+      );
+      const happinessAssignmentRows = await db
+        .select({
+          surveyId: happinessAssignments.surveyId,
+          surveyTitle: happinessSurveys.title,
+          status: happinessAssignments.isActive,
+        })
+        .from(happinessAssignments)
+        .innerJoin(
+          happinessSurveys,
+          eq(happinessAssignments.surveyId, happinessSurveys.id)
+        )
+        .where(eq(happinessAssignments.userId, userData.id))
+        .catch((error) => {
+          console.error("Error fetching happiness assignments:", error);
+          return []; // Return empty array on error
+        });
+
+      // Combine all assignments with null safety
+      const assignments = [
+        ...(regularAssignmentRows || []).map((row) => ({
+          surveyId: row.surveyId,
+          surveyTitle: row.surveyTitle,
+          status: row.status,
+          dueAt: row.dueAt,
+          type: "regular",
+        })),
+        ...(happinessAssignmentRows || []).map((row) => ({
+          surveyId: row.surveyId,
+          surveyTitle: row.surveyTitle,
+          status: row.status ? "active" : "inactive",
+          dueAt: null, // Happiness surveys don't have due dates
+          type: "happiness",
+        })),
+      ];
 
       const userWithAssignments = {
         id: userData.id,

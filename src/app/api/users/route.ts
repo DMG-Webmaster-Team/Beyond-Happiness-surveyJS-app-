@@ -22,21 +22,54 @@ export async function GET(request: NextRequest) {
       status,
     });
 
-    // Fetch assignments for each user
+    // Fetch assignments for each user (both regular and happiness)
     const usersWithAssignments = await Promise.all(
       result.users.map(async (user) => {
         const { getUserAssignments } = await import(
           "../../../db/queries/users"
         );
-        const assignments = await getUserAssignments(user.id);
 
-        return {
-          ...user,
-          assignments: assignments.map((assignment: any) => ({
+        // Get regular assignments
+        const regularAssignments = await getUserAssignments(user.id);
+
+        // Get happiness assignments
+        const { happinessAssignments, happinessSurveys } = await import(
+          "../../../db/schema/happiness"
+        );
+        const { db } = await import("../../../db/client");
+        const { eq } = await import("drizzle-orm");
+
+        const happinessAssignmentsResult = await db
+          .select({
+            assignment: happinessAssignments,
+            survey: happinessSurveys,
+          })
+          .from(happinessAssignments)
+          .innerJoin(
+            happinessSurveys,
+            eq(happinessAssignments.surveyId, happinessSurveys.id)
+          )
+          .where(eq(happinessAssignments.userId, user.id));
+
+        // Combine all assignments
+        const allAssignments = [
+          ...regularAssignments.map((assignment: any) => ({
             surveyId: assignment.assignment.surveyId,
             surveyTitle: assignment.survey.title,
             status: assignment.assignment.status,
+            type: "regular",
           })),
+          ...happinessAssignmentsResult.map((assignment: any) => ({
+            surveyId: assignment.assignment.surveyId,
+            surveyTitle: assignment.survey.title,
+            status: assignment.assignment.isActive ? "active" : "inactive",
+            type: "happiness",
+          })),
+        ];
+
+        return {
+          ...user,
+          assignments: allAssignments,
         };
       })
     );

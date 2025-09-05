@@ -5,12 +5,37 @@ import { motion } from "motion/react";
 import CompanySelect from "@/components/shared/CompanySelect";
 
 interface ImportResult {
-  message: string;
+  success: boolean;
+  message?: string;
   totalRows: number;
   validRows: number;
-  errors: any[];
-  importResults?: any;
-  dryRun: boolean;
+  errors?: Array<{
+    row: number;
+    data: {
+      email: string;
+      name: string;
+      phone: string;
+      companyId: string;
+    };
+    errors: string[];
+  }>;
+  importResults?: {
+    insertedUsers: number;
+    updatedUsers: number;
+    insertedAssignments: number;
+    skippedAssignments?: number;
+    duplicateAssignments?: number;
+    processingTime?: number;
+    processingTimeMs?: number; // Legacy support
+    errors?: Array<{
+      row: number;
+      email: string;
+      error: string;
+      type: "duplicate" | "error" | "constraint";
+    }>;
+  };
+  processingTime?: number;
+  dryRun?: boolean;
 }
 
 export default function UserImport() {
@@ -114,10 +139,26 @@ export default function UserImport() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Upload failed");
+        // Handle validation errors (400) differently from other errors
+        if (
+          response.status === 400 &&
+          data.errors &&
+          Array.isArray(data.errors)
+        ) {
+          // Set the result with validation errors so they can be displayed
+          setResult({
+            ...data,
+            success: false,
+          });
+          setError(data.error || "Validation errors found in uploaded file");
+        } else {
+          // Handle other types of errors (500, etc.)
+          throw new Error(data.error || "Upload failed");
+        }
+      } else {
+        // Success case
+        setResult(data);
       }
-
-      setResult(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -364,7 +405,12 @@ user3@example.com,Bob Johnson,+201234567892,`;
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleUpload}
-          disabled={!file || isUploading}
+          disabled={
+            !file ||
+            isUploading ||
+            (!dryRun && result && result.errors && result.errors.length > 0) ||
+            false
+          }
           className="w-full bg-blue-400 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isUploading ? (
@@ -448,28 +494,48 @@ user3@example.com,Bob Johnson,+201234567892,`;
                 <p>
                   <strong>Valid Rows:</strong> {result.validRows}
                 </p>
-                {result.errors.length > 0 && (
+                {((result.errors && result.errors.length > 0) ||
+                  (result.importResults &&
+                    result.importResults.errors &&
+                    result.importResults.errors.length > 0)) && (
                   <p>
-                    <strong>Errors:</strong> {result.errors.length}
+                    <strong>Errors:</strong>{" "}
+                    {(result.errors?.length || 0) +
+                      (result.importResults?.errors?.length || 0)}
                   </p>
                 )}
                 {result.importResults && (
                   <div className="mt-2">
                     <p>
                       <strong>Inserted Users:</strong>{" "}
-                      {result.importResults.insertedUsers}
+                      {result.importResults.insertedUsers || 0}
                     </p>
                     <p>
                       <strong>Updated Users:</strong>{" "}
-                      {result.importResults.updatedUsers}
+                      {result.importResults.updatedUsers || 0}
                     </p>
                     <p>
                       <strong>Inserted Assignments:</strong>{" "}
-                      {result.importResults.insertedAssignments}
+                      {result.importResults.insertedAssignments || 0}
                     </p>
+                    {(result.importResults.skippedAssignments || 0) > 0 && (
+                      <p>
+                        <strong>Skipped Assignments:</strong>{" "}
+                        {result.importResults.skippedAssignments}
+                      </p>
+                    )}
+                    {(result.importResults.duplicateAssignments || 0) > 0 && (
+                      <p>
+                        <strong>Duplicate Assignments:</strong>{" "}
+                        {result.importResults.duplicateAssignments}
+                      </p>
+                    )}
                     <p>
                       <strong>Processing Time:</strong>{" "}
-                      {result.importResults.processingTimeMs}ms
+                      {result.importResults.processingTime ||
+                        result.importResults.processingTimeMs ||
+                        0}
+                      ms
                     </p>
                   </div>
                 )}
@@ -484,50 +550,95 @@ user3@example.com,Bob Johnson,+201234567892,`;
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleConfirmImport}
-                disabled={isUploading}
-                className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50"
+                disabled={
+                  isUploading || (result.errors && result.errors.length > 0)
+                }
+                className="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Confirm Import ({result.validRows} users)
+                {result.errors && result.errors.length > 0
+                  ? `Fix ${result.errors.length} error(s) before importing`
+                  : `Confirm Import (${result.validRows} users)`}
               </motion.button>
+              {result.errors && result.errors.length > 0 && (
+                <p className="text-sm text-red-600 mt-2">
+                  Please fix the validation errors above before proceeding with
+                  the import.
+                </p>
+              )}
             </div>
           )}
         </div>
       )}
 
-      {/* Errors Table */}
-      {result && result.errors.length > 0 && (
+      {/* Validation Errors Table */}
+      {result && result.errors && result.errors.length > 0 && (
         <div className="mb-6">
           <h3 className="text-lg font-medium text-gray-900 mb-3">
-            Validation Errors
+            ❌ Validation Errors ({result.errors.length} rows)
           </h3>
+          <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+            <p className="text-sm text-red-700">
+              <strong>Fix these errors before importing:</strong> The following
+              rows contain validation errors and must be corrected in your file
+              before they can be imported.
+            </p>
+          </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Row
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Row #
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Error
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Name
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Phone
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Validation Errors
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {result.errors.map((error: any, index: number) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <tr key={`validation-${index}`} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       {error.row}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      <pre className="text-xs">
-                        {JSON.stringify(error.data, null, 2)}
-                      </pre>
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">
+                      {error.data?.email || "N/A"}
                     </td>
-                    <td className="px-6 py-4 text-sm text-red-600">
-                      {error.error}
+                    <td className="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">
+                      {error.data?.name || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-500">
+                      {error.data?.phone || "N/A"}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      <div className="space-y-1">
+                        {Array.isArray(error.errors) ? (
+                          error.errors.map((err: string, errIndex: number) => (
+                            <div key={errIndex} className="flex items-center">
+                              <span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2 flex-shrink-0"></span>
+                              <span className="text-red-700 text-xs">
+                                {err}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center">
+                            <span className="inline-block w-2 h-2 bg-red-400 rounded-full mr-2 flex-shrink-0"></span>
+                            <span className="text-red-700 text-xs">
+                              {error.error || "Validation failed"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -536,6 +647,75 @@ user3@example.com,Bob Johnson,+201234567892,`;
           </div>
         </div>
       )}
+
+      {/* Import Processing Errors Table */}
+      {result &&
+        result.importResults &&
+        result.importResults.errors &&
+        result.importResults.errors.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-3">
+              ⚠️ Import Processing Errors ({result.importResults.errors.length}{" "}
+              rows)
+            </h3>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-4">
+              <p className="text-sm text-yellow-700">
+                <strong>Processing Issues:</strong> These rows passed validation
+                but encountered errors during import processing.
+              </p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Row #
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Email
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Error Details
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Error Type
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {result.importResults.errors.map(
+                    (error: any, index: number) => (
+                      <tr key={`import-${index}`} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {error.row}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-500">
+                          {error.email || "N/A"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {error.error || "Import failed"}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-sm">
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              error.type === "duplicate"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : error.type === "constraint"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {error.type || "Error"}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

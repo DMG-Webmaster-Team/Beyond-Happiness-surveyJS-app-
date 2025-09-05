@@ -1,8 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import {
+  createSurveySession,
+  setupAutoCleanup,
+} from "../../../lib/auth/survey-session";
 
 interface User {
   id: string;
@@ -39,6 +43,9 @@ export default function UserLogin() {
     inputType: string;
   } | null>(null);
 
+  // OTP input refs for modern UX
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -66,18 +73,49 @@ export default function UserLogin() {
 
   // Session management is now handled by the backend - no automatic logout
 
-  // Capture/normalize surveyId from URL only (no sessionStorage)
+  // Capture/normalize surveyId from URL or restore from sessionStorage
   useEffect(() => {
-    // Get surveyId from URL parameters only
+    // Setup auto-cleanup for survey sessions
+    setupAutoCleanup();
+
+    // Get surveyId from URL parameters first
     const urlParams = new URLSearchParams(window.location.search);
-    const sid =
+    let sid =
       searchParams.get("surveyId") ??
       searchParams.get("redirect") ??
       urlParams.get("surveyId") ??
       urlParams.get("redirect");
 
     // Check if this is a happiness survey
-    const type = searchParams.get("type") ?? urlParams.get("type");
+    let type = searchParams.get("type") ?? urlParams.get("type");
+
+    // If no surveyId in URL, try to restore from sessionStorage (logout recovery)
+    if (!sid) {
+      const storedSurveyId = sessionStorage.getItem("currentSurveyId");
+      const storedSurveyType = sessionStorage.getItem("currentSurveyType");
+
+      if (storedSurveyId) {
+        console.log(
+          "🔄 LOGOUT RECOVERY TEST - Restoring surveyId from sessionStorage:",
+          storedSurveyId,
+          {
+            storedType: storedSurveyType,
+            currentUrl: window.location.href,
+          }
+        );
+
+        // Redirect to include surveyId in URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set("redirect", storedSurveyId);
+        if (storedSurveyType === "happiness") {
+          newUrl.searchParams.set("type", "happiness");
+        }
+
+        console.log("🔄 Redirecting to:", newUrl.toString());
+        window.location.href = newUrl.toString();
+        return; // Exit early, page will reload with correct URL
+      }
+    }
 
     console.log("🔍 searchParams.get('type'):", searchParams.get("type"));
     console.log("🔍 urlParams.get('type'):", urlParams.get("type"));
@@ -99,7 +137,7 @@ export default function UserLogin() {
       setStableSurveyId(sid);
       console.log("✅ Stable surveyId from URL:", sid);
     } else {
-      console.warn("⚠️ No surveyId found in URL parameters");
+      console.warn("⚠️ No surveyId found in URL parameters or sessionStorage");
     }
 
     // Debug logging
@@ -211,17 +249,96 @@ export default function UserLogin() {
     }
   };
 
+  // Modern OTP input handling with banking-style UX
   const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
+    // Handle paste of full OTP
+    if (value.length > 1) {
+      handleOtpPaste(value, index);
+      return;
+    }
+
+    // Update single character
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
+
+    // Auto-focus to next field if value entered
     if (value && index < 5) {
-      const nextInput = document.getElementById(
-        `otp-${index + 1}`
-      ) as HTMLInputElement | null;
-      nextInput?.focus();
+      otpRefs.current[index + 1]?.focus();
     }
+  };
+
+  // Handle paste of full OTP string
+  const handleOtpPaste = (pastedValue: string, startIndex: number = 0) => {
+    // Extract only digits from pasted content
+    const digits = pastedValue.replace(/\D/g, "");
+
+    if (digits.length === 6) {
+      // Full OTP pasted - distribute across all fields
+      const newOtp = digits.split("").slice(0, 6);
+      setOtp(newOtp);
+
+      // Focus on the last field
+      setTimeout(() => {
+        otpRefs.current[5]?.focus();
+      }, 0);
+    } else if (digits.length > 0) {
+      // Partial OTP - fill from current position
+      const newOtp = [...otp];
+      const digitsArray = digits.split("");
+
+      for (let i = 0; i < digitsArray.length && startIndex + i < 6; i++) {
+        newOtp[startIndex + i] = digitsArray[i];
+      }
+
+      setOtp(newOtp);
+
+      // Focus on next empty field or last filled field
+      const nextIndex = Math.min(startIndex + digitsArray.length, 5);
+      setTimeout(() => {
+        otpRefs.current[nextIndex]?.focus();
+      }, 0);
+    }
+  };
+
+  // Handle backspace behavior
+  const handleOtpKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Backspace") {
+      const currentValue = otp[index];
+
+      if (currentValue === "" && index > 0) {
+        // Empty field - move to previous field and clear it
+        const newOtp = [...otp];
+        newOtp[index - 1] = "";
+        setOtp(newOtp);
+
+        setTimeout(() => {
+          otpRefs.current[index - 1]?.focus();
+        }, 0);
+      } else if (currentValue !== "") {
+        // Field has value - clear it but stay on same field
+        const newOtp = [...otp];
+        newOtp[index] = "";
+        setOtp(newOtp);
+      }
+    } else if (e.key === "ArrowLeft" && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    } else if (e.key === "ArrowRight" && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    } else if (e.key === "Enter" && !loading && !submitting) {
+      handleOtpSubmit(e);
+    }
+  };
+
+  // Handle input focus
+  const handleOtpFocus = (index: number) => {
+    // Select all text when focusing (mobile-friendly)
+    setTimeout(() => {
+      otpRefs.current[index]?.select();
+    }, 0);
   };
 
   const handleOtpSubmit = async (e: React.FormEvent) => {
@@ -317,6 +434,27 @@ export default function UserLogin() {
       if (!targetSurveyId) {
         setError("No survey ID found for redirection");
         return;
+      }
+
+      // ✅ Create survey-scoped session
+      try {
+        const sessionData = createSurveySession(
+          targetSurveyId,
+          {
+            userId: data.user.id,
+            email: data.user.email,
+            phone: data.user.phone,
+          },
+          surveyType === "happiness" ? "happiness" : "regular",
+          {
+            sessionDurationMinutes: 30, // 30 minutes for active session
+            retakeWindowMinutes: 60, // 1 hour for retake window
+          }
+        );
+        console.log("✅ Survey session created:", sessionData);
+      } catch (sessionError) {
+        console.error("⚠️ Failed to create survey session:", sessionError);
+        // Continue with login flow even if session creation fails
       }
 
       // Clear any stale caches (no sessionStorage usage)
@@ -633,18 +771,23 @@ export default function UserLogin() {
                 {otp.map((digit, index) => (
                   <input
                     key={index}
-                    id={`otp-${index}`}
+                    ref={(el) => (otpRefs.current[index] = el)}
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     maxLength={1}
-                    className="w-12 h-12 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-lg font-semibold"
+                    className="w-12 h-12 text-center border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-lg font-semibold transition-all duration-200 hover:border-gray-400"
                     value={digit}
                     onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !loading && !submitting) {
-                        handleOtpSubmit(e);
-                      }
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onFocus={() => handleOtpFocus(index)}
+                    onPaste={(e) => {
+                      e.preventDefault();
+                      const pastedData = e.clipboardData.getData("text");
+                      handleOtpPaste(pastedData, index);
                     }}
+                    autoComplete="one-time-code"
+                    aria-label={`OTP digit ${index + 1}`}
                   />
                 ))}
               </div>
@@ -658,6 +801,10 @@ export default function UserLogin() {
                   setAuthStep("contact");
                   setOtp(["", "", "", "", "", ""]);
                   setError("");
+                  // Focus back to contact input
+                  setTimeout(() => {
+                    document.getElementById("contact")?.focus();
+                  }, 100);
                 }}
                 className="flex-1 py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-150 ease-in-out"
               >

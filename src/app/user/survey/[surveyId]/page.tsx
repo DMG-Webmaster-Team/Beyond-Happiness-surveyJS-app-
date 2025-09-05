@@ -10,6 +10,7 @@ import "survey-core/survey-core.css";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import PDFExportButton from "@/components/PDFExportButton";
+import { validateSurveySession } from "../../../../lib/auth/survey-session";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -104,6 +105,32 @@ export default function UserSurvey() {
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
+
+  // Store surveyId in sessionStorage for logout recovery
+  useEffect(() => {
+    if (surveyId) {
+      sessionStorage.setItem("currentSurveyId", surveyId);
+      sessionStorage.setItem("currentSurveyType", "regular");
+      console.log("💾 Stored surveyId for logout recovery:", surveyId);
+    }
+  }, [surveyId]);
+
+  // ✅ Validate survey-scoped session for authenticated surveys
+  useEffect(() => {
+    if (surveyId && !isAnonymousSurvey) {
+      const sessionValidation = validateSurveySession(surveyId);
+      if (!sessionValidation.isValid) {
+        console.log(
+          "🚫 Survey session invalid for regular survey:",
+          sessionValidation.reason
+        );
+        // Redirect to login with survey context
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
+        return;
+      }
+      console.log("✅ Survey session valid for regular survey:", surveyId);
+    }
+  }, [surveyId, isAnonymousSurvey, router]);
 
   // Conditional navbar based on survey type (memoized to prevent re-renders)
   const navbarComponent = useMemo(() => {
@@ -520,9 +547,7 @@ export default function UserSurvey() {
                 ✅ Survey completed successfully!
               </h2>
               <p className="mt-2 text-center text-sm text-gray-600">
-                {survey?.canTakeMultiple
-                  ? "You can retake this survey if needed."
-                  : "Thank you for completing the survey."}
+                "You can retake this survey if needed."
               </p>
             </div>
 

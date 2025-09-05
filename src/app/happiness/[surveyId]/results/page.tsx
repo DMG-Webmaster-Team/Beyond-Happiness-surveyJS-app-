@@ -61,6 +61,13 @@ export default function HappinessResultsPage({
   useEffect(() => {
     console.log("🔍 Results page loading...");
 
+    // Store surveyId in sessionStorage for logout recovery
+    if (params.surveyId) {
+      sessionStorage.setItem("currentSurveyId", params.surveyId);
+      sessionStorage.setItem("currentSurveyType", "happiness");
+      console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
+    }
+
     // Fetch survey data to check if it's anonymous
     const fetchSurveyData = async () => {
       try {

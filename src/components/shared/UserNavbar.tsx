@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import LogoutConfirmModal from "./LogoutConfirmModal";
+import { handleLogoutWithSurveyPreservation } from "../../lib/auth/logout-utils";
 
 export default function UserNavbar() {
   const router = useRouter();
@@ -45,7 +46,8 @@ export default function UserNavbar() {
         // This prevents logout on temporary API errors
         if (!data.isAuthenticated && isLoggedIn) {
           console.log("🔍 Session expired, triggering logout");
-          handleLogoutConfirm();
+          setIsLoggedIn(false);
+          await handleLogoutWithSurveyPreservation(router);
         }
       } catch (error) {
         console.error("Session check error:", error);
@@ -73,61 +75,17 @@ export default function UserNavbar() {
 
   const handleLogoutConfirm = async () => {
     try {
-      // Get current survey ID and type from URL to preserve context
-      const currentPath = window.location.pathname;
-      const happinessMatch = currentPath.match(/\/happiness\/([^\/]+)/);
-      const regularMatch = currentPath.match(/\/user\/survey\/([^\/]+)/);
-
-      let surveyId: string | null = null;
-      let surveyType: string | null = null;
-
-      if (happinessMatch) {
-        surveyId = happinessMatch[1];
-        surveyType = "happiness";
-      } else if (regularMatch) {
-        surveyId = regularMatch[1];
-        surveyType = "regular";
-      }
-
-      console.log("🔄 Logout context:", {
-        currentPath,
-        surveyId,
-        surveyType,
-        happinessMatch: !!happinessMatch,
-        regularMatch: !!regularMatch,
-      });
-
-      // Call logout API with survey context
-      const logoutBody = surveyId ? { surveyId } : {};
-      const logoutResponse = await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(logoutBody),
-      });
-
-      const logoutData = await logoutResponse.json();
-      console.log("🔄 Logout response:", logoutData);
-
-      // Clear any remaining session data
+      // Clear UI state immediately
       setIsLoggedIn(false);
       setShowLogoutModal(false);
 
-      // Redirect with survey context preserved
-      if (surveyId && surveyType === "happiness") {
-        const redirectUrl = `/user/login?redirect=${surveyId}&type=happiness`;
-        console.log("🔄 Redirecting to:", redirectUrl);
-        router.push(redirectUrl);
-      } else if (surveyId && surveyType === "regular") {
-        const redirectUrl = `/user/login?redirect=${surveyId}`;
-        console.log("🔄 Redirecting to:", redirectUrl);
-        router.push(redirectUrl);
-      } else {
-        console.log("🔄 Redirecting to default login");
-        router.push("/user/login");
-      }
+      // Use the centralized logout utility
+      await handleLogoutWithSurveyPreservation(router);
     } catch (error) {
-      console.error("Logout error:", error);
-      // Fallback redirect on error
+      console.error("❌ Logout error:", error);
+      // Fallback to basic logout
+      setIsLoggedIn(false);
+      setShowLogoutModal(false);
       router.push("/user/login");
     }
   };

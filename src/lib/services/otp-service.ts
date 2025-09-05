@@ -3,6 +3,13 @@ import twilio from "twilio";
 import { db } from "../../db/client";
 import { users } from "../../db/schema";
 import { eq, sql } from "drizzle-orm";
+import {
+  checkIPRateLimit,
+  checkIdentifierRateLimit,
+  validateIdentifier,
+  getClientIP,
+  logOTPRequest,
+} from "./rate-limiter";
 
 // OTP Configuration
 const OTP_LENGTH = 6;
@@ -242,18 +249,122 @@ const sendOTPSMS = async (
 export const sendOTP = async (
   identifier: string,
   method: "email" | "sms" | "both" = "both",
-  surveyTitle?: string
+  surveyTitle?: string,
+  request?: Request // Optional request object for IP extraction
 ): Promise<{
   success: boolean;
   error?: string;
   method: "email" | "sms" | "none";
   message: string;
   otp?: string;
+  rateLimited?: boolean;
 }> => {
   try {
     console.log(`🚀 Starting OTP send for identifier: "${identifier}"`);
     console.log(`🔑 Method requested: ${method}`);
+
+    // Get client IP for rate limiting
+    const clientIP = request ? getClientIP(request) : "127.0.0.1";
+    const userAgent = request?.headers.get("user-agent") || "unknown";
+
+    // 1. VALIDATE INPUT FORMAT
+    const validation = validateIdentifier(identifier);
+    if (!validation.valid) {
+      logOTPRequest({
+        identifier,
+        ipAddress: clientIP,
+        userAgent,
+        success: false,
+        reason: `Invalid format: ${validation.message}`,
+      });
+
+      return {
+        success: false,
+        error: "Invalid format",
+        method: "none",
+        message: validation.message || "Invalid email or phone number format",
+      };
+    }
+
+    // 2. CHECK IP RATE LIMIT (5 requests per minute)
+    const ipRateCheck = checkIPRateLimit(clientIP);
+    if (!ipRateCheck.allowed) {
+      const resetMinutes = Math.ceil(
+        (ipRateCheck.resetTime! - Date.now()) / 60000
+      );
+
+      logOTPRequest({
+        identifier,
+        ipAddress: clientIP,
+        userAgent,
+        success: false,
+        reason: `IP rate limit exceeded`,
+      });
+
+      return {
+        success: false,
+        error: "Rate limit exceeded",
+        method: "none",
+        message: `Too many requests from your IP. Please wait ${resetMinutes} minute(s) before trying again.`,
+        rateLimited: true,
+      };
+    }
+
+    // 3. CHECK IDENTIFIER RATE LIMIT (10 requests per day)
+    const identifierRateCheck = checkIdentifierRateLimit(identifier);
+    if (!identifierRateCheck.allowed) {
+      const resetHours = Math.ceil(
+        (identifierRateCheck.resetTime! - Date.now()) / 3600000
+      );
+
+      logOTPRequest({
+        identifier,
+        ipAddress: clientIP,
+        userAgent,
+        success: false,
+        reason: `Identifier rate limit exceeded`,
+      });
+
+      return {
+        success: false,
+        error: "Daily limit exceeded",
+        method: "none",
+        message: `Too many OTP requests for this ${validation.type}. Please wait ${resetHours} hour(s) before trying again.`,
+        rateLimited: true,
+      };
+    }
+
     console.log(`📧 Is email: ${identifier.includes("@")}`);
+
+    // 4. Check if user exists in database before generating OTP
+    const isEmailIdentifier = identifier.includes("@");
+    const cleanPhone = identifier.replace(/\s+/g, ""); // Remove spaces from phone
+
+    const where = isEmailIdentifier
+      ? eq(users.email, identifier)
+      : eq(users.phone, cleanPhone);
+
+    console.log(`🔍 Checking user existence for: ${identifier}`);
+    const existingUser = await db.select().from(users).where(where).limit(1);
+
+    if (existingUser.length === 0) {
+      console.log(
+        `❌ USER EXISTENCE TEST - User not found for identifier: ${identifier}`,
+        {
+          isEmail: isEmailIdentifier,
+          cleanPhone: cleanPhone,
+          originalIdentifier: identifier,
+        }
+      );
+      return {
+        success: false,
+        error: "User not found",
+        method: "none",
+        message: "User not found. Please try another email or mobile number.",
+      };
+    }
+
+    console.log(`✅ User found for identifier: ${identifier}`);
 
     // Check rate limiting
     if (!checkRateLimit(identifier)) {
@@ -269,8 +380,7 @@ export const sendOTP = async (
     const otp = generateOTP();
     console.log(`🔐 Generated OTP: ${otp}`);
 
-    // Determine if identifier is email or phone
-    const isEmailIdentifier = identifier.includes("@");
+    // Determine if identifier is phone (we already have isEmailIdentifier)
     const isPhone =
       !isEmailIdentifier && identifier.replace(/\D/g, "").length >= 7;
 
@@ -312,6 +422,15 @@ export const sendOTP = async (
       // Store OTP in users table
       await storeOTP(identifier, otp);
       console.log(`✅ OTP stored successfully for ${identifier}`);
+
+      // Log successful OTP request
+      logOTPRequest({
+        identifier,
+        ipAddress: clientIP,
+        userAgent,
+        success: true,
+        reason: `OTP sent via ${method}`,
+      });
 
       return {
         success: true,
@@ -372,6 +491,27 @@ export const verifyOTP = async (
 }> => {
   try {
     console.log(`🔍 Verifying OTP for ${identifier}: ${input}`);
+
+    // Check if user exists in database before verifying OTP
+    const isEmailIdentifier = identifier.includes("@");
+    const cleanPhone = identifier.replace(/\s+/g, ""); // Remove spaces from phone
+
+    const where = isEmailIdentifier
+      ? eq(users.email, identifier)
+      : eq(users.phone, cleanPhone);
+
+    console.log(
+      `🔍 Checking user existence for OTP verification: ${identifier}`
+    );
+    const existingUser = await db.select().from(users).where(where).limit(1);
+
+    if (existingUser.length === 0) {
+      console.log(`❌ User not found for OTP verification: ${identifier}`);
+      return {
+        valid: false,
+        message: "User not found. Please try another email or mobile number.",
+      };
+    }
 
     const row = await getOTPRow(identifier);
     if (!row?.otp) {

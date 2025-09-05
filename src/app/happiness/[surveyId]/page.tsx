@@ -3,6 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
+import {
+  validateSurveySession,
+  extendSessionForRetake,
+} from "../../../lib/auth/survey-session";
 
 interface HappinessQuestion {
   id: number;
@@ -42,6 +46,15 @@ export default function HappinessSurveyPage({
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessCheckComplete, setAccessCheckComplete] = useState(false);
 
+  // Store surveyId in sessionStorage for logout recovery
+  useEffect(() => {
+    if (params.surveyId) {
+      sessionStorage.setItem("currentSurveyId", params.surveyId);
+      sessionStorage.setItem("currentSurveyType", "happiness");
+      console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
+    }
+  }, [params.surveyId]);
+
   // SINGLE AUTHORITATIVE ACCESS CHECK - No sessionStorage, optional cache with TTL
   useEffect(() => {
     let isMounted = true; // Prevent state updates if component unmounts
@@ -60,6 +73,21 @@ export default function HappinessSurveyPage({
             tabId: Math.random().toString(36).substr(2, 9), // Random tab identifier
           }
         );
+
+        // ✅ Check survey-scoped session first
+        const sessionValidation = validateSurveySession(params.surveyId);
+        if (!sessionValidation.isValid) {
+          console.log("🚫 Survey session invalid:", sessionValidation.reason);
+          // Redirect to login with survey context
+          router.push(
+            `/user/login?redirect=${encodeURIComponent(
+              params.surveyId
+            )}&type=happiness`
+          );
+          return;
+        }
+
+        console.log("✅ Survey session valid for:", params.surveyId);
 
         // Check for cached access data (120s TTL) to avoid flicker, but always revalidate
         const cacheKey = `happiness:access:${params.surveyId}`;
@@ -227,6 +255,12 @@ export default function HappinessSurveyPage({
     // Check if this is a retake request
     const urlParams = new URLSearchParams(window.location.search);
     const isRetake = urlParams.get("retake") === "1";
+
+    // ✅ Extend session for retakes
+    if (isRetake) {
+      const extended = extendSessionForRetake(params.surveyId, 30); // 30 more minutes
+      console.log("🔄 Extended session for retake:", extended);
+    }
 
     // PRIORITY 1: Handle cooldown (redirect to results)
     if (accessData.cooldown === true) {
