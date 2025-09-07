@@ -11,7 +11,7 @@ import {
   happinessSurveys,
   happinessAssignments,
   happinessResults,
-} from "../../../../db/schema/happiness";
+} from "@/db/schema/happiness";
 import { eq, and } from "drizzle-orm";
 import { verifyOTP } from "../../../../lib/services/otp-service";
 

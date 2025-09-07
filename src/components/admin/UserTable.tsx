@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import CompanySelect from "@/components/shared/CompanySelect";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 interface User {
   id: string;
@@ -50,6 +51,8 @@ export default function UserTable() {
   const [selectedHappinessSurveys, setSelectedHappinessSurveys] = useState<
     string[]
   >([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
     null
   );
@@ -181,11 +184,16 @@ export default function UserTable() {
   };
 
   // Handle user deletion
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
+  const handleDeleteUser = (userId: string) => {
+    setUserToDelete(userId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userToDelete}`, {
         method: "DELETE",
       });
 
@@ -196,9 +204,16 @@ export default function UserTable() {
 
       // Refresh users list
       fetchUsers(pagination.page, searchQuery, statusFilter);
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete user");
     }
+  };
+
+  const cancelDeleteUser = () => {
+    setShowDeleteConfirm(false);
+    setUserToDelete(null);
   };
 
   // Handle user update
@@ -736,6 +751,17 @@ export default function UserTable() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone and will permanently remove the user and all associated data."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteUser}
+        onCancel={cancelDeleteUser}
+      />
     </div>
   );
 }

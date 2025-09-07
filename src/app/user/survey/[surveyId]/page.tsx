@@ -115,22 +115,7 @@ export default function UserSurvey() {
     }
   }, [surveyId]);
 
-  // ✅ Validate survey-scoped session for authenticated surveys
-  useEffect(() => {
-    if (surveyId && !isAnonymousSurvey) {
-      const sessionValidation = validateSurveySession(surveyId);
-      if (!sessionValidation.isValid) {
-        console.log(
-          "🚫 Survey session invalid for regular survey:",
-          sessionValidation.reason
-        );
-        // Redirect to login with survey context
-        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
-        return;
-      }
-      console.log("✅ Survey session valid for regular survey:", surveyId);
-    }
-  }, [surveyId, isAnonymousSurvey, router]);
+  // This useEffect will be moved after the SWR declaration
 
   // Conditional navbar based on survey type (memoized to prevent re-renders)
   const navbarComponent = useMemo(() => {
@@ -365,6 +350,24 @@ export default function UserSurvey() {
     }
   );
 
+  // ✅ Validate survey-scoped session for authenticated surveys (only after survey data is loaded)
+  useEffect(() => {
+    // Wait for survey data to be loaded before checking session
+    if (surveyId && survey && !survey.isAnonymous && !isAnonymousSurvey) {
+      const sessionValidation = validateSurveySession(surveyId);
+      if (!sessionValidation.isValid) {
+        console.log(
+          "🚫 Survey session invalid for regular survey:",
+          sessionValidation.reason
+        );
+        // Redirect to login with survey context
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
+        return;
+      }
+      console.log("✅ Survey session valid for regular survey:", surveyId);
+    }
+  }, [surveyId, survey, isAnonymousSurvey, router]);
+
   // Create survey model from the latest data
   const surveyModel = useMemo(() => {
     if (!survey?.json || !mounted) return null;
@@ -376,6 +379,9 @@ export default function UserSurvey() {
         canTakeMultiple: survey.canTakeMultiple ?? false,
       };
       const model = new Model(surveyData.json);
+
+      // Disable SurveyJS built-in completion page to prevent duplicate thank you messages
+      model.showCompletedPage = false;
 
       // Add error handling for survey rendering
       model.onAfterRenderSurvey.add(() => {
@@ -451,29 +457,7 @@ export default function UserSurvey() {
           };
           setUser(updatedUser);
 
-          // Auto-logout after 5 seconds for completed surveys
-          setTimeout(() => {
-            fetch("/api/auth/logout", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ surveyId }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.redirect) {
-                  router.push(data.redirect);
-                } else {
-                  const fallbackRedirect =
-                    sessionStorage.getItem("redirectSurveyId");
-                  if (fallbackRedirect) {
-                    router.push(`/user/login?redirect=${fallbackRedirect}`);
-                  } else {
-                    router.push("/user/login");
-                  }
-                }
-              })
-              .catch(console.error);
-          }, 5000);
+          // Removed auto-logout to allow survey retakes - user can manually logout or retake
         }
       } else {
         const data = await response.json();
@@ -547,7 +531,7 @@ export default function UserSurvey() {
                 ✅ Survey completed successfully!
               </h2>
               <p className="mt-2 text-center text-sm text-gray-600">
-                "You can retake this survey if needed."
+                &quot;You can retake this survey if needed.&quot;
               </p>
             </div>
 

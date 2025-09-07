@@ -6,6 +6,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import ResultsModal from "@/components/ResultsModal";
 import AdminNavbar from "@/components/shared/AdminNavbar";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import { motion, AnimatePresence } from "motion/react";
 import useSWR, { mutate } from "swr";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -61,6 +62,8 @@ export default function AdminDashboard() {
   const [isTableViewModalOpen, setIsTableViewModalOpen] = useState(false);
   const [IsPDFModalOpen, setIsPDFModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [surveyToDelete, setSurveyToDelete] = useState<string | null>(null);
   const router = useRouter();
 
   // Debounce search term
@@ -136,22 +139,35 @@ export default function AdminDashboard() {
     router.push("/admin/login");
   };
 
-  const handleDeleteSurvey = async (surveyId: string) => {
-    if (!confirm("Are you sure you want to delete this survey?")) return;
+  const handleDeleteSurvey = (surveyId: string) => {
+    setSurveyToDelete(surveyId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteSurvey = async () => {
+    if (!surveyToDelete) return;
 
     try {
-      const response = await fetch(`/api/surveys/${surveyId}`, {
+      const response = await fetch(`/api/surveys/${surveyToDelete}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        setSurveys(surveys.filter((survey) => survey.id !== surveyId));
+        setSurveys(surveys.filter((survey) => survey.id !== surveyToDelete));
+        setShowDeleteConfirm(false);
+        setSurveyToDelete(null);
       } else {
         setError("Failed to delete survey");
       }
     } catch (error) {
+      console.error("Error deleting survey:", error);
       setError("An error occurred while deleting the survey");
     }
+  };
+
+  const cancelDeleteSurvey = () => {
+    setShowDeleteConfirm(false);
+    setSurveyToDelete(null);
   };
 
   const copySurveyLink = async (surveyId: string) => {
@@ -472,6 +488,17 @@ export default function AdminDashboard() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Survey"
+        message="Are you sure you want to delete this survey? This action cannot be undone and will permanently remove all associated data."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteSurvey}
+        onCancel={cancelDeleteSurvey}
+      />
     </div>
   );
 }

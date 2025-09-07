@@ -3,10 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
-import {
-  validateSurveySession,
-  extendSessionForRetake,
-} from "../../../lib/auth/survey-session";
+import { extendSessionForRetake } from "../../../lib/auth/survey-session";
 
 interface HappinessQuestion {
   id: number;
@@ -57,6 +54,12 @@ export default function HappinessSurveyPage({
 
   // SINGLE AUTHORITATIVE ACCESS CHECK - No sessionStorage, optional cache with TTL
   useEffect(() => {
+    // Prevent access check if we've already redirected
+    if (hasRedirected) {
+      console.log("🚫 Skipping access check - redirect already initiated");
+      return;
+    }
+
     let isMounted = true; // Prevent state updates if component unmounts
 
     const performSingleAccessCheck = async () => {
@@ -74,20 +77,8 @@ export default function HappinessSurveyPage({
           }
         );
 
-        // ✅ Check survey-scoped session first
-        const sessionValidation = validateSurveySession(params.surveyId);
-        if (!sessionValidation.isValid) {
-          console.log("🚫 Survey session invalid:", sessionValidation.reason);
-          // Redirect to login with survey context
-          router.push(
-            `/user/login?redirect=${encodeURIComponent(
-              params.surveyId
-            )}&type=happiness`
-          );
-          return;
-        }
-
-        console.log("✅ Survey session valid for:", params.surveyId);
+        // ✅ The access API already handles all authentication logic
+        // No need for additional session validation here since the backend is authoritative
 
         // Check for cached access data (120s TTL) to avoid flicker, but always revalidate
         const cacheKey = `happiness:access:${params.surveyId}`;
@@ -182,7 +173,7 @@ export default function HappinessSurveyPage({
     return () => {
       isMounted = false;
     };
-  }, [params.surveyId]);
+  }, [params.surveyId, hasRedirected]);
 
   // Fetch active questions
   useEffect(() => {
@@ -321,7 +312,7 @@ export default function HappinessSurveyPage({
     accessCheckError,
     hasRedirected,
     params.surveyId,
-    router,
+    // Removed 'router' to prevent infinite loops on redirect
   ]);
 
   const handleAnswerSelect = (valueIndex: number) => {

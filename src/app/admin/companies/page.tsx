@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence, color } from "motion/react";
 import { Plus, Edit, Trash2, Building2 } from "lucide-react";
 import AdminNavbar from "@/components/shared/AdminNavbar";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 interface Company {
   id: string;
@@ -28,6 +29,8 @@ export default function CompaniesPage() {
     name: "",
     description: "",
   });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
 
   // Fetch companies
   const fetchCompanies = async () => {
@@ -95,13 +98,16 @@ export default function CompaniesPage() {
   };
 
   // Handle delete
-  const handleDelete = async (companyId: string) => {
-    if (!confirm("Are you sure you want to delete this company?")) {
-      return;
-    }
+  const handleDelete = (companyId: string) => {
+    setCompanyToDelete(companyId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteCompany = async () => {
+    if (!companyToDelete) return;
 
     try {
-      const response = await fetch(`/api/companies/${companyId}`, {
+      const response = await fetch(`/api/companies/${companyToDelete}`, {
         method: "DELETE",
         credentials: "include",
       });
@@ -112,9 +118,16 @@ export default function CompaniesPage() {
 
       // Refresh companies list
       await fetchCompanies();
+      setShowDeleteConfirm(false);
+      setCompanyToDelete(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete company");
     }
+  };
+
+  const cancelDeleteCompany = () => {
+    setShowDeleteConfirm(false);
+    setCompanyToDelete(null);
   };
 
   // Handle edit
@@ -353,6 +366,17 @@ export default function CompaniesPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Company"
+        message="Are you sure you want to delete this company? This action cannot be undone and will permanently remove the company and all associated data."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteCompany}
+        onCancel={cancelDeleteCompany}
+      />
     </div>
   );
 }

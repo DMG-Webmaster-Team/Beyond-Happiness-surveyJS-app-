@@ -64,8 +64,7 @@ export async function PUT(
       definition: updateData.json,
       canTakeMultiple: updateData.canTakeMultiple,
       isAnonymous: updateData.isAnonymous,
-      companyId: updateData.companyId,
-      companyName: updateData.companyName,
+      // Removed companyId and companyName - regular surveys no longer use companies
     });
 
     if (!updatedSurvey) {
