@@ -12,18 +12,36 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const isActive = searchParams.get("isActive");
 
-    // Build the query with all operations in one chain to avoid type issues
-    // TODO: Add filtering when Drizzle ORM type issues are resolved
+    // Fetch all questions first
     const questions = await db
       .select()
       .from(happinessQuestions)
       .orderBy(desc(happinessQuestions.id));
 
     // Parse values JSON for each question
-    const parsedQuestions = questions.map((q) => ({
+    let parsedQuestions = questions.map((q) => ({
       ...q,
       values: JSON.parse(q.values),
     }));
+
+    // Apply client-side filtering since Drizzle ORM filtering can be complex
+    if (category && category !== "all") {
+      parsedQuestions = parsedQuestions.filter((q) => q.category === category);
+    }
+
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase().trim();
+      parsedQuestions = parsedQuestions.filter((q) =>
+        q.text.toLowerCase().includes(searchLower)
+      );
+    }
+
+    if (isActive && isActive !== "all") {
+      const activeFilter = isActive === "true";
+      parsedQuestions = parsedQuestions.filter(
+        (q) => q.isActive === activeFilter
+      );
+    }
 
     return NextResponse.json({
       success: true,

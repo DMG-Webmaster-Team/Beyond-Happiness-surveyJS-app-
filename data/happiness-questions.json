@@ -2,243 +2,243 @@
   "questions": [
     {
       "id": 1,
-      "question": "How often do you feel grateful for the small things in life?",
+      "question": "I believe that my daily activities are meaningful and contribute to a greater good.",
       "category": "Meaning",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 2,
-      "question": "How connected do you feel to your life's purpose?",
+      "question": "I am committed to goals or causes that spark my passion and inspire action.",
       "category": "Meaning",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 3,
-      "question": "How often do you reflect on what truly matters to you?",
+      "question": "My actions and choices consistently reflect what's really important to me.",
       "category": "Meaning",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 4,
-      "question": "How aligned are your daily actions with your core values?",
+      "question": "The places where I live, work, and spend time support me in living according to my most important values.",
       "category": "Meaning",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 5,
-      "question": "How often do you feel a sense of spiritual connection?",
+      "question": "I frequently engage in experiences that challenge me and help me grow personally and professionally.",
       "category": "Meaning",
-      "values": [150, 350, 550, 750, 950]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 6,
-      "question": "How much do you feel your life has direction?",
+      "question": "I am aware of my personal strengths and actively seek opportunities to apply them in various aspects of my life.",
       "category": "Meaning",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 7,
-      "question": "How often do you feel a sense of accomplishment?",
+      "question": "I frequently express gratitude and show appreciation to others for their support, kindness, or positive impact on my life.",
       "category": "Meaning",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 8,
-      "question": "How connected do you feel to nature and the world around you?",
+      "question": "I regularly take a moment to acknowledge and appreciate my personal achievements, strengths, or growth.",
       "category": "Meaning",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 9,
-      "question": "How much joy do you find in simple pleasures?",
+      "question": "I engage in creative activities in the community where I live.",
       "category": "Delight",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 75, 250, 375, 500]
     },
     {
       "id": 10,
-      "question": "How often do you laugh or feel playful?",
+      "question": "I actively pursue personal interests and passions that inspire my creativity.",
       "category": "Delight",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 11,
-      "question": "How much do you enjoy creative activities?",
+      "question": "I engage in playful & fun activities in the community where I live.",
       "category": "Delight",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 12,
-      "question": "How often do you feel excited about new experiences?",
+      "question": "In the community where I live, I can easily meet friendly people and join in unplanned activities anytime.",
       "category": "Delight",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 13,
-      "question": "How much pleasure do you take in beauty and aesthetics?",
+      "question": "I make an effort to surround myself with people and activities that boost my enthusiasm and energy.",
       "category": "Delight",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 14,
-      "question": "How often do you feel wonder or awe?",
+      "question": "I maintain a positive attitude even in challenging situations.",
       "category": "Delight",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 15,
-      "question": "How much do you enjoy social interactions?",
+      "question": "When I bump into something amazing, I take the time to truly appreciate and think about its meaning.",
       "category": "Delight",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 16,
-      "question": "How often do you feel inspired or moved?",
+      "question": "My home and the community where I live have places that spark wonder, amazement, and admiration.",
       "category": "Delight",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 17,
-      "question": "How free do you feel to make your own choices?",
+      "question": "My home and the community where I live are safe and secure.",
       "category": "Freedom",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 18,
-      "question": "How much control do you feel over your life direction?",
+      "question": "I feel financially safe.",
       "category": "Freedom",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 19,
-      "question": "How often do you feel constrained by external pressures?",
+      "question": "I am able to personalize my living spaces to reflect my needs, tastes and preferences.",
       "category": "Freedom",
-      "values": [1000, 800, 600, 400, 200]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 20,
-      "question": "How much autonomy do you have in your daily decisions?",
+      "question": "I am able to express my talents, character and quirks in my social circles.",
       "category": "Freedom",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 21,
-      "question": "How free do you feel to express your true self?",
+      "question": "My home has spaces that can easily adjust to meet the needs of people I live with.",
       "category": "Freedom",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 75, 250, 375, 500]
     },
     {
       "id": 22,
-      "question": "How often do you feel spontaneous and carefree?",
+      "question": "I am open to diverse ideas and enjoy exploring them.",
       "category": "Freedom",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 23,
-      "question": "How much do you feel you can change your circumstances?",
+      "question": "I can choose how to adapt my home space to meet my needs and preferences.",
       "category": "Freedom",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 75, 250, 375, 500]
     },
     {
       "id": 24,
-      "question": "How often do you feel you're living authentically?",
+      "question": "I feel in control of my life choices and decisions.",
       "category": "Freedom",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 25,
-      "question": "How engaged do you feel in your work or activities?",
+      "question": "In my household, everyone shares responsibility for chores.",
       "category": "Engagement",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 26,
-      "question": "How often do you experience 'flow' or deep focus?",
+      "question": "I engage in volunteer work in my community.",
       "category": "Engagement",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 27,
-      "question": "How much do you feel challenged in a positive way?",
+      "question": "I feel valued, respected, and able to express my thoughts and opinions in my social environment, regardless of my background.",
       "category": "Engagement",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 28,
-      "question": "How often do you feel absorbed in what you're doing?",
+      "question": "My home and community have designs that make spaces and activities easily accessible for everyone, considering people with disabilities.",
       "category": "Engagement",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 29,
-      "question": "How much do you feel your skills are being utilized?",
+      "question": "I have people in my community who I trust and can rely on for support.",
       "category": "Engagement",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 30,
-      "question": "How often do you feel motivated to learn new things?",
+      "question": "I make an effort to stay connected with people who are important to me.",
       "category": "Engagement",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 300, 1000, 1500, 2000]
     },
     {
       "id": 31,
-      "question": "How much do you feel your work contributes to something larger?",
+      "question": "I welcome people from my social circles to my home for a visit.",
       "category": "Engagement",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 32,
-      "question": "How much do you feel you're growing as a person?",
+      "question": "I participate in events or activities in the community where I live.",
       "category": "Engagement",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 33,
-      "question": "How energetic do you feel on most days?",
+      "question": "My daily routine includes activities that promote physical movement, fitness, and healthy eating habits.",
       "category": "Vitality",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 34,
-      "question": "How well do you sleep and feel rested?",
+      "question": "I regularly schedule and attend medical check-ups to maintain my physical health.",
       "category": "Vitality",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 35,
-      "question": "How often do you engage in physical activity?",
+      "question": "I regularly incorporate calming elements, like decluttering, using relaxing scents, and adding plants, into my living spaces.",
       "category": "Vitality",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 36,
-      "question": "How healthy do you feel overall?",
+      "question": "I intentionally set healthy boundaries for the use of digital screens.",
       "category": "Vitality",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 225, 750, 1125, 1500]
     },
     {
       "id": 37,
-      "question": "How much do you feel mentally sharp and alert?",
+      "question": "I prioritize physical comfort in my living spaces by paying attention to factors like natural light, temperature control, and ergonomics.",
       "category": "Vitality",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     },
     {
       "id": 38,
-      "question": "How often do you feel optimistic about the future?",
+      "question": "I make an effort to keep my living spaces clean, organized, and clutter-free.",
       "category": "Vitality",
-      "values": [200, 400, 600, 800, 1000]
+      "values": [0, 75, 250, 375, 500]
     },
     {
       "id": 39,
-      "question": "How much do you feel emotionally balanced?",
+      "question": "I actively set aside time to relax, reflect, and recharge.",
       "category": "Vitality",
-      "values": [300, 500, 700, 900, 1100]
+      "values": [0, 375, 1250, 1875, 2500]
     },
     {
       "id": 40,
-      "question": "How often do you feel resilient when facing challenges?",
+      "question": "I actively engage in activities that require my full attention and presence, such as meditation, yoga, or deep breathing.",
       "category": "Vitality",
-      "values": [250, 450, 650, 850, 1050]
+      "values": [0, 150, 500, 750, 1000]
     }
   ]
 }

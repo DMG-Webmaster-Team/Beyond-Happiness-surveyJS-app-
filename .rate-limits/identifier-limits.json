@@ -1,26 +1,6 @@
 {
   "test108@example.com": {
-    "count": 10,
-    "lastReset": 1757186598349
-  },
-  "test1080@example.com": {
     "count": 1,
-    "lastReset": 1757186873587
-  },
-  "user-test-phase1@example.com": {
-    "count": 4,
-    "lastReset": 1757222996156
-  },
-  "user-test-phase2@example.com": {
-    "count": 1,
-    "lastReset": 1757223100137
-  },
-  "test10800000@example.com": {
-    "count": 1,
-    "lastReset": 1757225716568
-  },
-  "+2010800000": {
-    "count": 1,
-    "lastReset": 1757225720582
+    "lastReset": 1757231138925
   }
 }

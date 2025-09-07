@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import "survey-core/survey-core.css";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
+import SurveySkeletonLoader from "@/components/shared/SurveySkeletonLoader";
 import PDFExportButton from "@/components/PDFExportButton";
 import { validateSurveySession } from "../../../../lib/auth/survey-session";
 
@@ -101,6 +102,7 @@ export default function UserSurvey() {
   const [preloading, setPreloading] = useState(false);
   const [isAnonymousSurvey, setIsAnonymousSurvey] = useState(false);
   const [anonymousSurveyChecked, setAnonymousSurveyChecked] = useState(false);
+  const [isLoadingAccessCheck, setIsLoadingAccessCheck] = useState(true);
   // ✅ REMOVED: statusPageData - no longer needed with consolidated flow
   const router = useRouter();
   const params = useParams();
@@ -131,17 +133,26 @@ export default function UserSurvey() {
   useEffect(() => {
     const checkAnonymousSurvey = async () => {
       try {
+        setIsLoadingAccessCheck(true);
         const response = await fetch(`/api/surveys/${surveyId}`);
         if (response.ok) {
           const surveyData = await response.json();
           if (surveyData.isAnonymous) {
             console.log("🌐 Anonymous survey detected - bypassing auth checks");
             setIsAnonymousSurvey(true);
+            setIsLoadingAccessCheck(false); // Anonymous surveys can load immediately
             // Note: Don't set loading false here, let other effects handle it
+          } else {
+            console.log(
+              "🔐 Authenticated survey detected - will check session"
+            );
+            // Keep loading state true for authenticated surveys until session is verified
           }
         }
       } catch (error) {
         console.error("Error checking survey anonymity:", error);
+        // On error, assume authenticated and redirect to login
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
       } finally {
         setAnonymousSurveyChecked(true);
       }
@@ -150,7 +161,7 @@ export default function UserSurvey() {
     if (surveyId && mounted) {
       checkAnonymousSurvey();
     }
-  }, [surveyId, mounted]);
+  }, [surveyId, mounted, router]);
 
   // ✅ NEW: Handle loading state for anonymous surveys
   useEffect(() => {
@@ -365,6 +376,8 @@ export default function UserSurvey() {
         return;
       }
       console.log("✅ Survey session valid for regular survey:", surveyId);
+      // Session is valid, stop loading
+      setIsLoadingAccessCheck(false);
     }
   }, [surveyId, survey, isAnonymousSurvey, router]);
 
@@ -505,6 +518,11 @@ export default function UserSurvey() {
     );
   }
 
+  // Show skeleton loader while checking access for non-anonymous surveys
+  if (isLoadingAccessCheck && !isAnonymousSurvey) {
+    return <SurveySkeletonLoader />;
+  }
+
   if (surveySubmitted) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -512,21 +530,6 @@ export default function UserSurvey() {
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="max-w-md w-full space-y-8">
             <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                <svg
-                  className="h-6 w-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
               <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                 ✅ Survey completed successfully!
               </h2>

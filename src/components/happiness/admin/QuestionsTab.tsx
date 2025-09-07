@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -23,8 +24,11 @@ export default function QuestionsTab() {
     useState<HappinessQuestion | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
+  // Debounce search term to avoid too many API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/happiness/questions?search=${searchTerm}&category=${categoryFilter}&isActive=${activeFilter}`,
+    `/api/happiness/questions?search=${debouncedSearchTerm}&category=${categoryFilter}&isActive=${activeFilter}`,
     fetcher
   );
 
@@ -63,7 +67,12 @@ export default function QuestionsTab() {
   };
 
   const handleDeleteQuestion = async (questionId: number) => {
-    if (!confirm("Are you sure you want to deactivate this question?")) return;
+    if (
+      !confirm(
+        "Are you sure you want to permanently delete this question? This action cannot be undone."
+      )
+    )
+      return;
 
     try {
       const response = await fetch(`/api/happiness/questions/${questionId}`, {
@@ -125,13 +134,31 @@ export default function QuestionsTab() {
 
       {/* Filters */}
       <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <input
-          type="text"
-          placeholder="Search questions..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search questions..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          />
+          {searchTerm !== debouncedSearchTerm && searchTerm.length > 0 && (
+            <div className="absolute right-3 top-2.5">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400"></div>
+            </div>
+          )}
+          {searchTerm.length > 0 && searchTerm === debouncedSearchTerm && (
+            <div className="absolute right-3 top-2.5 text-green-500">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          )}
+        </div>
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
@@ -149,7 +176,7 @@ export default function QuestionsTab() {
           onChange={(e) => setActiveFilter(e.target.value)}
           className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
-          <option value="all">All Questions</option>
+          <option value="all">All Status</option>
           <option value="true">Active Only</option>
           <option value="false">Inactive Only</option>
         </select>
@@ -203,16 +230,16 @@ export default function QuestionsTab() {
               <div className="flex gap-2 ml-4">
                 <button
                   onClick={() => setEditingQuestion(question)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-200 rounded hover:bg-blue-50"
                 >
                   Edit
                 </button>
-                {question.isActive && (
+                {!question.isActive && (
                   <button
                     onClick={() => handleDeleteQuestion(question.id)}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium"
+                    className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50"
                   >
-                    Deactivate
+                    Delete
                   </button>
                 )}
               </div>

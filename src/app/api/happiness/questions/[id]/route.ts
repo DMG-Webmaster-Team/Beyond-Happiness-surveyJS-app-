@@ -83,7 +83,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete happiness question (soft delete by setting isActive = false)
+// DELETE - Delete happiness question (hard delete for inactive questions only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -111,18 +111,27 @@ export async function DELETE(
       );
     }
 
-    // Soft delete by setting isActive = false
+    const question = existing[0];
+
+    // Only allow hard delete for inactive questions
+    if (question.isActive) {
+      return NextResponse.json(
+        {
+          error:
+            "Cannot delete active questions. Please deactivate the question first.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Hard delete the inactive question
     await db
-      .update(happinessQuestions)
-      .set({
-        isActive: false,
-        updatedAt: Date.now(),
-      })
+      .delete(happinessQuestions)
       .where(eq(happinessQuestions.id, questionId));
 
     return NextResponse.json({
       success: true,
-      message: "Question deactivated successfully",
+      message: "Question deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting happiness question:", error);
