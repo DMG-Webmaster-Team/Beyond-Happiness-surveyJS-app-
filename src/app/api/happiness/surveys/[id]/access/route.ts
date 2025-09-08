@@ -141,7 +141,7 @@ export async function GET(
 
       return NextResponse.json({
         assigned: false,
-        requiresAuth: true,
+        requiresAuth: false, // User is authenticated, but not assigned
         canAccess: false,
         cooldown: false,
         cooldownRemaining: 0,

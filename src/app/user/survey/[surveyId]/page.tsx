@@ -11,7 +11,10 @@ import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import SurveySkeletonLoader from "@/components/shared/SurveySkeletonLoader";
 import PDFExportButton from "@/components/PDFExportButton";
-import { validateSurveySession } from "../../../../lib/auth/survey-session";
+import {
+  canRetakeSurvey,
+  validateSurveySession,
+} from "../../../../lib/auth/survey-session";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -85,11 +88,24 @@ interface SurveyData {
 }
 
 // Fetcher function for SWR
-const fetcher = (url: string) =>
-  fetch(url).then((res) => {
-    if (!res.ok) throw new Error("Failed to fetch survey");
-    return res.json();
-  });
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    // Check if this is a redirect response (302)
+    if (res.status === 302) {
+      const data = await res.json();
+      if (data.redirect && data.redirectUrl) {
+        // Redirect to the correct survey type
+        window.location.href = data.redirectUrl;
+        return null; // Return null to prevent further processing
+      }
+    }
+    throw new Error("Failed to fetch survey");
+  }
+
+  return res.json();
+};
 
 export default function UserSurvey() {
   const [user, setUser] = useState<User | null>(null);
@@ -135,6 +151,17 @@ export default function UserSurvey() {
       try {
         setIsLoadingAccessCheck(true);
         const response = await fetch(`/api/surveys/${surveyId}`);
+
+        // Handle redirect response (302)
+        if (response.status === 302) {
+          const data = await response.json();
+          if (data.redirect && data.redirectUrl) {
+            console.log("🔄 Cross-survey redirect detected:", data.redirectUrl);
+            window.location.href = data.redirectUrl;
+            return;
+          }
+        }
+
         if (response.ok) {
           const surveyData = await response.json();
           if (surveyData.isAnonymous) {
@@ -530,12 +557,17 @@ export default function UserSurvey() {
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="max-w-md w-full space-y-8">
             <div className="text-center">
+              <div className="text-6xl mb-4">✅</div>
               <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                ✅ Survey completed successfully!
+                Survey completed successfully!
               </h2>
-              <p className="mt-2 text-center text-sm text-gray-600">
-                &quot;You can retake this survey if needed.&quot;
-              </p>
+              {survey?.canTakeMultiple || isAnonymousSurvey ? (
+                <p className="mt-2 text-center text-sm text-gray-600">
+                  &quot;You can retake this survey if needed.&quot;
+                </p>
+              ) : (
+                " "
+              )}
             </div>
 
             {survey?.canTakeMultiple || isAnonymousSurvey ? (

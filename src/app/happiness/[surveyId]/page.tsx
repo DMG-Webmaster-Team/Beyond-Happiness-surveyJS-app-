@@ -3,7 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
-import { extendSessionForRetake } from "../../../lib/auth/survey-session";
+import {
+  extendSessionForRetake,
+  validateSurveySession,
+} from "../../../lib/auth/survey-session";
 
 interface HappinessQuestion {
   id: number;
@@ -28,8 +31,9 @@ export default function HappinessSurveyPage({
   const [answers, setAnswers] = useState<SurveyAnswer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [accessError, setAccessError] = useState<string | null>(null);
+  // Removed accessError state - using redirects to standard error pages instead
   const [hasRedirected, setHasRedirected] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Guard against double submission
   const submissionCompletedRef = useRef(false);
@@ -272,6 +276,7 @@ export default function HappinessSurveyPage({
     // PRIORITY 2: Handle authentication requirement
     if (accessData.requiresAuth === true && accessData.canAccess === false) {
       console.log("🔐 Authentication required, redirecting to login");
+      setIsRedirecting(true);
       setHasRedirected(true);
       router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
       return;
@@ -279,9 +284,13 @@ export default function HappinessSurveyPage({
 
     // PRIORITY 3: Handle assignment issues
     if (accessData.assigned === false) {
-      console.log("❌ User not assigned, showing error");
-      setAccessError(
-        accessData.message || "You are not assigned to this survey"
+      console.log("❌ User not assigned, redirecting to not-assigned page");
+      setIsRedirecting(true);
+      setHasRedirected(true);
+      router.push(
+        `/user/status/not-assigned?surveyId=${encodeURIComponent(
+          params.surveyId
+        )}`
       );
       return;
     }
@@ -300,7 +309,13 @@ export default function HappinessSurveyPage({
     // PRIORITY 5: Check final access permission
     if (accessData.canAccess !== true) {
       console.log("🚫 Access denied by backend");
-      setAccessError(accessData.message || "Access denied");
+      setIsRedirecting(true);
+      setHasRedirected(true);
+      router.push(
+        `/user/status/access-denied?surveyId=${encodeURIComponent(
+          params.surveyId
+        )}`
+      );
       return;
     }
 
@@ -314,6 +329,41 @@ export default function HappinessSurveyPage({
     params.surveyId,
     // Removed 'router' to prevent infinite loops on redirect
   ]);
+
+  // ✅ Validate survey-scoped session for authenticated happiness surveys
+  useEffect(() => {
+    // Only validate session if:
+    // 1. We have survey data
+    // 2. Survey is not anonymous
+    // 3. Access has been granted
+    // 4. We haven't redirected yet
+    if (
+      survey &&
+      !survey.anonymous &&
+      accessData?.canAccess === true &&
+      !hasRedirected
+    ) {
+      const sessionValidation = validateSurveySession(params.surveyId);
+      if (!sessionValidation.isValid) {
+        console.log(
+          "🚫 Survey session invalid for happiness survey:",
+          sessionValidation.reason
+        );
+        // Redirect to login with survey context
+        setIsRedirecting(true);
+        router.push(
+          `/user/login?redirect=${encodeURIComponent(
+            params.surveyId
+          )}&type=happiness`
+        );
+        return;
+      }
+      console.log(
+        "✅ Survey session valid for happiness survey:",
+        params.surveyId
+      );
+    }
+  }, [survey, accessData, hasRedirected, params.surveyId, router]);
 
   const handleAnswerSelect = (valueIndex: number) => {
     const currentQuestion = questions[currentQuestionIndex];
@@ -496,39 +546,24 @@ export default function HappinessSurveyPage({
     );
   }
 
-  if (accessError) {
+  // Show redirecting state to prevent flash screens
+  if (isRedirecting || hasRedirected) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto">
-          <div className="w-24 h-24 mx-auto mb-6 bg-yellow-100 rounded-full flex items-center justify-center">
-            <svg
-              className="w-12 h-12 text-yellow-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Survey Temporarily Unavailable
-          </h1>
-          <p className="text-gray-600 mb-6">{accessError}</p>
-          <button
-            onClick={() => router.push("/")}
-            className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
-          >
-            Go Home
-          </button>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <h2 className="text-lg font-medium text-gray-900 mb-2">
+            Redirecting...
+          </h2>
+          <p className="text-sm text-gray-500">
+            Please wait while we redirect you to the appropriate page.
+          </p>
         </div>
       </div>
     );
   }
+
+  // Error handling is now done through redirects to standard error pages
 
   // Show loading state while access check is in progress or data is loading
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {

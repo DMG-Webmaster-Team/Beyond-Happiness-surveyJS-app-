@@ -161,24 +161,18 @@ export default function UserTable() {
   // Initialize selected surveys when editing user
   const handleEditUser = async (user: User) => {
     setEditingUser(user);
-    setSelectedSurveys(user.assignments?.map((a) => a.surveyId) || []);
-    setSelectedCompanyId(user.companyId || null);
 
-    // Fetch happiness survey assignments for this user
-    try {
-      const response = await fetch(
-        `/api/happiness/assignments?userId=${user.id}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setSelectedHappinessSurveys(
-          data.assignments?.map((a: any) => a.surveyId) || []
-        );
-      }
-    } catch (error) {
-      console.error("Failed to fetch happiness assignments:", error);
-      setSelectedHappinessSurveys([]);
-    }
+    // Filter assignments by type to avoid pre-checking wrong surveys
+    const regularAssignments =
+      user.assignments?.filter((a: any) => a.type === "regular") || [];
+    const happinessAssignments =
+      user.assignments?.filter((a: any) => a.type === "happiness") || [];
+
+    setSelectedSurveys(regularAssignments.map((a: any) => a.surveyId));
+    setSelectedHappinessSurveys(
+      happinessAssignments.map((a: any) => a.surveyId)
+    );
+    setSelectedCompanyId(user.companyId || null);
 
     setIsEditing(true);
   };

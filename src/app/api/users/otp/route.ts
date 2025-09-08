@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         .limit(1);
 
       if (assignment.length === 0) {
-        return NextResponse.json({
+        const res = NextResponse.json({
           ok: true,
           assigned: false,
           hasSubmitted: false,
@@ -117,6 +117,26 @@ export async function POST(req: NextRequest) {
             message: "You are not assigned to this happiness survey.",
           },
         });
+
+        // Set session cookie even for unassigned users so the access API can identify them
+        res.cookies.set(
+          "user_session",
+          JSON.stringify({
+            id: user.id,
+            email: user.email,
+            phone: user.phone,
+            loginTime: new Date().toISOString(),
+          }),
+          {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            path: "/",
+            maxAge: 60 * 60 * 24, // 24h
+          }
+        );
+
+        return res;
       }
 
       // Check if user has already submitted this survey
