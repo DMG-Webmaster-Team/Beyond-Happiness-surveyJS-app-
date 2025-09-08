@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
         id: nanoid(),
         title: title.trim(),
         anonymous: anonymous || false,
-        retakeCooldownDays: retakeCooldownDays || 0,
+        // Force cooldown to 0 for anonymous surveys
+        retakeCooldownDays: anonymous ? 0 : retakeCooldownDays || 0,
       })
       .returning();
 

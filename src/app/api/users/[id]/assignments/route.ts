@@ -89,9 +89,7 @@ export async function GET(
       .where(eq(userAssignments.userId, id));
 
     // Get happiness assignments
-    const { happinessAssignments } = await import(
-      "../../../../db/schema/happiness"
-    );
+    const { happinessAssignments } = await import("@/db/schema/happiness");
     const happinessAssignmentsResult = await db
       .select()
       .from(happinessAssignments)

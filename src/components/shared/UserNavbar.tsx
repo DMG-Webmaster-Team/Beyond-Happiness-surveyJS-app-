@@ -33,7 +33,7 @@ export default function UserNavbar() {
     checkSession();
   }, []);
 
-  // Check session expiration every minute (with delay to prevent race conditions)
+  // Check session expiration less aggressively to allow survey retakes
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -55,13 +55,13 @@ export default function UserNavbar() {
       }
     };
 
-    // Add 2-second delay before first check to prevent race conditions
+    // Add 5-second delay before first check to prevent race conditions
     const initialDelay = setTimeout(() => {
       checkSession();
-    }, 2000);
+    }, 5000);
 
-    // Then check every minute
-    const interval = setInterval(checkSession, 60 * 1000);
+    // Check every 5 minutes instead of every minute to allow survey retakes
+    const interval = setInterval(checkSession, 5 * 60 * 1000);
 
     return () => {
       clearTimeout(initialDelay);

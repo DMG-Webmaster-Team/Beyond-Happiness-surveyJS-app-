@@ -104,9 +104,14 @@ export async function handleLogoutWithSurveyPreservation(
   } catch (error) {
     console.error("❌ Error during logout:", error);
 
-    // Fallback redirect on error
-    const fallbackUrl = finalSurveyId
-      ? `/user/login?redirect=${encodeURIComponent(finalSurveyId)}`
+    // Fallback redirect on error - re-derive surveyId for fallback
+    const fallbackSurveyId =
+      options?.surveyId ||
+      getSurveyIdFromCurrentURL() ||
+      sessionStorage.getItem("currentSurveyId");
+
+    const fallbackUrl = fallbackSurveyId
+      ? `/user/login?redirect=${encodeURIComponent(fallbackSurveyId)}`
       : "/error?message=Logout+failed";
 
     router.push(fallbackUrl);

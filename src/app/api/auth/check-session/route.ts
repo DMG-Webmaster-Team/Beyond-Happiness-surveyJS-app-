@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
       // Load happiness assignments
       const { happinessAssignments, happinessSurveys } = await import(
-        "../../../../db/schema/happiness"
+        "@/db/schema/happiness"
       );
       const happinessAssignmentRows = await db
         .select({

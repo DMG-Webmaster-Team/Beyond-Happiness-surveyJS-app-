@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { happinessSurveys, happinessResults } from "@/db/schema/happiness";
+import {
+  happinessSurveys,
+  happinessResults,
+  happinessAssignments,
+} from "@/db/schema/happiness";
 import { eq, count } from "drizzle-orm";
 
 // GET - Get single happiness survey
@@ -70,9 +74,17 @@ export async function PUT(
     };
 
     if (title !== undefined) updateData.title = title.trim();
-    if (anonymous !== undefined) updateData.anonymous = anonymous;
-    if (retakeCooldownDays !== undefined)
+    if (anonymous !== undefined) {
+      updateData.anonymous = anonymous;
+      // Force cooldown to 0 when survey becomes anonymous
+      if (anonymous) {
+        updateData.retakeCooldownDays = 0;
+      }
+    }
+    // Only allow cooldown changes if the survey is not being set to anonymous
+    if (retakeCooldownDays !== undefined && anonymous !== true) {
       updateData.retakeCooldownDays = retakeCooldownDays;
+    }
 
     const updatedSurvey = await db
       .update(happinessSurveys)
@@ -106,7 +118,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete happiness survey (only if no results)
+// DELETE - Delete happiness survey and all related data
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -114,12 +126,26 @@ export async function DELETE(
   try {
     const surveyId = params.id;
 
-    // Delete all related results first
-    await db
-      .delete(happinessResults)
-      .where(eq(happinessResults.surveyId, surveyId));
+    // Delete all related data in correct order to avoid foreign key constraints
+    console.log(`🗑️ Deleting happiness survey: ${surveyId}`);
 
-    // Delete the survey
+    // 1. Delete all results first (they reference the survey)
+    const deletedResults = await db
+      .delete(happinessResults)
+      .where(eq(happinessResults.surveyId, surveyId))
+      .returning();
+    console.log(`🗑️ Deleted ${deletedResults.length} happiness results`);
+
+    // 2. Delete all assignments (they also reference the survey)
+    const deletedAssignments = await db
+      .delete(happinessAssignments)
+      .where(eq(happinessAssignments.surveyId, surveyId))
+      .returning();
+    console.log(
+      `🗑️ Deleted ${deletedAssignments.length} happiness assignments`
+    );
+
+    // 3. Finally delete the survey itself
     const deletedSurvey = await db
       .delete(happinessSurveys)
       .where(eq(happinessSurveys.id, surveyId))
@@ -129,9 +155,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
+    console.log(`✅ Successfully deleted happiness survey: ${surveyId}`);
     return NextResponse.json({
       success: true,
-      message: "Survey deleted successfully",
+      message: "Survey and all related data deleted successfully",
+      deletedCounts: {
+        results: deletedResults.length,
+        assignments: deletedAssignments.length,
+      },
     });
   } catch (error) {
     console.error("Error deleting happiness survey:", error);

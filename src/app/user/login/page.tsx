@@ -25,6 +25,10 @@ export default function UserLogin() {
   const [inputType, setInputType] = useState<"email" | "phone" | "unknown">(
     "unknown"
   );
+  const [inputValidation, setInputValidation] = useState<{
+    isValid: boolean;
+    message?: string;
+  }>({ isValid: false });
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [otpStep, setOtpStep] = useState(false);
   const [error, setError] = useState("");
@@ -160,11 +164,63 @@ export default function UserLogin() {
     );
   }, [searchParams]);
 
-  // Detect input type
+  // Validation regex patterns
+  const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const PHONE_REGEX = /^\+?\d{8,15}$/;
+
+  // Validate input based on type
+  const validateInput = (
+    input: string,
+    type: "email" | "phone" | "unknown"
+  ): { isValid: boolean; message?: string } => {
+    if (!input.trim()) {
+      return {
+        isValid: false,
+        message: "Please enter your email or phone number",
+      };
+    }
+
+    if (type === "email") {
+      const isValid = EMAIL_REGEX.test(input.trim());
+      return {
+        isValid,
+        message: isValid ? undefined : "Please enter a valid email address",
+      };
+    }
+
+    if (type === "phone") {
+      // Clean the input for validation (remove spaces, dashes, etc.)
+      const cleanedInput = input.replace(/[\s\-\(\)]/g, "");
+      const isValid = PHONE_REGEX.test(cleanedInput);
+      return {
+        isValid,
+        message: isValid
+          ? undefined
+          : "Please enter a valid phone number (8-15 digits)",
+      };
+    }
+
+    return {
+      isValid: false,
+      message: "Please enter a valid email address or phone number",
+    };
+  };
+
+  // Detect input type (improved)
   const detectInputType = (input: string): "email" | "phone" | "unknown" => {
-    if (input.includes("@")) return "email";
-    const digitsOnly = input.replace(/\D/g, "");
-    if (digitsOnly.length >= 7 && digitsOnly.length <= 15) return "phone";
+    const trimmed = input.trim();
+    if (!trimmed) return "unknown";
+
+    // Check if it looks like an email
+    if (trimmed.includes("@")) return "email";
+
+    // Check if it looks like a phone number (digits, +, spaces, dashes, parentheses)
+    const phonePattern = /^[\+\d\s\-\(\)]+$/;
+    if (phonePattern.test(trimmed)) {
+      const digitsOnly = trimmed.replace(/\D/g, "");
+      if (digitsOnly.length >= 7 && digitsOnly.length <= 15) return "phone";
+    }
+
     return "unknown";
   };
 
@@ -179,19 +235,26 @@ export default function UserLogin() {
 
   const handleContactInputChange = (value: string) => {
     setContactInput(value);
-    setInputType(detectInputType(value));
+    const detectedType = detectInputType(value);
+    setInputType(detectedType);
+
+    // Validate input in real-time
+    const validation = validateInput(value, detectedType);
+    setInputValidation(validation);
+
+    // Clear any previous errors when user starts typing
     setError("");
   };
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!contactInput.trim()) {
-      setError("Please enter your email or phone number");
-      return;
-    }
-    if (inputType === "unknown") {
-      setError("Please enter a valid email address or phone number");
+    // Use the validation function instead of manual checks
+    const validation = validateInput(contactInput, inputType);
+    if (!validation.isValid) {
+      setError(
+        validation.message || "Please enter a valid email or phone number"
+      );
       return;
     }
 
@@ -695,22 +758,26 @@ export default function UserLogin() {
                   }}
                 />
 
-                {/* Input type indicator */}
+                {/* Input validation feedback */}
                 {contactInput && (
                   <div className="mt-2 text-sm">
-                    {inputType === "email" && (
-                      <span className="text-blue-600">
-                        📧 Detected: Email address
-                      </span>
-                    )}
-                    {inputType === "phone" && (
-                      <span className="text-green-600">
-                        📱 Detected: Phone number (will format as +20...)
-                      </span>
-                    )}
-                    {inputType === "unknown" && (
-                      <span className="text-yellow-600">
-                        ⚠️ Please enter a valid email or phone number
+                    {inputValidation.isValid ? (
+                      <>
+                        {inputType === "email" && (
+                          <span className="text-green-600">
+                            ✓ Valid email address
+                          </span>
+                        )}
+                        {inputType === "phone" && (
+                          <span className="text-green-600">
+                            ✓ Valid phone number (will format as +20...)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-red-600">
+                        {inputValidation.message ||
+                          "Please enter a valid email or phone number"}
                       </span>
                     )}
                   </div>
@@ -729,7 +796,7 @@ export default function UserLogin() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !inputValidation.isValid}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition duration-150 ease-in-out"
             >
               {loading ? (
@@ -771,7 +838,9 @@ export default function UserLogin() {
                 {otp.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => (otpRefs.current[index] = el)}
+                    ref={(el) => {
+                      otpRefs.current[index] = el;
+                    }}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"

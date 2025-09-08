@@ -13,6 +13,37 @@ export async function GET(
     const survey = await getSurveyById(id);
 
     if (!survey) {
+      // Check if this might be a happiness survey ID
+      try {
+        const { db } = await import("../../../../db");
+        const { happinessSurveys } = await import(
+          "../../../../db/schema/happiness"
+        );
+        const { eq } = await import("drizzle-orm");
+
+        const happinessSurvey = await db
+          .select()
+          .from(happinessSurveys)
+          .where(eq(happinessSurveys.id, id))
+          .limit(1);
+
+        if (happinessSurvey.length > 0) {
+          // This is a happiness survey, return a redirect response
+          return NextResponse.json(
+            {
+              redirect: true,
+              redirectUrl: `/happiness/${id}`,
+              surveyType: "happiness",
+              message:
+                "This is a happiness survey, redirecting to the correct page",
+            },
+            { status: 302 }
+          );
+        }
+      } catch (error) {
+        console.error("Error checking happiness surveys:", error);
+      }
+
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
@@ -64,8 +95,7 @@ export async function PUT(
       definition: updateData.json,
       canTakeMultiple: updateData.canTakeMultiple,
       isAnonymous: updateData.isAnonymous,
-      companyId: updateData.companyId,
-      companyName: updateData.companyName,
+      // Removed companyId and companyName - regular surveys no longer use companies
     });
 
     if (!updatedSurvey) {

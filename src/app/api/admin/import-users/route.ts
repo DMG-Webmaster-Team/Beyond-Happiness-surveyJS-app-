@@ -8,10 +8,7 @@ import {
   upsertUserAssignment,
   getUsersByEmails,
 } from "../../../../db/queries/users";
-import {
-  happinessAssignments,
-  happinessSurveys,
-} from "../../../../db/schema/happiness";
+import { happinessAssignments, happinessSurveys } from "@/db/schema/happiness";
 import { userAssignments } from "../../../../db/schema";
 import { inArray, eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";

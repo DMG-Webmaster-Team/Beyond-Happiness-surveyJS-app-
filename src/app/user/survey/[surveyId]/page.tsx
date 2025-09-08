@@ -9,8 +9,12 @@ import dynamic from "next/dynamic";
 import "survey-core/survey-core.css";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
+import SurveySkeletonLoader from "@/components/shared/SurveySkeletonLoader";
 import PDFExportButton from "@/components/PDFExportButton";
-import { validateSurveySession } from "../../../../lib/auth/survey-session";
+import {
+  canRetakeSurvey,
+  validateSurveySession,
+} from "../../../../lib/auth/survey-session";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -84,11 +88,24 @@ interface SurveyData {
 }
 
 // Fetcher function for SWR
-const fetcher = (url: string) =>
-  fetch(url).then((res) => {
-    if (!res.ok) throw new Error("Failed to fetch survey");
-    return res.json();
-  });
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    // Check if this is a redirect response (302)
+    if (res.status === 302) {
+      const data = await res.json();
+      if (data.redirect && data.redirectUrl) {
+        // Redirect to the correct survey type
+        window.location.href = data.redirectUrl;
+        return null; // Return null to prevent further processing
+      }
+    }
+    throw new Error("Failed to fetch survey");
+  }
+
+  return res.json();
+};
 
 export default function UserSurvey() {
   const [user, setUser] = useState<User | null>(null);
@@ -101,6 +118,7 @@ export default function UserSurvey() {
   const [preloading, setPreloading] = useState(false);
   const [isAnonymousSurvey, setIsAnonymousSurvey] = useState(false);
   const [anonymousSurveyChecked, setAnonymousSurveyChecked] = useState(false);
+  const [isLoadingAccessCheck, setIsLoadingAccessCheck] = useState(true);
   // ✅ REMOVED: statusPageData - no longer needed with consolidated flow
   const router = useRouter();
   const params = useParams();
@@ -115,22 +133,7 @@ export default function UserSurvey() {
     }
   }, [surveyId]);
 
-  // ✅ Validate survey-scoped session for authenticated surveys
-  useEffect(() => {
-    if (surveyId && !isAnonymousSurvey) {
-      const sessionValidation = validateSurveySession(surveyId);
-      if (!sessionValidation.isValid) {
-        console.log(
-          "🚫 Survey session invalid for regular survey:",
-          sessionValidation.reason
-        );
-        // Redirect to login with survey context
-        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
-        return;
-      }
-      console.log("✅ Survey session valid for regular survey:", surveyId);
-    }
-  }, [surveyId, isAnonymousSurvey, router]);
+  // This useEffect will be moved after the SWR declaration
 
   // Conditional navbar based on survey type (memoized to prevent re-renders)
   const navbarComponent = useMemo(() => {
@@ -146,17 +149,37 @@ export default function UserSurvey() {
   useEffect(() => {
     const checkAnonymousSurvey = async () => {
       try {
+        setIsLoadingAccessCheck(true);
         const response = await fetch(`/api/surveys/${surveyId}`);
+
+        // Handle redirect response (302)
+        if (response.status === 302) {
+          const data = await response.json();
+          if (data.redirect && data.redirectUrl) {
+            console.log("🔄 Cross-survey redirect detected:", data.redirectUrl);
+            window.location.href = data.redirectUrl;
+            return;
+          }
+        }
+
         if (response.ok) {
           const surveyData = await response.json();
           if (surveyData.isAnonymous) {
             console.log("🌐 Anonymous survey detected - bypassing auth checks");
             setIsAnonymousSurvey(true);
+            setIsLoadingAccessCheck(false); // Anonymous surveys can load immediately
             // Note: Don't set loading false here, let other effects handle it
+          } else {
+            console.log(
+              "🔐 Authenticated survey detected - will check session"
+            );
+            // Keep loading state true for authenticated surveys until session is verified
           }
         }
       } catch (error) {
         console.error("Error checking survey anonymity:", error);
+        // On error, assume authenticated and redirect to login
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
       } finally {
         setAnonymousSurveyChecked(true);
       }
@@ -165,7 +188,7 @@ export default function UserSurvey() {
     if (surveyId && mounted) {
       checkAnonymousSurvey();
     }
-  }, [surveyId, mounted]);
+  }, [surveyId, mounted, router]);
 
   // ✅ NEW: Handle loading state for anonymous surveys
   useEffect(() => {
@@ -365,6 +388,26 @@ export default function UserSurvey() {
     }
   );
 
+  // ✅ Validate survey-scoped session for authenticated surveys (only after survey data is loaded)
+  useEffect(() => {
+    // Wait for survey data to be loaded before checking session
+    if (surveyId && survey && !survey.isAnonymous && !isAnonymousSurvey) {
+      const sessionValidation = validateSurveySession(surveyId);
+      if (!sessionValidation.isValid) {
+        console.log(
+          "🚫 Survey session invalid for regular survey:",
+          sessionValidation.reason
+        );
+        // Redirect to login with survey context
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
+        return;
+      }
+      console.log("✅ Survey session valid for regular survey:", surveyId);
+      // Session is valid, stop loading
+      setIsLoadingAccessCheck(false);
+    }
+  }, [surveyId, survey, isAnonymousSurvey, router]);
+
   // Create survey model from the latest data
   const surveyModel = useMemo(() => {
     if (!survey?.json || !mounted) return null;
@@ -376,6 +419,9 @@ export default function UserSurvey() {
         canTakeMultiple: survey.canTakeMultiple ?? false,
       };
       const model = new Model(surveyData.json);
+
+      // Disable SurveyJS built-in completion page to prevent duplicate thank you messages
+      model.showCompletedPage = false;
 
       // Add error handling for survey rendering
       model.onAfterRenderSurvey.add(() => {
@@ -451,29 +497,7 @@ export default function UserSurvey() {
           };
           setUser(updatedUser);
 
-          // Auto-logout after 5 seconds for completed surveys
-          setTimeout(() => {
-            fetch("/api/auth/logout", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ surveyId }),
-            })
-              .then((res) => res.json())
-              .then((data) => {
-                if (data.redirect) {
-                  router.push(data.redirect);
-                } else {
-                  const fallbackRedirect =
-                    sessionStorage.getItem("redirectSurveyId");
-                  if (fallbackRedirect) {
-                    router.push(`/user/login?redirect=${fallbackRedirect}`);
-                  } else {
-                    router.push("/user/login");
-                  }
-                }
-              })
-              .catch(console.error);
-          }, 5000);
+          // Removed auto-logout to allow survey retakes - user can manually logout or retake
         }
       } else {
         const data = await response.json();
@@ -521,6 +545,11 @@ export default function UserSurvey() {
     );
   }
 
+  // Show skeleton loader while checking access for non-anonymous surveys
+  if (isLoadingAccessCheck && !isAnonymousSurvey) {
+    return <SurveySkeletonLoader />;
+  }
+
   if (surveySubmitted) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -528,27 +557,17 @@ export default function UserSurvey() {
         <div className="flex items-center justify-center h-[calc(100vh-64px)]">
           <div className="max-w-md w-full space-y-8">
             <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-                <svg
-                  className="h-6 w-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
+              <div className="text-6xl mb-4">✅</div>
               <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                ✅ Survey completed successfully!
+                Survey completed successfully!
               </h2>
-              <p className="mt-2 text-center text-sm text-gray-600">
-                "You can retake this survey if needed."
-              </p>
+              {survey?.canTakeMultiple || isAnonymousSurvey ? (
+                <p className="mt-2 text-center text-sm text-gray-600">
+                  &quot;You can retake this survey if needed.&quot;
+                </p>
+              ) : (
+                " "
+              )}
             </div>
 
             {survey?.canTakeMultiple || isAnonymousSurvey ? (

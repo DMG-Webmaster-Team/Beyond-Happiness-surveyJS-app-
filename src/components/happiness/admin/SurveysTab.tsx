@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import useSWR from "swr";
+import ConfirmDialog from "../../shared/ConfirmDialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -21,6 +22,8 @@ export default function SurveysTab() {
   );
   const [showAddForm, setShowAddForm] = useState(false);
   const [copiedSurveyId, setCopiedSurveyId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [surveyToDelete, setSurveyToDelete] = useState<string | null>(null);
 
   const { data, error, isLoading, mutate } = useSWR(
     "/api/happiness/surveys",
@@ -53,28 +56,38 @@ export default function SurveysTab() {
     }
   };
 
-  const handleDeleteSurvey = async (surveyId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to delete this survey? This action cannot be undone."
-      )
-    )
-      return;
+  const handleDeleteSurvey = (surveyId: string) => {
+    setSurveyToDelete(surveyId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteSurvey = async () => {
+    if (!surveyToDelete) return;
 
     try {
-      const response = await fetch(`/api/happiness/surveys/${surveyId}`, {
+      const response = await fetch(`/api/happiness/surveys/${surveyToDelete}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
         mutate();
+        setShowDeleteConfirm(false);
+        setSurveyToDelete(null);
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error}`);
+        console.error("Error deleting happiness survey:", error);
+        // Keep dialog open to show error - could enhance with error state
+        alert(`Error: ${error.error || "Failed to delete survey"}`);
       }
     } catch (error) {
-      alert("Failed to delete survey");
+      console.error("Failed to delete happiness survey:", error);
+      alert("Failed to delete survey. Please try again.");
     }
+  };
+
+  const cancelDeleteSurvey = () => {
+    setShowDeleteConfirm(false);
+    setSurveyToDelete(null);
   };
 
   const formatDate = (timestamp: number) => {
@@ -226,6 +239,17 @@ export default function SurveysTab() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Happiness Survey"
+        message="Are you sure you want to permanently delete this happiness survey? This action cannot be undone and will remove all associated results."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteSurvey}
+        onCancel={cancelDeleteSurvey}
+      />
     </div>
   );
 }
@@ -293,7 +317,14 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
                 id="anonymous"
                 checked={formData.anonymous}
                 onChange={(e) =>
-                  setFormData({ ...formData, anonymous: e.target.checked })
+                  setFormData({
+                    ...formData,
+                    anonymous: e.target.checked,
+                    // Reset cooldown to 0 when anonymous is enabled
+                    retakeCooldownDays: e.target.checked
+                      ? 0
+                      : formData.retakeCooldownDays,
+                  })
                 }
                 className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
               />
@@ -316,19 +347,25 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
               type="number"
               min="0"
               max="365"
-              value={formData.retakeCooldownDays}
+              value={formData.anonymous ? 0 : formData.retakeCooldownDays}
               onChange={(e) =>
                 setFormData({
                   ...formData,
                   retakeCooldownDays: parseInt(e.target.value) || 0,
                 })
               }
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={formData.anonymous}
+              className={`w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                formData.anonymous
+                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                  : ""
+              }`}
               placeholder="0"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Number of days users must wait before retaking the survey (0 = no
-              cooldown)
+              {formData.anonymous
+                ? "Cooldown is disabled for anonymous surveys"
+                : "Number of days users must wait before retaking the survey (0 = no cooldown)"}
             </p>
           </div>
 

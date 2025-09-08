@@ -4,7 +4,7 @@ import path from "path";
 // Rate limiting configuration
 const RATE_LIMIT_CONFIG = {
   IP_REQUESTS_PER_MINUTE: 5,
-  IDENTIFIER_REQUESTS_PER_DAY: 10,
+  IDENTIFIER_REQUESTS_PER_MINUTE: 5, // Changed from daily to per minute
   CLEANUP_INTERVAL_MS: 5 * 60 * 1000, // 5 minutes
 };
 
@@ -102,33 +102,35 @@ export const checkIPRateLimit = (
   return { allowed: true };
 };
 
-// Check identifier rate limit (per day)
+// Check identifier rate limit (per minute)
 export const checkIdentifierRateLimit = (
   identifier: string
 ): { allowed: boolean; resetTime?: number } => {
   const now = Date.now();
-  const oneDay = 24 * 60 * 60 * 1000;
+  const oneMinute = 60 * 1000;
 
   // Load current identifier limits
   let identifierLimits = loadRateLimitData(IDENTIFIER_LIMITS_FILE);
 
   // Clean up expired entries
-  identifierLimits = cleanupExpiredEntries(identifierLimits, oneDay);
+  identifierLimits = cleanupExpiredEntries(identifierLimits, oneMinute);
 
   const identifierRecord = identifierLimits[identifier] || {
     count: 0,
     lastReset: now,
   };
 
-  // Reset if more than a day has passed
-  if (now - identifierRecord.lastReset > oneDay) {
+  // Reset if more than a minute has passed
+  if (now - identifierRecord.lastReset > oneMinute) {
     identifierRecord.count = 0;
     identifierRecord.lastReset = now;
   }
 
   // Check if limit exceeded
-  if (identifierRecord.count >= RATE_LIMIT_CONFIG.IDENTIFIER_REQUESTS_PER_DAY) {
-    const resetTime = identifierRecord.lastReset + oneDay;
+  if (
+    identifierRecord.count >= RATE_LIMIT_CONFIG.IDENTIFIER_REQUESTS_PER_MINUTE
+  ) {
+    const resetTime = identifierRecord.lastReset + oneMinute;
     return { allowed: false, resetTime };
   }
 
@@ -138,7 +140,7 @@ export const checkIdentifierRateLimit = (
   saveRateLimitData(IDENTIFIER_LIMITS_FILE, identifierLimits);
 
   console.log(
-    `🔒 Identifier Rate Limit Check: ${identifier} - ${identifierRecord.count}/${RATE_LIMIT_CONFIG.IDENTIFIER_REQUESTS_PER_DAY} requests`
+    `🔒 Identifier Rate Limit Check: ${identifier} - ${identifierRecord.count}/${RATE_LIMIT_CONFIG.IDENTIFIER_REQUESTS_PER_MINUTE} requests`
   );
 
   return { allowed: true };
@@ -258,11 +260,11 @@ export const startRateLimitCleanup = () => {
       const cleanedIPLimits = cleanupExpiredEntries(ipLimits, 60 * 60 * 1000);
       saveRateLimitData(IP_LIMITS_FILE, cleanedIPLimits);
 
-      // Clean up identifier limits (older than 2 days)
+      // Clean up identifier limits (older than 1 hour)
       const identifierLimits = loadRateLimitData(IDENTIFIER_LIMITS_FILE);
       const cleanedIdentifierLimits = cleanupExpiredEntries(
         identifierLimits,
-        2 * 24 * 60 * 60 * 1000
+        60 * 60 * 1000
       );
       saveRateLimitData(IDENTIFIER_LIMITS_FILE, cleanedIdentifierLimits);
 
