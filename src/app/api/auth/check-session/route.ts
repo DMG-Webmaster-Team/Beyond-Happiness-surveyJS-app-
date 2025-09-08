@@ -3,6 +3,9 @@ import { db } from "../../../../db/client";
 import { users, userAssignments, surveys } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
 
+// This route uses cookies, so it must be dynamic
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const userSession = request.cookies.get("user_session");

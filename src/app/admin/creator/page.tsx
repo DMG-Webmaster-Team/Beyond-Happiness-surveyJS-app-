@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
+import { useState, useEffect, Component, ErrorInfo, ReactNode, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import useSWR, { mutate } from "swr";
@@ -86,7 +86,7 @@ const fetcher = (url: string) =>
     return res.json();
   });
 
-export default function AdminCreator() {
+function AdminCreatorContent() {
   const [creator, setCreator] = useState<any>(null);
   const [localSurvey, setLocalSurvey] = useState<Survey | null>(null);
   const [saving, setSaving] = useState(false);
@@ -452,9 +452,9 @@ export default function AdminCreator() {
             style={{ height: "70vh" }}
           >
             {creator &&
-            isCreatorReady &&
-            mounted &&
-            (!idParam || (idParam && localSurvey)) ? (
+              isCreatorReady &&
+              mounted &&
+              (!idParam || (idParam && localSurvey)) ? (
               <SurveyCreatorErrorBoundary>
                 <SurveyCreatorComponent
                   creator={creator}
@@ -468,8 +468,8 @@ export default function AdminCreator() {
                     {!creator || !isCreatorReady
                       ? "Initializing survey creator..."
                       : idParam && !localSurvey
-                      ? "Loading survey data..."
-                      : "Survey creator ready"}
+                        ? "Loading survey data..."
+                        : "Survey creator ready"}
                   </div>
                 </div>
               </div>
@@ -478,5 +478,17 @@ export default function AdminCreator() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AdminCreator() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-gray-500 text-lg">Loading...</div>
+      </div>
+    }>
+      <AdminCreatorContent />
+    </Suspense>
   );
 }

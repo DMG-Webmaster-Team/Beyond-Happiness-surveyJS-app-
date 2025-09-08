@@ -90,7 +90,7 @@ export async function GET(
 
     // Get happiness assignments
     const { happinessAssignments } = await import(
-      "../../../../db/schema/happiness"
+      "../../../../../db/schema/happiness"
     );
     const happinessAssignmentsResult = await db
       .select()

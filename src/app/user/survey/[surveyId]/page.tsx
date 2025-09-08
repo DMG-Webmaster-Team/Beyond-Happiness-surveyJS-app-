@@ -547,7 +547,7 @@ export default function UserSurvey() {
                 ✅ Survey completed successfully!
               </h2>
               <p className="mt-2 text-center text-sm text-gray-600">
-                "You can retake this survey if needed."
+                &ldquo;You can retake this survey if needed.&rdquo;
               </p>
             </div>
 
@@ -633,8 +633,8 @@ export default function UserSurvey() {
               You are not authorized to access this survey.
               {user.assignments && user.assignments.length > 0
                 ? ` You are assigned to surveys: ${user.assignments
-                    .map((a) => a.surveyTitle)
-                    .join(", ")}`
+                  .map((a) => a.surveyTitle)
+                  .join(", ")}`
                 : " You have no survey assignments."}
             </p>
           </div>

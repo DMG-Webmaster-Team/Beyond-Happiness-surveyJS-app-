@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Model } from "survey-core";
 import { Survey as SurveyComponent } from "survey-react-ui";
@@ -23,7 +23,7 @@ const fetcher = (url: string) =>
     return res.json();
   });
 
-export default function Survey() {
+function SurveyContent() {
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("id");
 
@@ -120,5 +120,17 @@ export default function Survey() {
         <SurveyComponent model={surveyModel} />
       </div>
     </div>
+  );
+}
+
+export default function Survey() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-gray-500 text-lg">Loading...</div>
+      </div>
+    }>
+      <SurveyContent />
+    </Suspense>
   );
 }

@@ -23,10 +23,11 @@ export async function handleLogoutWithSurveyPreservation(
 
   console.log("🔄 Starting logout process with options:", options);
 
+  // 1. Determine surveyId from multiple sources
+  let finalSurveyId = surveyId;
+  let finalSurveyType = surveyType;
+
   try {
-    // 1. Determine surveyId from multiple sources
-    let finalSurveyId = surveyId;
-    let finalSurveyType = surveyType;
 
     if (!finalSurveyId) {
       // Try to get surveyId from current URL

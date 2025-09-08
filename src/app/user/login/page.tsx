@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -20,7 +20,7 @@ interface User {
   loginTime?: string;
 }
 
-export default function UserLogin() {
+function UserLoginContent() {
   const [contactInput, setContactInput] = useState("");
   const [inputType, setInputType] = useState<"email" | "phone" | "unknown">(
     "unknown"
@@ -615,26 +615,23 @@ export default function UserLogin() {
             <div className="mb-6">
               <div className="flex items-center justify-center space-x-2 mb-3">
                 <div
-                  className={`w-3 h-3 rounded-full ${
-                    authStep === "otp" ||
+                  className={`w-3 h-3 rounded-full ${authStep === "otp" ||
                     authStep === "verifying-access" ||
                     authStep === "redirecting"
-                      ? "bg-green-500"
-                      : "bg-gray-300"
-                  }`}
+                    ? "bg-green-500"
+                    : "bg-gray-300"
+                    }`}
                 />
                 <div
-                  className={`w-3 h-3 rounded-full ${
-                    authStep === "verifying-access" ||
+                  className={`w-3 h-3 rounded-full ${authStep === "verifying-access" ||
                     authStep === "redirecting"
-                      ? "bg-green-500"
-                      : "bg-gray-300"
-                  }`}
+                    ? "bg-green-500"
+                    : "bg-gray-300"
+                    }`}
                 />
                 <div
-                  className={`w-3 h-3 rounded-full ${
-                    authStep === "redirecting" ? "bg-green-500" : "bg-gray-300"
-                  }`}
+                  className={`w-3 h-3 rounded-full ${authStep === "redirecting" ? "bg-green-500" : "bg-gray-300"
+                    }`}
                 />
               </div>
               <div className="text-xs text-gray-500">
@@ -771,7 +768,7 @@ export default function UserLogin() {
                 {otp.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => (otpRefs.current[index] = el)}
+                    ref={(el) => { otpRefs.current[index] = el; }}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -880,5 +877,17 @@ export default function UserLogin() {
         ) : null}
       </div>
     </div>
+  );
+}
+
+export default function UserLogin() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-gray-500 text-lg">Loading...</div>
+      </div>
+    }>
+      <UserLoginContent />
+    </Suspense>
   );
 }

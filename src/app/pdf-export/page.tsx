@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Model } from "survey-core";
 import { SurveyPDF } from "survey-pdf";
@@ -16,7 +16,7 @@ interface Survey {
   updatedAt: string;
 }
 
-export default function PdfExport() {
+function PdfExportContent() {
   const searchParams = useSearchParams();
   const surveyId = searchParams.get("surveyId");
   const [survey, setSurvey] = useState<Survey | null>(null);
@@ -139,5 +139,17 @@ export default function PdfExport() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PdfExport() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-gray-500 text-lg">Loading...</div>
+      </div>
+    }>
+      <PdfExportContent />
+    </Suspense>
   );
 }
