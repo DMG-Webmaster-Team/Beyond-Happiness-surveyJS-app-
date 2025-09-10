@@ -15,6 +15,9 @@ import {
   canRetakeSurvey,
   validateSurveySession,
 } from "../../../../lib/auth/survey-session";
+import { useSurveySession } from "../../../../hooks/useSurveySession";
+import LoadingScreen from "@/components/shared/LoadingScreen";
+import { safeUrl, extractSurveyIdFromUrl } from "@/utils/url-helpers";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -85,6 +88,9 @@ interface SurveyData {
   isAnonymous: boolean;
   adminId: string;
   json: any;
+  isCompleted?: boolean; // For handling completed survey responses
+  message?: string; // For completion messages
+  surveyId?: string; // For completion responses
 }
 
 // Fetcher function for SWR
@@ -101,10 +107,67 @@ const fetcher = async (url: string) => {
         return null; // Return null to prevent further processing
       }
     }
-    throw new Error("Failed to fetch survey");
+
+    // Check if this is a survey already completed error (403)
+    if (res.status === 403) {
+      const data = await res.json();
+      if (data.code === "SURVEY_ALREADY_SUBMITTED") {
+        console.log(
+          "🚫 Survey already completed - returning completion response"
+        );
+        // Return a special object to indicate completion instead of throwing
+        // This prevents SWR from treating it as an error and retrying
+        return {
+          isCompleted: true,
+          message: data.message,
+          surveyId: extractSurveyIdFromUrl(url) || "unknown",
+        };
+      }
+    }
+
+    // Create an error object with status for SWR error handling
+    const error = new Error("Failed to fetch survey");
+    (error as any).status = res.status;
+    throw error;
   }
 
   return res.json();
+};
+
+// ✅ NEW: Utility functions for localStorage survey tracking
+const getSubmissionKey = (surveyId: string) => `submitted_${surveyId}`;
+
+const isRecentlySubmitted = (surveyId: string): boolean => {
+  if (typeof window === "undefined") return false;
+
+  const submissionData = localStorage.getItem(getSubmissionKey(surveyId));
+  if (!submissionData) return false;
+
+  try {
+    const { timestamp } = JSON.parse(submissionData);
+    const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000; // 15 minutes
+    return timestamp > fifteenMinutesAgo;
+  } catch {
+    return false;
+  }
+};
+
+const markSurveySubmitted = (surveyId: string) => {
+  if (typeof window === "undefined") return;
+
+  const submissionData = {
+    timestamp: Date.now(),
+    surveyId,
+  };
+  localStorage.setItem(
+    getSubmissionKey(surveyId),
+    JSON.stringify(submissionData)
+  );
+};
+
+const clearSubmissionFlag = (surveyId: string) => {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(getSubmissionKey(surveyId));
 };
 
 export default function UserSurvey() {
@@ -119,10 +182,23 @@ export default function UserSurvey() {
   const [isAnonymousSurvey, setIsAnonymousSurvey] = useState(false);
   const [anonymousSurveyChecked, setAnonymousSurveyChecked] = useState(false);
   const [isLoadingAccessCheck, setIsLoadingAccessCheck] = useState(true);
+  const [minLoadingTime, setMinLoadingTime] = useState(true);
+  // ✅ NEW: Survey completion check states
+  const [isCheckingCompletion, setIsCheckingCompletion] = useState(true);
+  const [surveyCanTakeMultiple, setSurveyCanTakeMultiple] = useState(true);
+  // ✅ NEW: Early localStorage check to prevent survey loading
+  const [earlyCompletionCheck, setEarlyCompletionCheck] = useState(true);
   // ✅ REMOVED: statusPageData - no longer needed with consolidated flow
   const router = useRouter();
   const params = useParams();
   const surveyId = params.surveyId as string;
+
+  // Survey session management (for non-anonymous surveys)
+  const surveySession = useSurveySession({
+    userId: user?.id || "",
+    surveyId: surveyId || "",
+    autoCreate: !isAnonymousSurvey && !!user?.id && !!surveyId,
+  });
 
   // Store surveyId in sessionStorage for logout recovery
   useEffect(() => {
@@ -132,6 +208,24 @@ export default function UserSurvey() {
       console.log("💾 Stored surveyId for logout recovery:", surveyId);
     }
   }, [surveyId]);
+
+  // ✅ NEW: Early localStorage check to prevent survey loading if recently submitted
+  useEffect(() => {
+    if (!surveyId || !mounted) return;
+
+    const recentlySubmitted = isRecentlySubmitted(surveyId);
+    if (recentlySubmitted) {
+      console.log(
+        "🚫 Early check: Survey recently submitted, redirecting to status page"
+      );
+      // Immediately redirect to avoid any loading states
+      router.replace(
+        `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false`
+      );
+      return;
+    }
+    setEarlyCompletionCheck(false);
+  }, [surveyId, mounted]);
 
   // This useEffect will be moved after the SWR declaration
 
@@ -143,6 +237,12 @@ export default function UserSurvey() {
   // Ensure component is mounted before rendering survey
   useEffect(() => {
     setMounted(true);
+    // Set minimum loading time to prevent flash
+    const timer = setTimeout(() => {
+      setMinLoadingTime(false);
+    }, 500); // 500ms minimum loading time
+
+    return () => clearTimeout(timer);
   }, []);
 
   // ✅ NEW: Check if survey is anonymous before any auth checks
@@ -189,6 +289,92 @@ export default function UserSurvey() {
       checkAnonymousSurvey();
     }
   }, [surveyId, mounted, router]);
+
+  // ✅ NEW: Check if survey is already completed on page load
+  useEffect(() => {
+    const checkSurveyCompletion = async () => {
+      // Only check completion after we know if it's anonymous and have checked session for authenticated surveys
+      if (!surveyId || !anonymousSurveyChecked) return;
+
+      // For anonymous surveys, check localStorage only
+      if (isAnonymousSurvey) {
+        const recentlySubmitted = isRecentlySubmitted(surveyId);
+        if (recentlySubmitted) {
+          console.log(
+            "🚫 Anonymous survey recently submitted (localStorage), redirecting to status page"
+          );
+          // Redirect to status page to avoid loading state
+          router.replace(
+            `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false&anonymous=true`
+          );
+          return;
+        }
+        setIsCheckingCompletion(false);
+        return;
+      }
+
+      // For authenticated surveys, wait for user session to be loaded
+      if (!isAnonymousSurvey && !user) {
+        // Still loading user session, don't check yet
+        return;
+      }
+
+      // Check localStorage first for quick redirect
+      const recentlySubmitted = isRecentlySubmitted(surveyId);
+      if (recentlySubmitted) {
+        console.log(
+          "🚫 Survey recently submitted (localStorage), redirecting to status page"
+        );
+        // Immediately redirect to status page to avoid loading state
+        router.replace(
+          `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false`
+        );
+        return;
+      }
+
+      try {
+        console.log("🔍 Checking survey completion status...");
+        setIsCheckingCompletion(true);
+
+        const response = await fetch(
+          `/api/survey-status?surveyId=${surveyId}&surveyType=regular`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+
+          setSurveyCanTakeMultiple(data.canTakeMultiple);
+
+          if (data.submitted && !data.canTakeMultiple) {
+            console.log(
+              "🚫 Survey already completed and cannot be retaken, redirecting to status page"
+            );
+            // Redirect to status page instead of showing inline message
+            router.replace(
+              `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false&surveyTitle=${encodeURIComponent(
+                data.surveyTitle || "Survey"
+              )}`
+            );
+            return;
+          } else {
+            console.log(
+              "✅ Survey not yet completed or can be retaken, allowing access"
+            );
+          }
+        } else {
+          console.error("Failed to check survey completion status");
+          // On error, allow survey to proceed (fail open)
+        }
+      } catch (error) {
+        console.error("Error checking survey completion:", error);
+        // On error, allow survey to proceed (fail open)
+      } finally {
+        setIsCheckingCompletion(false);
+      }
+    };
+
+    checkSurveyCompletion();
+  }, [surveyId, anonymousSurveyChecked, isAnonymousSurvey, user, router]);
 
   // ✅ NEW: Handle loading state for anonymous surveys
   useEffect(() => {
@@ -369,22 +555,42 @@ export default function UserSurvey() {
     data: survey,
     error: fetchError,
     isLoading,
+    mutate,
   } = useSWR<SurveyData>(
     // ✅ FIXED: Allow fetching for anonymous surveys OR authenticated users with assignments
+    // ✅ Fetch survey data when conditions are met
     surveyId &&
       (isAnonymousSurvey ||
         (user &&
           user.assignments &&
           user.assignments.some(
             (a: { surveyId: string }) => a.surveyId === surveyId
-          )))
-      ? `/api/surveys/${surveyId}`
+          ))) &&
+      !surveySubmitted // Stop fetching after survey is submitted
+      ? `/api/surveys/${surveyId}${user?.id ? `?userId=${user.id}` : ""}`
       : null,
     fetcher,
     {
-      refreshInterval: 5000, // Refresh every 5 seconds
-      revalidateOnFocus: true,
-      revalidateOnReconnect: true,
+      refreshInterval: surveySubmitted ? 0 : 5000, // Stop refresh after submission
+      revalidateOnFocus: !surveySubmitted, // Stop revalidation after submission
+      revalidateOnReconnect: !surveySubmitted, // Stop revalidation after submission
+      onErrorRetry: (error, key, config, revalidate, { retryCount }) => {
+        // Don't retry if survey is completed
+        if (surveySubmitted) {
+          console.log("🚫 Survey completed, stopping SWR retries");
+          return;
+        }
+
+        // Don't retry on 403 errors (survey already completed)
+        if (error?.status === 403) {
+          console.log("🚫 403 error detected, stopping SWR retries");
+          return;
+        }
+
+        // Default retry logic for other errors
+        if (retryCount >= 3) return;
+        setTimeout(() => revalidate({ retryCount }), 5000);
+      },
     }
   );
 
@@ -408,16 +614,59 @@ export default function UserSurvey() {
     }
   }, [surveyId, survey, isAnonymousSurvey, router]);
 
-  // Create survey model from the latest data
-  const surveyModel = useMemo(() => {
-    if (!survey?.json || !mounted) return null;
+  // Handle completed survey from API response
+  useEffect(() => {
+    if (survey?.isCompleted && !surveySubmitted) {
+      console.log(
+        "🚫 Survey detected as completed from API, updating state and stopping SWR"
+      );
+      setSurveySubmitted(true);
+      // Immediately stop SWR by mutating with undefined to clear the cache
+      mutate(undefined, false);
+    }
+  }, [survey?.isCompleted, surveySubmitted, mutate]);
 
-    try {
-      // Ensure canTakeMultiple defaults to false if not present
-      const surveyData = {
+  // Create survey model from session data (for authenticated surveys) or live data (for anonymous surveys)
+  const surveyModel = useMemo(() => {
+    if (!mounted) return null;
+
+    // Handle completed survey response from fetcher
+    if (survey?.isCompleted) {
+      console.log("🚫 Survey is completed, not creating model");
+      return null;
+    }
+
+    let surveyData = null;
+
+    // For anonymous surveys, use live data from SWR
+    if (isAnonymousSurvey && survey?.json) {
+      surveyData = {
         ...survey,
         canTakeMultiple: survey.canTakeMultiple ?? false,
       };
+    }
+    // For authenticated surveys, use frozen session data
+    else if (
+      !isAnonymousSurvey &&
+      surveySession.session &&
+      !surveySession.isLoading
+    ) {
+      const sessionConfig = surveySession.getSurveyConfig();
+      if (sessionConfig) {
+        surveyData = {
+          json: sessionConfig.definition,
+          title: sessionConfig.title,
+          description: sessionConfig.description,
+          canTakeMultiple: sessionConfig.canTakeMultiple ?? false,
+          isAnonymous: sessionConfig.isAnonymous ?? false,
+        };
+        console.log("🔒 Using frozen survey configuration from session");
+      }
+    }
+
+    if (!surveyData?.json) return null;
+
+    try {
       const model = new Model(surveyData.json);
 
       // Disable SurveyJS built-in completion page to prevent duplicate thank you messages
@@ -433,7 +682,14 @@ export default function UserSurvey() {
       console.error("Error creating survey model:", error);
       return null;
     }
-  }, [survey?.json, mounted]);
+  }, [
+    survey?.json,
+    mounted,
+    isAnonymousSurvey,
+    surveySession.session,
+    surveySession.isLoading,
+    surveySession.getSurveyConfig,
+  ]);
 
   // Handle fetch errors and check submission status
   useEffect(() => {
@@ -483,12 +739,39 @@ export default function UserSurvey() {
         // Immediately show completion without refresh
         setSurveySubmitted(true);
 
+        // ✅ NEW: Handle localStorage tracking and redirect for one-time surveys
+        if (!survey.canTakeMultiple) {
+          console.log(
+            "🔒 One-time survey completed - marking as submitted and scheduling redirect"
+          );
+          markSurveySubmitted(survey.id);
+
+          // Show success message with redirect notice
+          setTimeout(() => {
+            console.log(
+              "🔄 Redirecting to survey login page after one-time survey completion"
+            );
+            router.push(`/user/survey/${survey.id}`);
+          }, 10000); // 10 seconds delay
+        }
+
         // ✅ UPDATED: Handle post-submission differently for anonymous vs authenticated
         if (isAnonymousSurvey) {
           console.log("🌐 Anonymous survey completed - staying on page");
           // For anonymous surveys, just show completion state
           // User stays on the same page and can retake if desired
         } else {
+          // Complete the survey session for authenticated surveys
+          try {
+            if (surveySession.session) {
+              await surveySession.completeSession();
+              console.log("🔒 Survey session completed successfully");
+            }
+          } catch (sessionError) {
+            console.error("Error completing survey session:", sessionError);
+            // Don't fail the entire submission if session completion fails
+          }
+
           // Update user data to reflect submission (authenticated surveys only)
           const updatedUser = {
             ...user!,
@@ -581,9 +864,15 @@ export default function UserSurvey() {
               </div>
             ) : (
               <div className="text-center">
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 text-sm mb-4">
                   This survey can only be completed once.
                 </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-blue-700 text-sm">
+                    🔄 You will be redirected to the survey login page in 10
+                    seconds...
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -592,7 +881,30 @@ export default function UserSurvey() {
     );
   }
 
-  if (!survey || !surveyModel) {
+  // Show loading while data is being fetched or session is being initialized
+  const isLoadingData =
+    isLoading ||
+    (!isAnonymousSurvey && surveySession.isLoading) ||
+    !mounted ||
+    loading ||
+    isLoadingAccessCheck ||
+    !anonymousSurveyChecked ||
+    preloading ||
+    minLoadingTime ||
+    isCheckingCompletion ||
+    earlyCompletionCheck; // ✅ NEW: Include early completion check in loading state
+
+  if (isLoadingData) {
+    return (
+      <>
+        {navbarComponent}
+        <LoadingScreen message="Loading survey..." />
+      </>
+    );
+  }
+
+  // Show access denied only after loading is complete and we truly don't have access
+  if ((!survey || !surveyModel) && !survey?.isCompleted) {
     return (
       <div className="min-h-screen bg-gray-50">
         {navbarComponent}
@@ -600,7 +912,7 @@ export default function UserSurvey() {
           <img
             src="/beyond-happiness-logo.svg"
             alt="logo"
-            className="w-100 h-100"
+            className="w-40 h-40"
           />
           <div className="text-center">
             <div className="text-red-600 text-xl mb-4">

@@ -128,75 +128,170 @@ export default function ResultsTab() {
       </div>
 
       {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Survey
-          </label>
-          <select
-            value={filters.surveyId}
-            onChange={(e) =>
-              setFilters({ ...filters, surveyId: e.target.value })
-            }
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-medium text-gray-700">Filter Results</h3>
+          <button
+            onClick={() => {
+              setFilters({
+                surveyId: "",
+                userEmail: "",
+                startDate: "",
+                endDate: "",
+              });
+              setUserEmailInput("");
+              setPage(1);
+            }}
+            className="text-sm text-blue-400 hover:text-blue-600 font-medium"
           >
-            <option value="">All Surveys</option>
-            {surveys.map((survey: any) => (
-              <option key={survey.id} value={survey.id}>
-                {survey.title}
-              </option>
-            ))}
-          </select>
+            Clear All Filters
+          </button>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            User Email
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              value={userEmailInput}
-              onChange={(e) => setUserEmailInput(e.target.value)}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Survey
+            </label>
+            <select
+              value={filters.surveyId}
+              onChange={(e) => {
+                setFilters({ ...filters, surveyId: e.target.value });
+                setPage(1);
+              }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="Filter by user email..."
+            >
+              <option value="">All Surveys</option>
+              {surveys.map((survey: any) => (
+                <option key={survey.id} value={survey.id}>
+                  {survey.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              User Email
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={userEmailInput}
+                onChange={(e) => setUserEmailInput(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                placeholder="Filter by user email..."
+              />
+              {userEmailInput !== debouncedUserEmail &&
+                userEmailInput.length > 0 && (
+                  <div className="absolute right-2 top-2 text-xs text-gray-500">
+                    Searching...
+                  </div>
+                )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Start Date
+            </label>
+            <input
+              type="date"
+              value={filters.startDate}
+              onChange={(e) => {
+                setFilters({ ...filters, startDate: e.target.value });
+                setPage(1);
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             />
-            {userEmailInput !== debouncedUserEmail &&
-              userEmailInput.length > 0 && (
-                <div className="absolute right-2 top-2 text-xs text-gray-500">
-                  Searching...
-                </div>
-              )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              End Date
+            </label>
+            <input
+              type="date"
+              value={filters.endDate}
+              onChange={(e) => {
+                setFilters({ ...filters, endDate: e.target.value });
+                setPage(1);
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Start Date
-          </label>
-          <input
-            type="date"
-            value={filters.startDate}
-            onChange={(e) =>
-              setFilters({ ...filters, startDate: e.target.value })
-            }
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            End Date
-          </label>
-          <input
-            type="date"
-            value={filters.endDate}
-            onChange={(e) =>
-              setFilters({ ...filters, endDate: e.target.value })
-            }
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          />
-        </div>
+        {/* Active Filters Display */}
+        {(filters.surveyId ||
+          filters.userEmail ||
+          filters.startDate ||
+          filters.endDate) && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs text-gray-500">Active filters:</span>
+              {filters.surveyId && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Survey:{" "}
+                  {surveys.find((s: any) => s.id === filters.surveyId)?.title ||
+                    filters.surveyId}
+                  <button
+                    onClick={() => {
+                      setFilters({ ...filters, surveyId: "" });
+                      setPage(1);
+                    }}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.userEmail && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Email: {filters.userEmail}
+                  <button
+                    onClick={() => {
+                      setFilters({ ...filters, userEmail: "" });
+                      setUserEmailInput("");
+                      setPage(1);
+                    }}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.startDate && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  From: {filters.startDate}
+                  <button
+                    onClick={() => {
+                      setFilters({ ...filters, startDate: "" });
+                      setPage(1);
+                    }}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.endDate && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  To: {filters.endDate}
+                  <button
+                    onClick={() => {
+                      setFilters({ ...filters, endDate: "" });
+                      setPage(1);
+                    }}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Results Table */}
@@ -231,7 +326,7 @@ export default function ResultsTab() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">
-                        {result.userEmail || "Anonymous"}
+                        {result.userName || result.userEmail || "Anonymous"}
                       </div>
                       <div className="text-gray-500">{result.surveyTitle}</div>
                     </div>

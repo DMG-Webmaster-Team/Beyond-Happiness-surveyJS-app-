@@ -3,6 +3,10 @@ import * as XLSX from "xlsx";
 import { db } from "../../../../db/client";
 import { importRowSchema } from "../../../../lib/validation/import-schemas";
 import {
+  validateEgyptianPhone,
+  validateEmail as utilValidateEmail,
+} from "@/utils/errors";
+import {
   upsertUser,
   upsertSurvey,
   upsertUserAssignment,
@@ -21,41 +25,29 @@ const MAX_ROWS = 50000;
 // Input validation functions
 const validateEmail = (email: string): boolean => {
   if (!email || typeof email !== "string") return false;
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email.trim()) && email.length <= 254;
+  return utilValidateEmail(email.trim());
 };
 
 const validatePhone = (phone: string): boolean => {
-  if (!phone || typeof phone !== "string") return false;
-  const cleanPhone = phone.replace(/[^\d+]/g, "");
-  return cleanPhone.length >= 7 && cleanPhone.length <= 15;
+  if (!phone || typeof phone !== "string") return true; // Optional field
+
+  // Clean phone number: remove Excel apostrophe prefix and whitespace
+  let cleanPhone = phone.toString().trim();
+  if (cleanPhone.startsWith("'")) {
+    cleanPhone = cleanPhone.substring(1);
+  }
+
+  // If phone doesn't start with 0 and looks like Egyptian format, add leading 0
+  if (cleanPhone && /^1[0-2,5]{1}[0-9]{8}$/.test(cleanPhone)) {
+    cleanPhone = "0" + cleanPhone;
+  }
+
+  return validateEgyptianPhone(cleanPhone);
 };
 
 const validateName = (name: string): boolean => {
-  if (!name || typeof name !== "string") return false;
+  if (!name || typeof name !== "string") return true; // Optional field
   return name.trim().length >= 1 && name.trim().length <= 100;
-};
-
-// Company validation function
-const validateCompanyId = async (companyId: string): Promise<boolean> => {
-  if (!companyId || typeof companyId !== "string") return true; // Optional field
-
-  try {
-    const { companies } = await import("../../../../db/schema");
-    const { eq } = await import("drizzle-orm");
-    const { db } = await import("../../../../db/client");
-
-    const result = await db
-      .select({ id: companies.id })
-      .from(companies)
-      .where(eq(companies.id, companyId.trim()))
-      .limit(1);
-
-    return result.length > 0;
-  } catch (error) {
-    console.error("Error validating company ID:", error);
-    return false;
-  }
 };
 
 // Enhanced row validation with precise column-level error reporting
@@ -73,7 +65,6 @@ const validateRow = async (
     email: row.email?.toString().trim() || "",
     name: row.name?.toString().trim() || "",
     phone: row.phone?.toString().trim() || "",
-    companyId: row.companyId?.toString().trim() || "",
   };
 
   // 1. Email validation - Required and must match standard email format
@@ -83,30 +74,37 @@ const validateRow = async (
     errors.push("Invalid email format");
   }
 
-  // 2. Name validation - Required
-  if (!rowData.name) {
-    errors.push("Name is required");
+  // 2. Name validation - Optional
+  if (rowData.name && !validateName(rowData.name)) {
+    errors.push("Name must be between 1 and 100 characters");
   }
 
-  // 3. Phone validation - Optional, but if present must be valid format
-  if (rowData.phone && !validatePhone(rowData.phone)) {
-    errors.push("Invalid phone number");
-  }
+  // 3. Phone validation - Optional, but if present must be valid Egyptian format
+  let cleanedPhone = rowData.phone;
+  if (rowData.phone) {
+    // Clean phone number: remove Excel apostrophe prefix and whitespace
+    cleanedPhone = rowData.phone.toString().trim();
+    if (cleanedPhone.startsWith("'")) {
+      cleanedPhone = cleanedPhone.substring(1);
+    }
 
-  // 4. Company ID validation - Optional, but if provided must exist in database
-  if (rowData.companyId) {
-    const isValidCompany = await validateCompanyId(rowData.companyId);
-    if (!isValidCompany) {
-      errors.push(`Company not found: ${rowData.companyId}`);
+    // If phone doesn't start with 0 and looks like Egyptian format, add leading 0
+    if (cleanedPhone && /^1[0-2,5]{1}[0-9]{8}$/.test(cleanedPhone)) {
+      cleanedPhone = "0" + cleanedPhone;
+    }
+
+    if (!validateEgyptianPhone(cleanedPhone)) {
+      errors.push(
+        "Phone number must be in Egyptian format (e.g., 01012345678 or +20-10-1234-5678)"
+      );
     }
   }
 
   // Clean and normalize data for processing
   const cleanedRow = {
     email: rowData.email.toLowerCase(),
-    name: rowData.name,
-    phone: rowData.phone ? rowData.phone.replace(/[^\d+]/g, "") : null,
-    companyId: rowData.companyId || null,
+    name: rowData.name || null,
+    phone: cleanedPhone || null,
   };
 
   return {
@@ -139,41 +137,39 @@ export async function POST(request: NextRequest) {
     }
 
     const file = formData.get("file") as File;
-    const surveyId = formData.get("surveyId") as string;
-    const surveyType = (formData.get("surveyType") as string) || "regular"; // Default to "regular" if not specified
+    const surveyIds = formData.getAll("surveyIds") as string[];
+    const happinessSurveyIds = formData.getAll(
+      "happinessSurveyIds"
+    ) as string[];
     const companyId = formData.get("companyId") as string;
     const dryRun = formData.get("dryRun") === "1";
 
     console.log("📋 Import parameters:", {
-      surveyId,
-      surveyType,
+      surveyIds,
+      happinessSurveyIds,
       companyId,
       dryRun,
       fileName: file?.name,
       fileSize: file?.size,
     });
 
-    // Validate required parameters
-    if (!surveyId) {
-      console.error("❌ Missing surveyId parameter");
+    // Validate required parameters - must have at least one assignment method
+    const hasCompany = !!companyId;
+    const hasSurveys = surveyIds.length > 0 || happinessSurveyIds.length > 0;
+
+    if (!hasCompany && !hasSurveys) {
+      console.error("❌ Missing assignment parameters");
       return NextResponse.json(
         {
           success: false,
-          error: "Survey ID is required for user import",
+          error:
+            "Please select at least one of the following: Company, Regular Survey, or Happiness Survey.",
         },
         { status: 400 }
       );
     }
 
-    console.log(`📋 Using survey type: ${surveyType}`);
-
-    // Validate survey type
-    if (surveyType && !["regular", "happiness"].includes(surveyType)) {
-      return NextResponse.json(
-        { error: "Survey type must be 'regular' or 'happiness'" },
-        { status: 400 }
-      );
-    }
+    console.log(`📋 Processing import with mixed survey types`);
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -496,24 +492,37 @@ export async function POST(request: NextRequest) {
       // Simulate processing each valid row
       for (let i = 0; i < validRows.length; i++) {
         const row = validRows[i];
-        console.log(
-          `🧪 DRY RUN - Would process: ${row.email} -> ${surveyId} (${surveyType})`
-        );
+        console.log(`🧪 DRY RUN - Would process: ${row.email}`);
+
+        if (companyId) {
+          console.log(`🧪 DRY RUN - Would assign to company: ${companyId}`);
+        }
+
+        if (surveyIds.length > 0) {
+          console.log(
+            `🧪 DRY RUN - Would assign to ${surveyIds.length} regular surveys`
+          );
+        }
+
+        if (happinessSurveyIds.length > 0) {
+          console.log(
+            `🧪 DRY RUN - Would assign to ${happinessSurveyIds.length} happiness surveys`
+          );
+        }
 
         // Simulate user creation/update
         simulatedStats.insertedUsers++; // Assume new user for simulation
 
-        // Simulate assignment creation
-        simulatedStats.insertedAssignments++;
-        console.log(
-          `🧪 DRY RUN - Would create ${surveyType} assignment: ${row.email} -> ${surveyId}`
-        );
+        // Simulate assignment creation (company + additional surveys)
+        const totalAssignments =
+          (companyId ? 2 : 0) + surveyIds.length + happinessSurveyIds.length; // Assume 2 company surveys
+        simulatedStats.insertedAssignments += totalAssignments;
       }
 
       return NextResponse.json({
         ...responseData,
         importResults: simulatedStats,
-        message: `Dry run completed successfully. Would import ${validRows.length} users with assignments to survey ${surveyId}. No data was saved.`,
+        message: `Dry run completed successfully. Would import ${validRows.length} users with mixed survey assignments. No data was saved.`,
       });
     }
 
@@ -521,11 +530,14 @@ export async function POST(request: NextRequest) {
     let importResults;
     try {
       console.log("🔄 Starting import process...");
-      importResults = await processImport(
+
+      // Handle different import scenarios
+      console.log("🔄 Processing mixed import: company + surveys");
+      importResults = await processMixedImport(
         validRows,
-        surveyId,
-        surveyType as "regular" | "happiness", // Type assertion since we validated it above
-        companyId
+        companyId,
+        surveyIds,
+        happinessSurveyIds
       );
       console.log("✅ Import process completed successfully");
     } catch (importError) {
@@ -946,6 +958,414 @@ async function processImport(
     throw new Error(
       `Import process failed: ${
         processError instanceof Error ? processError.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+// Process company-only import: create users and assign them to all company surveys
+async function processCompanyImport(validRows: any[], companyId: string) {
+  const startTime = Date.now();
+  console.log(
+    `🏢 Processing company import: ${validRows.length} users for company ${companyId}`
+  );
+
+  const stats = {
+    insertedUsers: 0,
+    updatedUsers: 0,
+    insertedAssignments: 0,
+    skippedAssignments: 0,
+    duplicateAssignments: 0,
+    errors: [] as Array<{
+      row: number;
+      email: string;
+      error: string;
+      type: "duplicate" | "error" | "constraint";
+    }>,
+    processingTime: 0,
+  };
+
+  try {
+    // Get all surveys assigned to this company
+    const { db } = await import("../../../../db");
+    const { surveys } = await import("../../../../db/schema/surveys");
+    const { happinessSurveys } = await import(
+      "../../../../db/schema/happiness"
+    );
+    const { eq } = await import("drizzle-orm");
+
+    // Fetch company info
+    const { getCompanyById } = await import("../../../../db/queries/companies");
+    const company = await getCompanyById(companyId);
+    const companyName = company?.name || null;
+
+    // Get surveys assigned to this company using the many-to-many relationship
+    const { getCompanySurveys, getCompanyHappinessSurveys } = await import(
+      "../../../../db/queries/survey-company-assignments"
+    );
+
+    const [regularSurveys, happinessSurveysData] = await Promise.all([
+      getCompanySurveys(companyId),
+      getCompanyHappinessSurveys(companyId),
+    ]);
+
+    console.log(
+      `📊 Found ${regularSurveys.length} regular surveys and ${happinessSurveysData.length} happiness surveys for company: ${companyName}`
+    );
+
+    if (regularSurveys.length === 0 && happinessSurveysData.length === 0) {
+      throw new Error(
+        `No surveys found for company ${companyId}. Please assign surveys to the company first.`
+      );
+    }
+
+    // Extract unique emails for batch lookups
+    const uniqueEmails = Array.from(new Set(validRows.map((row) => row.email)));
+
+    // Get existing users
+    const { getUsersByEmails } = await import("../../../../db/queries/users");
+    const existingUsers = await getUsersByEmails(uniqueEmails);
+    const existingUsersMap = new Map(
+      existingUsers.map((user) => [user.email, user])
+    );
+
+    // Process each user
+    for (let index = 0; index < validRows.length; index++) {
+      const row = validRows[index];
+      try {
+        let user = existingUsersMap.get(row.email);
+
+        if (!user) {
+          // Create new user
+          const { createUser } = await import("../../../../db/queries/users");
+          user = await createUser({
+            email: row.email,
+            name: row.name || null,
+            phone: row.phone || null,
+            status: "active",
+            companyId: companyId,
+            companyName: companyName,
+          });
+          stats.insertedUsers++;
+          console.log(
+            `✅ Created user: ${user.email} with company: ${companyName}`
+          );
+        } else {
+          // Update existing user with company if not already set
+          if (!user.companyId) {
+            const { updateUser } = await import("../../../../db/queries/users");
+            await updateUser(user.id, {
+              companyId: companyId,
+              companyName: companyName,
+            });
+            stats.updatedUsers++;
+            console.log(
+              `🔄 Updated user company: ${user.email} to ${companyName}`
+            );
+          }
+        }
+
+        // Create assignments for all company surveys
+        const { userAssignments } = await import(
+          "../../../../db/schema/user-assignments"
+        );
+        const { happinessAssignments } = await import(
+          "../../../../db/schema/happiness"
+        );
+        const { nanoid } = await import("nanoid");
+
+        const now = Date.now();
+
+        // Regular survey assignments
+        for (const survey of regularSurveys) {
+          try {
+            await db.insert(userAssignments).values({
+              userId: user.id,
+              surveyId: survey.id,
+              assignedAt: now,
+            });
+            stats.insertedAssignments++;
+          } catch (error: any) {
+            if (error.message?.includes("UNIQUE constraint failed")) {
+              stats.duplicateAssignments++;
+              console.log(
+                `⚠️ User ${user.email} already assigned to survey ${survey.title}`
+              );
+            } else {
+              throw error;
+            }
+          }
+        }
+
+        // Happiness survey assignments
+        for (const survey of happinessSurveysData) {
+          try {
+            await db.insert(happinessAssignments).values({
+              id: nanoid(),
+              userId: user.id,
+              surveyId: survey.id,
+              assignedAt: now,
+            });
+            stats.insertedAssignments++;
+          } catch (error: any) {
+            if (error.message?.includes("UNIQUE constraint failed")) {
+              stats.duplicateAssignments++;
+              console.log(
+                `⚠️ User ${user.email} already assigned to happiness survey ${survey.title}`
+              );
+            } else {
+              throw error;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error processing user ${row.email}:`, error);
+        stats.errors.push({
+          row: index + 2,
+          email: row.email,
+          error: error instanceof Error ? error.message : "Unknown error",
+          type: "error",
+        });
+      }
+    }
+
+    stats.processingTime = Date.now() - startTime;
+
+    console.log(`✅ Company import completed:`, {
+      insertedUsers: stats.insertedUsers,
+      updatedUsers: stats.updatedUsers,
+      insertedAssignments: stats.insertedAssignments,
+      duplicateAssignments: stats.duplicateAssignments,
+      errors: stats.errors.length,
+      processingTime: stats.processingTime,
+    });
+
+    return stats;
+  } catch (error) {
+    console.error("❌ Company import process failed:", error);
+    throw new Error(
+      `Company import process failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+// Process mixed import: company surveys + additional manual surveys
+async function processMixedImport(
+  validRows: any[],
+  companyId?: string,
+  additionalSurveyIds: string[] = [],
+  additionalHappinessSurveyIds: string[] = []
+) {
+  const startTime = Date.now();
+  console.log(`🔄 Processing mixed import: ${validRows.length} users`);
+  console.log(`📊 Company: ${companyId || "None"}`);
+  console.log(`📊 Additional regular surveys: ${additionalSurveyIds.length}`);
+  console.log(
+    `📊 Additional happiness surveys: ${additionalHappinessSurveyIds.length}`
+  );
+
+  const stats = {
+    insertedUsers: 0,
+    updatedUsers: 0,
+    insertedAssignments: 0,
+    skippedAssignments: 0,
+    duplicateAssignments: 0,
+    errors: [] as Array<{
+      row: number;
+      email: string;
+      error: string;
+      type: "duplicate" | "error" | "constraint";
+    }>,
+    processingTime: 0,
+  };
+
+  try {
+    const { db } = await import("../../../../db");
+    const { surveys } = await import("../../../../db/schema/surveys");
+    const { happinessSurveys } = await import(
+      "../../../../db/schema/happiness"
+    );
+    const { eq } = await import("drizzle-orm");
+
+    // Get company surveys and company info if company is selected
+    let companySurveys: any[] = [];
+    let companyHappinessSurveys: any[] = [];
+    let companyName: string | null = null;
+
+    if (companyId) {
+      // Fetch company info
+      const { getCompanyById } = await import(
+        "../../../../db/queries/companies"
+      );
+      const company = await getCompanyById(companyId);
+      companyName = company?.name || null;
+
+      const [companyRegularSurveys, companyHappinessData] = await Promise.all([
+        db
+          .select({ id: surveys.id, title: surveys.title })
+          .from(surveys)
+          .where(eq(surveys.companyId, companyId)),
+        db
+          .select({ id: happinessSurveys.id, title: happinessSurveys.title })
+          .from(happinessSurveys)
+          .where(eq(happinessSurveys.companyId, companyId)),
+      ]);
+
+      companySurveys = companyRegularSurveys;
+      companyHappinessSurveys = companyHappinessData;
+
+      console.log(
+        `📊 Found ${companySurveys.length} company regular surveys and ${companyHappinessSurveys.length} company happiness surveys for company: ${companyName}`
+      );
+    }
+
+    // Combine company surveys with additional surveys
+    const allRegularSurveyIds = [
+      ...companySurveys.map((s) => s.id),
+      ...additionalSurveyIds,
+    ];
+    const allHappinessSurveyIds = [
+      ...companyHappinessSurveys.map((s) => s.id),
+      ...additionalHappinessSurveyIds,
+    ];
+
+    // Remove duplicates
+    const finalRegularSurveyIds = Array.from(new Set(allRegularSurveyIds));
+    const finalHappinessSurveyIds = Array.from(new Set(allHappinessSurveyIds));
+
+    console.log(
+      `📊 Final assignments: ${finalRegularSurveyIds.length} regular, ${finalHappinessSurveyIds.length} happiness`
+    );
+
+    // Extract unique emails for batch lookups
+    const uniqueEmails = Array.from(new Set(validRows.map((row) => row.email)));
+
+    // Get existing users
+    const { getUsersByEmails } = await import("../../../../db/queries/users");
+    const existingUsers = await getUsersByEmails(uniqueEmails);
+    const existingUsersMap = new Map(
+      existingUsers.map((user) => [user.email, user])
+    );
+
+    // Process each user
+    for (let index = 0; index < validRows.length; index++) {
+      const row = validRows[index];
+      try {
+        let user = existingUsersMap.get(row.email);
+
+        if (!user) {
+          // Create new user
+          const { createUser } = await import("../../../../db/queries/users");
+          user = await createUser({
+            email: row.email,
+            name: row.name || null,
+            phone: row.phone || null,
+            status: "active",
+            companyId: companyId || null,
+            companyName: companyName,
+          });
+          stats.insertedUsers++;
+          console.log(
+            `✅ Created user: ${user.email} with company: ${companyName}`
+          );
+        } else {
+          // Update existing user with company if provided and not already set
+          if (companyId && !user.companyId) {
+            const { updateUser } = await import("../../../../db/queries/users");
+            await updateUser(user.id, {
+              companyId: companyId,
+              companyName: companyName,
+            });
+            stats.updatedUsers++;
+            console.log(
+              `🔄 Updated user company: ${user.email} to ${companyName}`
+            );
+          }
+        }
+
+        // Create assignments for all surveys
+        const { userAssignments } = await import(
+          "../../../../db/schema/user-assignments"
+        );
+        const { happinessAssignments } = await import(
+          "../../../../db/schema/happiness"
+        );
+        const { nanoid } = await import("nanoid");
+
+        const now = Date.now();
+
+        // Regular survey assignments
+        for (const surveyId of finalRegularSurveyIds) {
+          try {
+            await db.insert(userAssignments).values({
+              userId: user.id,
+              surveyId: surveyId,
+              assignedAt: now,
+            });
+            stats.insertedAssignments++;
+          } catch (error: any) {
+            if (error.message?.includes("UNIQUE constraint failed")) {
+              stats.duplicateAssignments++;
+              console.log(
+                `⚠️ User ${user.email} already assigned to regular survey ${surveyId}`
+              );
+            } else {
+              throw error;
+            }
+          }
+        }
+
+        // Happiness survey assignments
+        for (const surveyId of finalHappinessSurveyIds) {
+          try {
+            await db.insert(happinessAssignments).values({
+              id: nanoid(),
+              userId: user.id,
+              surveyId: surveyId,
+              assignedAt: now,
+            });
+            stats.insertedAssignments++;
+          } catch (error: any) {
+            if (error.message?.includes("UNIQUE constraint failed")) {
+              stats.duplicateAssignments++;
+              console.log(
+                `⚠️ User ${user.email} already assigned to happiness survey ${surveyId}`
+              );
+            } else {
+              throw error;
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`❌ Error processing user ${row.email}:`, error);
+        stats.errors.push({
+          row: index + 2,
+          email: row.email,
+          error: error instanceof Error ? error.message : "Unknown error",
+          type: "error",
+        });
+      }
+    }
+
+    stats.processingTime = Date.now() - startTime;
+
+    console.log(`✅ Mixed import completed:`, {
+      insertedUsers: stats.insertedUsers,
+      updatedUsers: stats.updatedUsers,
+      insertedAssignments: stats.insertedAssignments,
+      duplicateAssignments: stats.duplicateAssignments,
+      errors: stats.errors.length,
+      processingTime: stats.processingTime,
+    });
+
+    return stats;
+  } catch (error) {
+    console.error("❌ Mixed import process failed:", error);
+    throw new Error(
+      `Mixed import process failed: ${
+        error instanceof Error ? error.message : "Unknown error"
       }`
     );
   }

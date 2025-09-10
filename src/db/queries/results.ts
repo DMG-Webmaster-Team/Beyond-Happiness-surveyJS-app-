@@ -2,6 +2,7 @@ import { eq, desc, and, gte, lt, sql } from "drizzle-orm";
 import { db } from "../client";
 import { results, type Result, type NewResult } from "../schema/results";
 import { surveys } from "../schema/surveys";
+import { users } from "../schema/users";
 import { z } from "zod";
 
 // Validation schemas
@@ -42,10 +43,20 @@ export async function createResult(resultData: any): Promise<Result> {
   return result[0];
 }
 
-export async function listResultsBySurvey(surveyId: string): Promise<Result[]> {
+export async function listResultsBySurvey(surveyId: string): Promise<any[]> {
   return db
-    .select()
+    .select({
+      id: results.id,
+      surveyId: results.surveyId,
+      userId: results.userId,
+      adminId: results.adminId,
+      data: results.data,
+      submittedAt: results.submittedAt,
+      userName: users.name,
+      userEmail: users.email,
+    })
     .from(results)
+    .leftJoin(users, eq(results.userId, users.id))
     .where(eq(results.surveyId, surveyId))
     .orderBy(desc(results.submittedAt));
 }
@@ -55,7 +66,7 @@ export async function listResultsBySurveyPaged(params: {
   page?: number;
   limit?: number;
 }): Promise<{
-  results: Result[];
+  results: any[];
   total: number;
   page: number;
   limit: number;
@@ -73,18 +84,38 @@ export async function listResultsBySurveyPaged(params: {
 
   const total = Number(countResult[0]?.count || 0);
 
-  // Get paginated results
+  // Get paginated results with user information
   const paginatedResults = surveyId
     ? await db
-        .select()
+        .select({
+          id: results.id,
+          surveyId: results.surveyId,
+          userId: results.userId,
+          adminId: results.adminId,
+          data: results.data,
+          submittedAt: results.submittedAt,
+          userName: users.name,
+          userEmail: users.email,
+        })
         .from(results)
+        .leftJoin(users, eq(results.userId, users.id))
         .where(eq(results.surveyId, surveyId))
         .orderBy(desc(results.submittedAt))
         .limit(limit)
         .offset(offset)
     : await db
-        .select()
+        .select({
+          id: results.id,
+          surveyId: results.surveyId,
+          userId: results.userId,
+          adminId: results.adminId,
+          data: results.data,
+          submittedAt: results.submittedAt,
+          userName: users.name,
+          userEmail: users.email,
+        })
         .from(results)
+        .leftJoin(users, eq(results.userId, users.id))
         .orderBy(desc(results.submittedAt))
         .limit(limit)
         .offset(offset);

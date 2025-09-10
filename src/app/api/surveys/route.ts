@@ -25,6 +25,10 @@ export async function GET(request: NextRequest) {
       description: survey.description,
       canTakeMultiple: survey.canTakeMultiple,
       isAnonymous: survey.isAnonymous,
+      companyId: survey.companyId,
+      companyName: survey.companyName,
+      isActive: survey.isActive,
+      isPublished: survey.isPublished,
       createdAt: survey.createdAt, // Already ISO string format
       updatedAt: survey.updatedAt, // Already ISO string format
       adminId: survey.createdBy, // Map createdBy to adminId for backwards compatibility
@@ -77,7 +81,11 @@ export async function POST(request: NextRequest) {
       definition: surveyData.json || surveyData.definition || {},
       canTakeMultiple: surveyData.canTakeMultiple || false,
       isAnonymous: surveyData.isAnonymous || false,
-      // Removed companyId and companyName - regular surveys no longer use companies
+      companyId: surveyData.companyId || null,
+      companyName: surveyData.companyName || null,
+      isActive: surveyData.isActive !== undefined ? surveyData.isActive : true,
+      isPublished:
+        surveyData.isPublished !== undefined ? surveyData.isPublished : true,
       createdBy: surveyData.adminId || "admin1", // Fallback to default admin if not provided
     };
 
@@ -92,6 +100,10 @@ export async function POST(request: NextRequest) {
       description: newSurvey.description,
       canTakeMultiple: newSurvey.canTakeMultiple,
       isAnonymous: newSurvey.isAnonymous,
+      companyId: newSurvey.companyId,
+      companyName: newSurvey.companyName,
+      isActive: newSurvey.isActive,
+      isPublished: newSurvey.isPublished,
       createdAt: newSurvey.createdAt, // Already ISO string format
       updatedAt: newSurvey.updatedAt, // Already ISO string format
       adminId: newSurvey.createdBy,

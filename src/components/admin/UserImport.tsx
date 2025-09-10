@@ -40,9 +40,10 @@ interface ImportResult {
 
 export default function UserImport() {
   const [file, setFile] = useState<File | null>(null);
-  const [selectedSurveyId, setSelectedSurveyId] = useState<string>("");
-  const [selectedHappinessSurveyId, setSelectedHappinessSurveyId] =
-    useState<string>("");
+  const [selectedSurveyIds, setSelectedSurveyIds] = useState<string[]>([]);
+  const [selectedHappinessSurveyIds, setSelectedHappinessSurveyIds] = useState<
+    string[]
+  >([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
     null
   );
@@ -50,6 +51,13 @@ export default function UserImport() {
   const [happinessSurveys, setHappinessSurveys] = useState<
     { id: string; title: string }[]
   >([]);
+  const [companySurveys, setCompanySurveys] = useState<
+    { id: string; title: string }[]
+  >([]);
+  const [companyHappinessSurveys, setCompanyHappinessSurveys] = useState<
+    { id: string; title: string }[]
+  >([]);
+  const [showCompanyWarning, setShowCompanyWarning] = useState(false);
   const [dryRun, setDryRun] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -87,6 +95,57 @@ export default function UserImport() {
     fetchHappinessSurveys();
   }, []);
 
+  // Fetch company surveys when company is selected
+  useEffect(() => {
+    const fetchCompanySurveys = async () => {
+      if (!selectedCompanyId) {
+        setCompanySurveys([]);
+        setCompanyHappinessSurveys([]);
+        setShowCompanyWarning(false);
+        return;
+      }
+
+      try {
+        const [surveysRes, happinessRes] = await Promise.all([
+          fetch(`/api/surveys?companyId=${selectedCompanyId}`),
+          fetch(`/api/happiness/surveys?companyId=${selectedCompanyId}`),
+        ]);
+
+        let companySurveysData: any[] = [];
+        let companyHappinessData: any[] = [];
+
+        if (surveysRes.ok) {
+          const data = await surveysRes.json();
+          companySurveysData = data.items || [];
+        }
+
+        if (happinessRes.ok) {
+          const data = await happinessRes.json();
+          companyHappinessData = data.surveys || [];
+        }
+
+        setCompanySurveys(companySurveysData);
+        setCompanyHappinessSurveys(companyHappinessData);
+
+        // Show warning if company has no surveys
+        if (
+          companySurveysData.length === 0 &&
+          companyHappinessData.length === 0
+        ) {
+          setShowCompanyWarning(true);
+        } else {
+          setShowCompanyWarning(false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch company surveys:", error);
+        setCompanySurveys([]);
+        setCompanyHappinessSurveys([]);
+      }
+    };
+
+    fetchCompanySurveys();
+  }, [selectedCompanyId]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
@@ -102,11 +161,26 @@ export default function UserImport() {
       return;
     }
 
-    if (!selectedSurveyId && !selectedHappinessSurveyId) {
+    // Must have at least one assignment: company OR surveys
+    const hasCompany = !!selectedCompanyId;
+    const hasSurveys =
+      selectedSurveyIds.length > 0 || selectedHappinessSurveyIds.length > 0;
+
+    if (!hasCompany && !hasSurveys) {
       setError(
-        "Please select either a regular survey or a happiness survey to assign users to"
+        "Please select at least one of the following: Company, Regular Survey, or Happiness Survey."
       );
       return;
+    }
+
+    // Show warning if company has no surveys and user wants to continue
+    if (showCompanyWarning && hasCompany && !hasSurveys) {
+      const confirmContinue = window.confirm(
+        "The selected company has no surveys assigned. Are you sure you want to continue? Users will be created but not assigned to any surveys."
+      );
+      if (!confirmContinue) {
+        return;
+      }
     }
 
     setIsUploading(true);
@@ -117,13 +191,15 @@ export default function UserImport() {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Add survey info - either regular or happiness survey
-      if (selectedSurveyId) {
-        formData.append("surveyId", selectedSurveyId);
-        formData.append("surveyType", "regular");
-      } else if (selectedHappinessSurveyId) {
-        formData.append("surveyId", selectedHappinessSurveyId);
-        formData.append("surveyType", "happiness");
+      // Add survey info - multiple surveys supported
+      if (selectedSurveyIds.length > 0) {
+        selectedSurveyIds.forEach((id) => formData.append("surveyIds", id));
+      }
+
+      if (selectedHappinessSurveyIds.length > 0) {
+        selectedHappinessSurveyIds.forEach((id) =>
+          formData.append("happinessSurveyIds", id)
+        );
       }
 
       if (selectedCompanyId) {
@@ -174,10 +250,12 @@ export default function UserImport() {
   };
 
   const downloadTemplate = () => {
-    const csvContent = `email,name,phone,companyId
-user1@example.com,John Doe,+201234567890,
-user2@example.com,Jane Smith,+201234567891,
-user3@example.com,Bob Johnson,+201234567892,`;
+    // Use Excel-compatible format with leading zeros preserved by prefixing with apostrophe
+    const csvContent = `email,name,phone
+user1@example.com,John Doe,'01012345678
+user2@example.com,Jane Smith,'01112345678
+user3@example.com,,'01298765432
+user4@example.com,Bob Johnson,`;
 
     const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
@@ -292,33 +370,106 @@ user3@example.com,Bob Johnson,+201234567892,`;
         </p>
       </div>
 
+      {/* Company Surveys Info */}
+      {/* {selectedCompanyId &&
+        (companySurveys.length > 0 || companyHappinessSurveys.length > 0) && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
+            <h4 className="text-sm font-medium text-green-800 mb-2">
+              Company Surveys (Auto-assigned)
+            </h4>
+            {companySurveys.length > 0 && (
+              <div className="mb-2">
+                <p className="text-xs text-green-700 font-medium">
+                  Regular Surveys:
+                </p>
+                <ul className="text-xs text-green-600 ml-4">
+                  {companySurveys.map((survey) => (
+                    <li key={survey.id}>• {survey.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {companyHappinessSurveys.length > 0 && (
+              <div>
+                <p className="text-xs text-green-700 font-medium">
+                  Happiness Surveys:
+                </p>
+                <ul className="text-xs text-green-600 ml-4">
+                  {companyHappinessSurveys.map((survey) => (
+                    <li key={survey.id}>• {survey.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="text-xs text-green-600 mt-2">
+              All users will be automatically assigned to these company surveys.
+            </p>
+          </div>
+        )} */}
+
+      {/* Company Warning */}
+      {showCompanyWarning && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <div className="flex items-center">
+            <svg
+              className="w-5 h-5 text-yellow-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="text-sm text-yellow-800">
+              <strong>Warning:</strong> The selected company has no surveys
+              assigned.
+            </p>
+          </div>
+          <p className="text-xs text-yellow-700 mt-1">
+            Users will be created but not assigned to any surveys unless you
+            select additional surveys below.
+          </p>
+        </div>
+      )}
+
       {/* Regular Survey Selection */}
       <div className="mb-6">
         <label
           htmlFor="survey-select"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Select Regular Survey to Assign Users
+          Additional Regular Surveys (Optional)
         </label>
         <select
           id="survey-select"
-          value={selectedSurveyId}
+          multiple
+          value={selectedSurveyIds}
           onChange={(e) => {
-            setSelectedSurveyId(e.target.value);
-            if (e.target.value) setSelectedHappinessSurveyId(""); // Clear happiness survey selection
+            const selectedOptions = Array.from(
+              e.target.selectedOptions,
+              (option) => option.value
+            );
+            setSelectedSurveyIds(selectedOptions);
           }}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400"
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white"
+          size={Math.min(surveys.length + 1, 6)} // Show up to 6 options at once
         >
-          <option value="">Choose a regular survey...</option>
+          <option value="" disabled className="text-gray-500">
+            {surveys.length === 0
+              ? "No regular surveys available"
+              : "Select surveys..."}
+          </option>
           {surveys.map((survey) => (
-            <option key={survey.id} value={survey.id}>
+            <option key={survey.id} value={survey.id} className="py-1">
               {survey.title}
             </option>
           ))}
         </select>
-        <p className="mt-1 text-sm text-gray-500">
-          Select a regular survey to assign users. This will clear any happiness
-          survey selection.
+        <p className="mt-1 text-xs text-gray-500">
+          Hold Ctrl/Cmd to select multiple surveys. These will be assigned in
+          addition to company surveys.
         </p>
       </div>
 
@@ -328,50 +479,92 @@ user3@example.com,Bob Johnson,+201234567892,`;
           htmlFor="happiness-survey-select"
           className="block text-sm font-medium text-gray-700 mb-2"
         >
-          Select Happiness Survey to Assign Users
+          Additional Happiness Surveys (Optional)
         </label>
         <select
           id="happiness-survey-select"
-          value={selectedHappinessSurveyId}
+          multiple
+          value={selectedHappinessSurveyIds}
           onChange={(e) => {
-            setSelectedHappinessSurveyId(e.target.value);
-            if (e.target.value) setSelectedSurveyId(""); // Clear regular survey selection
+            const selectedOptions = Array.from(
+              e.target.selectedOptions,
+              (option) => option.value
+            );
+            setSelectedHappinessSurveyIds(selectedOptions);
           }}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400"
+          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white"
+          size={Math.min(happinessSurveys.length + 1, 6)} // Show up to 6 options at once
         >
-          <option value="">Choose a happiness survey...</option>
+          <option value="" disabled className="text-gray-500">
+            {happinessSurveys.length === 0
+              ? "No happiness surveys available"
+              : "Select surveys..."}
+          </option>
           {happinessSurveys.map((survey) => (
-            <option key={survey.id} value={survey.id}>
+            <option key={survey.id} value={survey.id} className="py-1">
               {survey.title}
             </option>
           ))}
         </select>
-        <p className="mt-1 text-sm text-gray-500">
-          Select a happiness survey to assign users. This will clear any regular
-          survey selection.
+        <p className="mt-1 text-xs text-gray-500">
+          Hold Ctrl/Cmd to select multiple surveys. These will be assigned in
+          addition to company surveys.
         </p>
       </div>
 
-      {/* Selection Info */}
-      {(selectedSurveyId || selectedHappinessSurveyId) && (
-        <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-md">
-          <p className="text-sm text-blue-800">
-            <strong>Selected:</strong>{" "}
-            {selectedSurveyId
-              ? `Regular Survey - ${
-                  surveys.find((s) => s.id === selectedSurveyId)?.title
-                }`
-              : `Happiness Survey - ${
-                  happinessSurveys.find(
-                    (s) => s.id === selectedHappinessSurveyId
-                  )?.title
-                }`}
-          </p>
-          <p className="text-xs text-blue-600 mt-1">
-            All users in the uploaded file will be assigned to this survey.
+      {/* Selection Summary */}
+      {/* {(selectedCompanyId ||
+        selectedSurveyIds.length > 0 ||
+        selectedHappinessSurveyIds.length > 0) && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <h4 className="text-sm font-medium text-blue-800 mb-2">
+            Import Summary
+          </h4>
+
+          {selectedCompanyId && (
+            <div className="mb-2">
+              <p className="text-xs text-blue-700">
+                <strong>Company:</strong> Selected (users will get all company
+                surveys automatically)
+              </p>
+            </div>
+          )}
+
+          {selectedSurveyIds.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs text-blue-700 font-medium">
+                Additional Regular Surveys ({selectedSurveyIds.length}):
+              </p>
+              <ul className="text-xs text-blue-600 ml-4">
+                {selectedSurveyIds.map((id) => {
+                  const survey = surveys.find((s) => s.id === id);
+                  return <li key={id}>• {survey?.title || id}</li>;
+                })}
+              </ul>
+            </div>
+          )}
+
+          {selectedHappinessSurveyIds.length > 0 && (
+            <div className="mb-2">
+              <p className="text-xs text-blue-700 font-medium">
+                Additional Happiness Surveys (
+                {selectedHappinessSurveyIds.length}):
+              </p>
+              <ul className="text-xs text-blue-600 ml-4">
+                {selectedHappinessSurveyIds.map((id) => {
+                  const survey = happinessSurveys.find((s) => s.id === id);
+                  return <li key={id}>• {survey?.title || id}</li>;
+                })}
+              </ul>
+            </div>
+          )}
+
+          <p className="text-xs text-blue-600 mt-2">
+            All users in the uploaded file will be assigned to the selected
+            surveys.
           </p>
         </div>
-      )}
+      )} */}
 
       {/* Options */}
       <div className="mb-6">

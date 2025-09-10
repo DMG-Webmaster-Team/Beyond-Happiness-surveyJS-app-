@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 import {
   extendSessionForRetake,
   validateSurveySession,
@@ -143,6 +144,9 @@ export default function HappinessSurveyPage({
           }
 
           setAccessData(data);
+
+          // Clear any previous error states on successful access check
+          setAccessCheckError(null);
         } else {
           const errorData = await response
             .json()
@@ -187,6 +191,9 @@ export default function HappinessSurveyPage({
         if (response.ok) {
           const data = await response.json();
           setQuestionsData(data);
+
+          // Clear any previous error states on successful questions fetch
+          setQuestionsError(null);
         } else {
           setQuestionsError(new Error("Failed to fetch questions"));
         }
@@ -337,11 +344,13 @@ export default function HappinessSurveyPage({
     // 2. Survey is not anonymous
     // 3. Access has been granted
     // 4. We haven't redirected yet
+    // 5. Access check is complete
     if (
       survey &&
       !survey.anonymous &&
       accessData?.canAccess === true &&
-      !hasRedirected
+      !hasRedirected &&
+      accessCheckComplete
     ) {
       const sessionValidation = validateSurveySession(params.surveyId);
       if (!sessionValidation.isValid) {
@@ -349,8 +358,17 @@ export default function HappinessSurveyPage({
           "🚫 Survey session invalid for happiness survey:",
           sessionValidation.reason
         );
+        // Clear any cached access data and error states since session is invalid
+        const cacheKey = `happiness:access:${params.surveyId}`;
+        localStorage.removeItem(cacheKey);
+
+        // Clear any previous error states
+        setAccessCheckError(null);
+        setQuestionsError(null);
+
         // Redirect to login with survey context
         setIsRedirecting(true);
+        setHasRedirected(true);
         router.push(
           `/user/login?redirect=${encodeURIComponent(
             params.surveyId
@@ -363,7 +381,14 @@ export default function HappinessSurveyPage({
         params.surveyId
       );
     }
-  }, [survey, accessData, hasRedirected, params.surveyId, router]);
+  }, [
+    survey,
+    accessData,
+    hasRedirected,
+    accessCheckComplete,
+    params.surveyId,
+    router,
+  ]);
 
   const handleAnswerSelect = (valueIndex: number) => {
     const currentQuestion = questions[currentQuestionIndex];
@@ -524,23 +549,31 @@ export default function HappinessSurveyPage({
   // Show loading state while fetching data
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse text-center">
-          <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mx-auto"></div>
-        </div>
-      </div>
+      <>
+        <UserNavbar />
+        <LoadingScreen message="Loading survey..." />
+      </>
     );
   }
 
   if (questionsError || accessCheckError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-          <p className="text-gray-600">
-            Failed to load survey. Please try again later.
-          </p>
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🔒</div>
+                <h2 className="text-2xl font-bold text-red-600 mb-4">
+                  Access Denied
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Failed to load survey. Please try again later.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -568,15 +601,14 @@ export default function HappinessSurveyPage({
   // Show loading state while access check is in progress or data is loading
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse text-center">
-          <div className="h-8 bg-gray-200 rounded w-64 mx-auto mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-48 mx-auto mb-2"></div>
-          <div className="text-sm text-gray-500">
-            {accessLoading ? "Checking survey access..." : "Loading survey..."}
-          </div>
-        </div>
-      </div>
+      <>
+        <UserNavbar />
+        <LoadingScreen
+          message={
+            accessLoading ? "Checking survey access..." : "Loading survey..."
+          }
+        />
+      </>
     );
   }
 
@@ -586,37 +618,24 @@ export default function HappinessSurveyPage({
   // Show error state if there are errors
   if (accessCheckError || questionsError) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">
-            <svg
-              className="w-16 h-16 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🔒</div>
+                <h2 className="text-2xl font-bold text-red-600 mb-4">
+                  Access Denied
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  {accessCheckError?.message ||
+                    questionsError?.message ||
+                    "You do not have permission to access this survey."}
+                </p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Error Loading Survey
-          </h1>
-          <p className="text-gray-600 mb-6">
-            {accessCheckError?.message ||
-              questionsError?.message ||
-              "An error occurred while loading the survey"}
-          </p>
-          <button
-            onClick={() => router.push("/")}
-            className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
-          >
-            Go Home
-          </button>
         </div>
       </div>
     );
@@ -629,36 +648,22 @@ export default function HappinessSurveyPage({
   // If no survey or questions, show error
   if (!survey || questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">
-            <svg
-              className="w-16 h-16 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+      <div className="min-h-screen bg-gray-50">
+        <UserNavbar />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="text-center">
+                <div className="text-6xl mb-4">🔒</div>
+                <h2 className="text-2xl font-bold text-red-600 mb-4">
+                  Access Denied
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  You do not have permission to access this survey.
+                </p>
+              </div>
+            </div>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Survey Not Found
-          </h1>
-          <p className="text-gray-600 mb-6">
-            The survey you&apos;re looking for could not be found or has no
-            questions.
-          </p>
-          <button
-            onClick={() => router.push("/")}
-            className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
-          >
-            Go Home
-          </button>
         </div>
       </div>
     );

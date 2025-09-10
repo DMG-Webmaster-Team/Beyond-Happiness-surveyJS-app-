@@ -44,6 +44,10 @@ export const happinessSurveys = sqliteTable("happiness_surveys", {
   title: text("title").notNull(),
   anonymous: integer("anonymous", { mode: "boolean" }).default(false),
   retakeCooldownDays: integer("retake_cooldown_days").default(0), // Days before user can retake
+  companyId: text("company_id"), // Company assignment
+  companyName: text("company_name"), // Company name for easier queries
+  isActive: integer("is_active", { mode: "boolean" }).default(true), // true = visible in assignable forms
+  isPublished: integer("is_published", { mode: "boolean" }).default(true), // false = "deleted" from admin UI
   createdAt: integer("created_at").default(sql`(unixepoch())`),
   updatedAt: integer("updated_at").default(sql`(unixepoch())`),
 });

@@ -10,6 +10,8 @@ interface SurveyResult {
   data: Record<string, any>;
   id: string;
   submittedAt: string;
+  userName?: string;
+  userEmail?: string;
 }
 
 interface QuestionInfo {
@@ -70,9 +72,13 @@ export default function ResultsModal({
 
   // Get display name for a user
   const getDisplayName = useCallback(
-    (userId: string) => {
+    (userId: string, result?: any) => {
+      // Use backend-provided user data if available, fallback to fetched data
+      if (result?.userName || result?.userEmail) {
+        return result.userName || result.userEmail;
+      }
       const user = userMap.get(userId);
-      return user?.name || user?.email || "Unknown User";
+      return user?.name || user?.email || "Anonymous User";
     },
     [userMap]
   );
@@ -119,7 +125,7 @@ export default function ResultsModal({
   // Filter results by search term - handle undefined data safely
   const filteredResults =
     responseData?.results?.filter((result) => {
-      const displayName = getDisplayName(result.userId);
+      const displayName = getDisplayName(result.userId, result);
       return displayName.toLowerCase().includes(searchTerm.toLowerCase());
     }) || [];
 
@@ -198,7 +204,7 @@ export default function ResultsModal({
                       <div className="font-medium">
                         {isLoadingUsers
                           ? "Loading..."
-                          : getDisplayName(result.userId)}
+                          : getDisplayName(result.userId, result)}
                       </div>
                       <div className="text-sm">
                         {new Date(result.submittedAt).toLocaleString()}
@@ -249,7 +255,9 @@ export default function ResultsModal({
                   <div className="space-y-2 text-sm">
                     <div className="flex">
                       <span className="w-24 text-gray-600">User:</span>
-                      <span>{getDisplayName(selectedResult.userId)}</span>
+                      <span>
+                        {getDisplayName(selectedResult.userId, selectedResult)}
+                      </span>
                     </div>
                     <div className="flex">
                       <span className="w-24 text-gray-600">Email:</span>
@@ -257,21 +265,12 @@ export default function ResultsModal({
                         {userMap.get(selectedResult.userId)?.email || "N/A"}
                       </span>
                     </div>
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">User ID:</span>
-                      <span className="text-xs text-gray-500 font-mono">
-                        {selectedResult.userId}
-                      </span>
-                    </div>
+
                     <div className="flex">
                       <span className="w-24 text-gray-600">Submitted:</span>
                       <span>
                         {new Date(selectedResult.submittedAt).toLocaleString()}
                       </span>
-                    </div>
-                    <div className="flex">
-                      <span className="w-24 text-gray-600">Admin ID:</span>
-                      <span>{selectedResult.adminId}</span>
                     </div>
                   </div>
                 </div>

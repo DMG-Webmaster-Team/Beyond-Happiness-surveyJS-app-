@@ -16,6 +16,8 @@ export const surveys = sqliteTable(
     companyId: text("company_id"),
     companyName: text("company_name"),
     metadata: text("metadata"), // JSON string for additional data
+    isActive: integer("is_active", { mode: "boolean" }).default(true), // true = visible in assignable forms
+    isPublished: integer("is_published", { mode: "boolean" }).default(true), // false = "deleted" from admin UI
     createdBy: text("created_by").notNull(), // Match actual DB column name
     createdAt: text("created_at").$defaultFn(() => Date.now().toString()), // Match actual DB column name
     updatedAt: text("updated_at").$defaultFn(() => Date.now().toString()), // Match actual DB column name

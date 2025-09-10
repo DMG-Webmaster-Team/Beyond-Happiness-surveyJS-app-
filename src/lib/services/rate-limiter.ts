@@ -146,19 +146,32 @@ export const checkIdentifierRateLimit = (
   return { allowed: true };
 };
 
-// Validate email format
+// Validate email format (unified with utils/errors.ts)
 export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  // Use the same regex as utils/errors.ts for consistency
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email) && email.length <= 254; // RFC 5321 limit
 };
 
-// Validate phone format (international format with optional +)
+// Validate phone format (unified with utils/errors.ts for Egyptian phones)
 export const isValidPhone = (phone: string): boolean => {
   // Remove all non-digit characters except +
   const cleanPhone = phone.replace(/[^\d+]/g, "");
 
-  // Check for valid international phone format
-  // Should be 7-15 digits, optionally starting with +
+  // Egyptian phone patterns (unified with utils/errors.ts):
+  // 1. 01xxxxxxxxx (11 digits starting with 01)
+  // 2. +201xxxxxxxxx (13 digits starting with +201)
+  const egyptianPatterns = [
+    /^01[0-2,5]{1}[0-9]{8}$/, // 01xxxxxxxxx format
+    /^\+201[0-2,5]{1}[0-9]{8}$/, // +201xxxxxxxxx format
+  ];
+
+  // Check Egyptian patterns first
+  if (egyptianPatterns.some((pattern) => pattern.test(cleanPhone))) {
+    return true;
+  }
+
+  // Fallback to general international format for other countries
   const phoneRegex = /^\+?[1-9]\d{6,14}$/;
   return phoneRegex.test(cleanPhone);
 };

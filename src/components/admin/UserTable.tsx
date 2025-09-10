@@ -640,6 +640,7 @@ export default function UserTable() {
                     allowNone={true}
                     placeholder="Choose a company (optional)"
                     className="w-full"
+                    disabled={true}
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     Select a company for this user. Leave empty if no company

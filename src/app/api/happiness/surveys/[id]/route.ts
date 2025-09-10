@@ -55,7 +55,14 @@ export async function PUT(
   try {
     const surveyId = params.id;
     const body = await request.json();
-    const { title, anonymous, retakeCooldownDays } = body;
+    const {
+      title,
+      anonymous,
+      retakeCooldownDays,
+      companyId,
+      companyName,
+      isActive,
+    } = body;
 
     // Validation
     if (
@@ -85,6 +92,13 @@ export async function PUT(
     if (retakeCooldownDays !== undefined && anonymous !== true) {
       updateData.retakeCooldownDays = retakeCooldownDays;
     }
+
+    // Update company fields if provided
+    if (companyId !== undefined) updateData.companyId = companyId || null;
+    if (companyName !== undefined) updateData.companyName = companyName || null;
+
+    // Update isActive field if provided
+    if (isActive !== undefined) updateData.isActive = isActive;
 
     const updatedSurvey = await db
       .update(happinessSurveys)
@@ -118,7 +132,7 @@ export async function PUT(
   }
 }
 
-// DELETE - Delete happiness survey and all related data
+// DELETE - Soft delete happiness survey (set isPublished = false)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -126,43 +140,26 @@ export async function DELETE(
   try {
     const surveyId = params.id;
 
-    // Delete all related data in correct order to avoid foreign key constraints
-    console.log(`🗑️ Deleting happiness survey: ${surveyId}`);
+    console.log(`🗑️ Soft deleting happiness survey: ${surveyId}`);
 
-    // 1. Delete all results first (they reference the survey)
-    const deletedResults = await db
-      .delete(happinessResults)
-      .where(eq(happinessResults.surveyId, surveyId))
-      .returning();
-    console.log(`🗑️ Deleted ${deletedResults.length} happiness results`);
-
-    // 2. Delete all assignments (they also reference the survey)
-    const deletedAssignments = await db
-      .delete(happinessAssignments)
-      .where(eq(happinessAssignments.surveyId, surveyId))
-      .returning();
-    console.log(
-      `🗑️ Deleted ${deletedAssignments.length} happiness assignments`
-    );
-
-    // 3. Finally delete the survey itself
-    const deletedSurvey = await db
-      .delete(happinessSurveys)
+    // Soft delete by setting isPublished = false
+    const updatedSurvey = await db
+      .update(happinessSurveys)
+      .set({
+        isPublished: false,
+        updatedAt: Date.now(),
+      })
       .where(eq(happinessSurveys.id, surveyId))
       .returning();
 
-    if (deletedSurvey.length === 0) {
+    if (updatedSurvey.length === 0) {
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
-    console.log(`✅ Successfully deleted happiness survey: ${surveyId}`);
+    console.log(`✅ Successfully soft deleted happiness survey: ${surveyId}`);
     return NextResponse.json({
       success: true,
-      message: "Survey and all related data deleted successfully",
-      deletedCounts: {
-        results: deletedResults.length,
-        assignments: deletedAssignments.length,
-      },
+      message: "Survey deleted successfully (soft delete - can be restored)",
     });
   } catch (error) {
     console.error("Error deleting happiness survey:", error);

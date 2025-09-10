@@ -1,5 +1,6 @@
 // src/app/api/users/otp/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { ErrorCode, createApiError } from "@/utils/errors";
 import { db } from "../../../../db/client";
 import {
   users,
@@ -257,10 +258,9 @@ export async function POST(req: NextRequest) {
     if (!skipOtpVerification) {
       const otpResult = await verifyOTP(normalizedIdentifier, String(otp));
       if (!otpResult.valid) {
-        return NextResponse.json(
-          { error: otpResult.message || "Invalid OTP" },
-          { status: 401 }
-        );
+        return NextResponse.json(createApiError(ErrorCode.INVALID_OTP), {
+          status: 401,
+        });
       }
       console.log("✅ OTP verified successfully");
     } else {
@@ -504,7 +504,7 @@ export async function POST(req: NextRequest) {
           canAccess,
           reason: accessReason,
           message: !canAccess
-            ? "You have already submitted this survey and it can only be completed once."
+            ? createApiError(ErrorCode.SURVEY_ALREADY_SUBMITTED).error
             : "Access granted to survey.",
         },
       };

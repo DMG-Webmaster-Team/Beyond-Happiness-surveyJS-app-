@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import LoadingScreen from "@/components/shared/LoadingScreen";
 import ResultsModal from "@/components/ResultsModal";
 import AdminNavbar from "@/components/shared/AdminNavbar";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
@@ -38,6 +39,7 @@ interface Survey {
   title: string;
   description: string;
   canTakeMultiple: boolean;
+  isAnonymous?: boolean;
   companyId?: string;
   companyName?: string;
   createdAt: string;
@@ -191,11 +193,7 @@ export default function AdminDashboard() {
 
   // Don't render anything if still loading or no admin
   if (loading || !admin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
-    );
+    return <LoadingScreen message="Loading dashboard..." />;
   }
 
   // Don't render if there's an error
@@ -310,32 +308,39 @@ export default function AdminDashboard() {
                       <div className="px-4 py-4 sm:px-6">
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-medium text-gray-900 truncate">
-                              {survey.title}
-                            </h3>
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-medium text-gray-900 truncate">
+                                {survey.title}
+                              </h3>
+                              <div className="flex gap-2">
+                                {survey.isAnonymous ? (
+                                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                    Anonymous
+                                  </span>
+                                ) : (
+                                  " "
+                                )}
+                                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                  {survey.canTakeMultiple
+                                    ? "Multiple"
+                                    : "One-time"}
+                                </span>
+                              </div>
+                            </div>
                             <p className="mt-1 text-sm text-gray-600">
                               {survey.description}
                             </p>
                             <div className="mt-2 flex items-center text-sm text-gray-500">
-                              <span className="mr-4">
-                                Type:{" "}
-                                {survey.canTakeMultiple
-                                  ? "Multiple"
-                                  : "One-time"}
-                              </span>
-                              {survey.companyName && (
-                                <span className="mr-4">
-                                  Company:{" "}
-                                  <span className="font-medium text-blue-600">
-                                    {survey.companyName}
-                                  </span>
-                                </span>
-                              )}
                               <span>
                                 Created:{" "}
-                                {new Date(
-                                  survey.createdAt
-                                ).toLocaleDateString()}
+                                {survey.createdAt &&
+                                !isNaN(Number(survey.createdAt))
+                                  ? new Date(
+                                      Number(survey.createdAt)
+                                    ).toLocaleDateString()
+                                  : new Date(
+                                      survey.createdAt
+                                    ).toLocaleDateString()}
                               </span>
                             </div>
                           </div>

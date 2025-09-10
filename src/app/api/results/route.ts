@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { ErrorCode, createApiError } from "@/utils/errors";
 
 // GET - Fetch results for a specific survey
 export async function GET(request: NextRequest) {
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest) {
         );
         if (hasSubmitted) {
           return NextResponse.json(
-            { error: "Survey already submitted by this user" },
+            createApiError(ErrorCode.SURVEY_ALREADY_SUBMITTED),
             { status: 400 }
           );
         }

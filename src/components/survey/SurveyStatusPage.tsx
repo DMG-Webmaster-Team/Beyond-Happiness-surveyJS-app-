@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import UserNavbar from "@/components/shared/UserNavbar";
+import { ErrorCode, getErrorMessage } from "@/utils/errors";
 
 interface SurveyStatusPageProps {
   type:
@@ -43,16 +44,13 @@ export default function SurveyStatusPage({
           borderColor: "border-red-200",
         };
       case "already-submitted":
+        const errorMessage = getErrorMessage(
+          ErrorCode.SURVEY_ALREADY_SUBMITTED
+        );
         return {
           icon: "✅",
-          title: "Survey Already Completed",
-          message:
-            message ||
-            `You have already submitted this survey${
-              survey?.canTakeMultiple === false
-                ? " and it can only be completed once"
-                : ""
-            }.`,
+          title: errorMessage.title,
+          message: message || errorMessage.message,
           color: "text-green-600",
           bgColor: "bg-green-50",
           borderColor: "border-green-200",

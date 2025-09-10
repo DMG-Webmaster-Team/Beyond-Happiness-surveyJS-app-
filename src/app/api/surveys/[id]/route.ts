@@ -7,6 +7,8 @@ export async function GET(
 ) {
   try {
     const { id } = params;
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get("userId");
 
     // Dynamic import to avoid static generation issues
     const { getSurveyById } = await import("../../../../db/queries/surveys");
@@ -47,6 +49,32 @@ export async function GET(
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
+    // Check if user has already completed this survey (for non-anonymous, non-multiple surveys)
+    if (userId && !survey.isAnonymous && !survey.canTakeMultiple) {
+      try {
+        const { hasUserSubmittedSurvey } = await import(
+          "../../../../db/queries/results"
+        );
+        const hasSubmitted = await hasUserSubmittedSurvey(userId, id);
+
+        if (hasSubmitted) {
+          return NextResponse.json(
+            {
+              error: "Survey already completed",
+              code: "SURVEY_ALREADY_SUBMITTED",
+              message:
+                "You have already submitted this survey and it can only be completed once.",
+              canRetake: false,
+            },
+            { status: 403 }
+          );
+        }
+      } catch (error) {
+        console.error("Error checking survey completion:", error);
+        // Continue to serve survey if completion check fails
+      }
+    }
+
     // Transform to match existing API response format
     const response = {
       id: survey.id,
@@ -54,6 +82,10 @@ export async function GET(
       description: survey.description,
       canTakeMultiple: survey.canTakeMultiple,
       isAnonymous: survey.isAnonymous,
+      companyId: survey.companyId,
+      companyName: survey.companyName,
+      isActive: survey.isActive,
+      isPublished: survey.isPublished,
       createdAt: survey.createdAt, // Already ISO string format
       updatedAt: survey.updatedAt, // Already ISO string format
       adminId: survey.createdBy,
@@ -95,7 +127,10 @@ export async function PUT(
       definition: updateData.json,
       canTakeMultiple: updateData.canTakeMultiple,
       isAnonymous: updateData.isAnonymous,
-      // Removed companyId and companyName - regular surveys no longer use companies
+      companyId: updateData.companyId,
+      companyName: updateData.companyName,
+      isActive: updateData.isActive,
+      isPublished: updateData.isPublished,
     });
 
     if (!updatedSurvey) {
@@ -109,6 +144,10 @@ export async function PUT(
       description: updatedSurvey.description,
       canTakeMultiple: updatedSurvey.canTakeMultiple,
       isAnonymous: updatedSurvey.isAnonymous,
+      companyId: updatedSurvey.companyId,
+      companyName: updatedSurvey.companyName,
+      isActive: updatedSurvey.isActive,
+      isPublished: updatedSurvey.isPublished,
       createdAt: updatedSurvey.createdAt, // Already ISO string format
       updatedAt: updatedSurvey.updatedAt, // Already ISO string format
       adminId: updatedSurvey.createdBy,

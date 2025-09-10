@@ -1,6 +1,139 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCompanySchema } from "@/db/queries/companies";
 
+// Helper function to update survey assignments using many-to-many relationships
+async function updateSurveyAssignments(
+  companyId: string,
+  companyName: string,
+  surveyIds: string[],
+  happinessSurveyIds: string[]
+) {
+  try {
+    const {
+      updateCompanySurveyAssignments,
+      updateCompanyHappinessSurveyAssignments,
+    } = await import("../../../db/queries/survey-company-assignments");
+
+    // Update survey assignments for this company (replaces existing assignments for this company only)
+    await updateCompanySurveyAssignments(companyId, surveyIds, "system");
+    await updateCompanyHappinessSurveyAssignments(
+      companyId,
+      happinessSurveyIds,
+      "system"
+    );
+
+    console.log(
+      `✅ Updated survey assignments for company ${companyId}: ${surveyIds.length} regular, ${happinessSurveyIds.length} happiness`
+    );
+  } catch (error) {
+    console.error("Error updating survey assignments:", error);
+    throw error;
+  }
+}
+
+// Helper function to sync existing users with company survey assignments
+async function syncUsersWithCompanySurveys(
+  companyId: string,
+  surveyIds: string[],
+  happinessSurveyIds: string[]
+) {
+  try {
+    const { db } = await import("../../../db");
+    const { users } = await import("../../../db/schema/users");
+    const { userAssignments } = await import(
+      "../../../db/schema/user-assignments"
+    );
+    const { happinessAssignments } = await import(
+      "../../../db/schema/happiness"
+    );
+    const { eq, inArray, and } = await import("drizzle-orm");
+    const { nanoid } = await import("nanoid");
+
+    // Get all users assigned to this company
+    const companyUsers = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.companyId, companyId));
+
+    if (companyUsers.length === 0) {
+      return; // No users to sync
+    }
+
+    const userIds = companyUsers.map((u) => u.id);
+
+    // Remove existing assignments for these users for this company's surveys
+    if (surveyIds.length > 0) {
+      await db
+        .delete(userAssignments)
+        .where(
+          and(
+            inArray(userAssignments.userId, userIds),
+            inArray(userAssignments.surveyId, surveyIds)
+          )
+        );
+    }
+
+    if (happinessSurveyIds.length > 0) {
+      await db
+        .delete(happinessAssignments)
+        .where(
+          and(
+            inArray(happinessAssignments.userId, userIds),
+            inArray(happinessAssignments.surveyId, happinessSurveyIds)
+          )
+        );
+    }
+
+    // Add new assignments
+    const now = Date.now();
+
+    // Regular survey assignments
+    if (surveyIds.length > 0) {
+      const regularAssignments = [];
+      for (const userId of userIds) {
+        for (const surveyId of surveyIds) {
+          regularAssignments.push({
+            id: nanoid(),
+            userId,
+            surveyId,
+            assignedAt: now,
+          });
+        }
+      }
+
+      if (regularAssignments.length > 0) {
+        await db.insert(userAssignments).values(regularAssignments);
+      }
+    }
+
+    // Happiness survey assignments
+    if (happinessSurveyIds.length > 0) {
+      const happinessAssignmentsList = [];
+      for (const userId of userIds) {
+        for (const surveyId of happinessSurveyIds) {
+          happinessAssignmentsList.push({
+            id: nanoid(),
+            userId,
+            surveyId,
+            assignedAt: now,
+          });
+        }
+      }
+
+      if (happinessAssignmentsList.length > 0) {
+        await db.insert(happinessAssignments).values(happinessAssignmentsList);
+      }
+    }
+
+    console.log(
+      `✅ Synced ${userIds.length} users with company ${companyId} survey assignments`
+    );
+  } catch (error) {
+    console.error("Error syncing users with company surveys:", error);
+    throw error;
+  }
+}
+
 // GET - List all companies
 export async function GET() {
   try {
@@ -25,17 +158,15 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const { name, description, surveyIds = [], happinessSurveyIds = [] } = body;
 
-    // Validate request body
-    const validation = createCompanySchema.safeParse(body);
-    if (!validation.success) {
+    // Basic validation
+    if (!name || typeof name !== "string") {
       return NextResponse.json(
-        { error: "Invalid request data", details: validation.error.issues },
+        { error: "Company name is required" },
         { status: 400 }
       );
     }
-
-    const { name, description } = validation.data;
 
     // Dynamic import to avoid static generation issues
     const { createCompany, getCompanyByName } = await import(
@@ -53,8 +184,23 @@ export async function POST(request: NextRequest) {
 
     const company = await createCompany({
       name,
-      description,
+      description: description || null,
     });
+
+    // Update survey assignments
+    await updateSurveyAssignments(
+      company.id,
+      name,
+      surveyIds,
+      happinessSurveyIds
+    );
+
+    // Sync existing users with new survey assignments
+    await syncUsersWithCompanySurveys(
+      company.id,
+      surveyIds,
+      happinessSurveyIds
+    );
 
     return NextResponse.json(company, { status: 201 });
   } catch (error) {

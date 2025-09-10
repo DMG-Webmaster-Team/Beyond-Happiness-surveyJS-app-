@@ -10,6 +10,8 @@ interface SurveyResult {
   data: Record<string, any>;
   id: string;
   submittedAt: string;
+  userName?: string;
+  userEmail?: string;
 }
 
 interface QuestionInfo {
@@ -107,14 +109,20 @@ export default function TableViewModal({
 
           // Prepare table data with user information
           const processedData = resultsData.results.map((result, index) => {
-            const user = userMap.get(result.userId);
-            // Only show name or email, never User ID
-            const displayName = user?.name || user?.email || "Unknown User";
+            // Use backend-provided user data if available, fallback to fetched data
+            const displayName =
+              result.userName ||
+              result.userEmail ||
+              userMap.get(result.userId)?.name ||
+              userMap.get(result.userId)?.email ||
+              "Unknown User";
+            const email =
+              result.userEmail || userMap.get(result.userId)?.email || "-";
 
             const row: any = {
               "#": index + 1,
               User: displayName,
-              Email: user?.email || "-",
+              Email: email,
               Submitted: new Date(result.submittedAt).toLocaleString(),
               "Admin ID": result.adminId || "-",
             };

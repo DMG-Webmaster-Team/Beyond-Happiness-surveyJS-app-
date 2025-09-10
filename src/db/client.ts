@@ -7,6 +7,26 @@ import path from "path";
 // SQLite database instance
 let sqlite: any;
 
+// Cleanup function for graceful shutdown
+export function closeDatabase() {
+  if (sqlite) {
+    try {
+      sqlite.close();
+      sqlite = null;
+      console.log("📊 Database connection closed");
+    } catch (error) {
+      console.error("Error closing database:", error);
+    }
+  }
+}
+
+// Handle process termination
+if (typeof process !== "undefined") {
+  process.on("SIGINT", closeDatabase);
+  process.on("SIGTERM", closeDatabase);
+  process.on("exit", closeDatabase);
+}
+
 function createConnection() {
   // Guard against Edge runtime
   if (typeof window !== "undefined") {
@@ -28,12 +48,35 @@ function createConnection() {
     // Enable foreign keys
     sqlite.pragma("foreign_keys = ON");
 
-    // Performance optimizations for high-throughput imports
-    sqlite.pragma("journal_mode = WAL");
-    sqlite.pragma("synchronous = NORMAL");
-    sqlite.pragma("temp_store = MEMORY");
-    sqlite.pragma("cache_size = -64000"); // 64MB cache
-    sqlite.pragma("mmap_size = 268435456"); // 256MB mmap
+    // Performance optimizations with better I/O error handling
+    try {
+      // Try WAL mode first, fallback to DELETE if it fails
+      const journalMode = sqlite.pragma("journal_mode = WAL", { simple: true });
+      if (journalMode !== "wal") {
+        console.warn("⚠️ WAL mode failed, falling back to DELETE mode");
+        sqlite.pragma("journal_mode = DELETE");
+      }
+
+      sqlite.pragma("synchronous = NORMAL");
+      sqlite.pragma("temp_store = MEMORY");
+      sqlite.pragma("cache_size = -64000"); // 64MB cache
+
+      // Only set mmap if WAL mode is working
+      if (journalMode === "wal") {
+        sqlite.pragma("mmap_size = 268435456"); // 256MB mmap
+      }
+
+      // Test a simple query to ensure connection is working
+      sqlite.prepare("SELECT 1").get();
+    } catch (error) {
+      console.error(
+        "⚠️ Database optimization failed, using default settings:",
+        error
+      );
+      // Reset to safe defaults
+      sqlite.pragma("journal_mode = DELETE");
+      sqlite.pragma("synchronous = FULL");
+    }
 
     console.log("📊 SQLite database connected:", dbPath);
     console.log(

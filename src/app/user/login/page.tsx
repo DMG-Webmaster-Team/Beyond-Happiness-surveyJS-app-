@@ -656,8 +656,7 @@ export default function UserLogin() {
             {authStep === "redirecting" && "Redirecting..."}
           </h2>
           <p className="text-gray-600 text-sm mb-8">
-            {authStep === "contact" &&
-              "Enter your contact information to access the survey"}
+            {authStep === "contact" && " "}
             {authStep === "otp" && "Enter the 6-digit OTP sent to your contact"}
             {authStep === "verifying-access" &&
               "Checking your credentials and survey access permissions..."}

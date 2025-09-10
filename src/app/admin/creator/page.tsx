@@ -261,6 +261,22 @@ export default function AdminCreator() {
       const adminData = JSON.parse(localStorage.getItem("admin") || "{}");
       const surveyJson = creator.JSON;
 
+      // Get company name if company is selected
+      let companyName = null;
+      if (selectedCompanyId) {
+        try {
+          const companyResponse = await fetch(
+            `/api/companies/${selectedCompanyId}`
+          );
+          if (companyResponse.ok) {
+            const companyData = await companyResponse.json();
+            companyName = companyData.name;
+          }
+        } catch (error) {
+          console.error("Error fetching company name:", error);
+        }
+      }
+
       const surveyData = {
         title: surveyJson.title || localSurvey?.title || "Untitled Survey",
         description: surveyJson.description || localSurvey?.description || "",
@@ -268,6 +284,7 @@ export default function AdminCreator() {
           localSurvey?.canTakeMultiple ?? newSurveySettings.canTakeMultiple,
         isAnonymous: localSurvey?.isAnonymous ?? newSurveySettings.isAnonymous,
         companyId: selectedCompanyId,
+        companyName: companyName,
         adminId: adminData.id,
         json: surveyJson,
       };
@@ -366,7 +383,7 @@ export default function AdminCreator() {
               Survey Settings
             </h3>
             <div className="space-y-4">
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company
                 </label>
@@ -377,7 +394,7 @@ export default function AdminCreator() {
                   placeholder="Select a company (optional)"
                   className="max-w-xs"
                 />
-              </div>
+              </div> */}
               <div>
                 <label className="flex items-center">
                   <input

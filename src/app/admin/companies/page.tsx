@@ -14,13 +14,33 @@ interface Company {
   updatedAt: number;
 }
 
+interface Survey {
+  id: string;
+  title: string;
+  isAnonymous?: boolean;
+  companyId?: string;
+}
+
+interface HappinessSurvey {
+  id: string;
+  title: string;
+  anonymous?: boolean;
+  companyId?: string;
+}
+
 interface CompanyFormData {
   name: string;
   description: string;
+  selectedSurveyIds: string[];
+  selectedHappinessSurveyIds: string[];
 }
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [surveys, setSurveys] = useState<Survey[]>([]);
+  const [happinessSurveys, setHappinessSurveys] = useState<HappinessSurvey[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +48,8 @@ export default function CompaniesPage() {
   const [formData, setFormData] = useState<CompanyFormData>({
     name: "",
     description: "",
+    selectedSurveyIds: [],
+    selectedHappinessSurveyIds: [],
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [companyToDelete, setCompanyToDelete] = useState<string | null>(null);
@@ -56,9 +78,56 @@ export default function CompaniesPage() {
     }
   };
 
+  // Fetch surveys
+  const fetchSurveys = async () => {
+    try {
+      const [surveysRes, happinessRes] = await Promise.all([
+        fetch("/api/surveys", { credentials: "include" }),
+        fetch("/api/happiness/surveys", { credentials: "include" }),
+      ]);
+
+      if (surveysRes.ok) {
+        const surveysData = await surveysRes.json();
+        setSurveys(surveysData || []);
+      }
+
+      if (happinessRes.ok) {
+        const happinessData = await happinessRes.json();
+        setHappinessSurveys(happinessData.surveys || []);
+      }
+    } catch (error) {
+      console.error("Error fetching surveys:", error);
+    }
+  };
+
   useEffect(() => {
     fetchCompanies();
+    fetchSurveys();
   }, []);
+
+  // Handle survey selection
+  const handleSurveyToggle = (
+    surveyId: string,
+    type: "regular" | "happiness"
+  ) => {
+    if (type === "regular") {
+      setFormData((prev) => ({
+        ...prev,
+        selectedSurveyIds: prev.selectedSurveyIds.includes(surveyId)
+          ? prev.selectedSurveyIds.filter((id) => id !== surveyId)
+          : [...prev.selectedSurveyIds, surveyId],
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        selectedHappinessSurveyIds: prev.selectedHappinessSurveyIds.includes(
+          surveyId
+        )
+          ? prev.selectedHappinessSurveyIds.filter((id) => id !== surveyId)
+          : [...prev.selectedHappinessSurveyIds, surveyId],
+      }));
+    }
+  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,13 +140,20 @@ export default function CompaniesPage() {
 
       const method = editingCompany ? "PUT" : "POST";
 
+      const requestBody = {
+        name: formData.name,
+        description: formData.description,
+        surveyIds: formData.selectedSurveyIds,
+        happinessSurveyIds: formData.selectedHappinessSurveyIds,
+      };
+
       const response = await fetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -85,11 +161,16 @@ export default function CompaniesPage() {
         throw new Error(errorData.error || "Failed to save company");
       }
 
-      // Refresh companies list
-      await fetchCompanies();
+      // Refresh companies and surveys list
+      await Promise.all([fetchCompanies(), fetchSurveys()]);
 
       // Reset form and close modal
-      setFormData({ name: "", description: "" });
+      setFormData({
+        name: "",
+        description: "",
+        selectedSurveyIds: [],
+        selectedHappinessSurveyIds: [],
+      });
       setEditingCompany(null);
       setIsModalOpen(false);
     } catch (err) {
@@ -131,19 +212,67 @@ export default function CompaniesPage() {
   };
 
   // Handle edit
-  const handleEdit = (company: Company) => {
+  const handleEdit = async (company: Company) => {
     setEditingCompany(company);
-    setFormData({
-      name: company.name,
-      description: company.description || "",
-    });
+
+    try {
+      // Fetch surveys assigned to this company using the new many-to-many API
+      const [companySurveysRes, companyHappinessSurveysRes] = await Promise.all(
+        [
+          fetch(`/api/companies/${company.id}/surveys`, {
+            credentials: "include",
+          }),
+          fetch(`/api/companies/${company.id}/happiness-surveys`, {
+            credentials: "include",
+          }),
+        ]
+      );
+
+      let companySurveyIds: string[] = [];
+      let companyHappinessSurveyIds: string[] = [];
+
+      if (companySurveysRes.ok) {
+        const companySurveysData = await companySurveysRes.json();
+        companySurveyIds =
+          companySurveysData.surveys?.map((s: any) => s.id) || [];
+      }
+
+      if (companyHappinessSurveysRes.ok) {
+        const companyHappinessSurveysData =
+          await companyHappinessSurveysRes.json();
+        companyHappinessSurveyIds =
+          companyHappinessSurveysData.surveys?.map((s: any) => s.id) || [];
+      }
+
+      setFormData({
+        name: company.name,
+        description: company.description || "",
+        selectedSurveyIds: companySurveyIds,
+        selectedHappinessSurveyIds: companyHappinessSurveyIds,
+      });
+    } catch (error) {
+      console.error("Error fetching company surveys:", error);
+      // Fallback to empty arrays if API calls fail
+      setFormData({
+        name: company.name,
+        description: company.description || "",
+        selectedSurveyIds: [],
+        selectedHappinessSurveyIds: [],
+      });
+    }
+
     setIsModalOpen(true);
   };
 
   // Handle create new
   const handleCreate = () => {
     setEditingCompany(null);
-    setFormData({ name: "", description: "" });
+    setFormData({
+      name: "",
+      description: "",
+      selectedSurveyIds: [],
+      selectedHappinessSurveyIds: [],
+    });
     setIsModalOpen(true);
   };
 
@@ -340,6 +469,89 @@ export default function CompaniesPage() {
                           }
                           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                         />
+                      </div>
+
+                      {/* Survey Assignment */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Assign Surveys to Company
+                        </label>
+
+                        {/* Regular Surveys */}
+                        {surveys.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">
+                              Regular Surveys
+                            </h4>
+                            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-gray-50">
+                              {surveys.map((survey) => (
+                                <label
+                                  key={survey.id}
+                                  className="flex items-center py-1"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.selectedSurveyIds.includes(
+                                      survey.id
+                                    )}
+                                    onChange={() =>
+                                      handleSurveyToggle(survey.id, "regular")
+                                    }
+                                    className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
+                                  />
+                                  <span className="ml-2 text-sm text-gray-700">
+                                    {survey.title}{" "}
+                                    {survey.isAnonymous
+                                      ? "(Anonymous)"
+                                      : "(Authenticated)"}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Happiness Surveys */}
+                        {happinessSurveys.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-600 mb-2">
+                              Happiness Surveys
+                            </h4>
+                            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-gray-50">
+                              {happinessSurveys.map((survey) => (
+                                <label
+                                  key={survey.id}
+                                  className="flex items-center py-1"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.selectedHappinessSurveyIds.includes(
+                                      survey.id
+                                    )}
+                                    onChange={() =>
+                                      handleSurveyToggle(survey.id, "happiness")
+                                    }
+                                    className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
+                                  />
+                                  <span className="ml-2 text-sm text-gray-700">
+                                    {survey.title}{" "}
+                                    {survey.anonymous
+                                      ? "(Anonymous)"
+                                      : "(Authenticated)"}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {surveys.length === 0 &&
+                          happinessSurveys.length === 0 && (
+                            <p className="text-sm text-gray-500 italic">
+                              No surveys available. Create surveys first to
+                              assign them to companies.
+                            </p>
+                          )}
                       </div>
                     </div>
 

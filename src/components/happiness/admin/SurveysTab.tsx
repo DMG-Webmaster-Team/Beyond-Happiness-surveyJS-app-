@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import useSWR from "swr";
 import ConfirmDialog from "../../shared/ConfirmDialog";
 
@@ -11,9 +11,19 @@ interface HappinessSurvey {
   title: string;
   anonymous: boolean;
   retakeCooldownDays?: number;
+  companyId?: string;
+  companyName?: string;
+  isActive?: boolean;
+  isPublished?: boolean;
   createdAt: number;
   updatedAt: number;
   resultCount: number;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export default function SurveysTab() {
@@ -168,6 +178,12 @@ export default function SurveysTab() {
                         {survey.retakeCooldownDays} day cooldown
                       </span>
                     )}
+
+                    {survey.isActive === false && (
+                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                        Inactive
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -178,6 +194,11 @@ export default function SurveysTab() {
                   <div>
                     <strong>Created:</strong> {formatDate(survey.createdAt)}
                   </div>
+                  {survey.companyName && (
+                    <div>
+                      <strong>Company:</strong> {survey.companyName}
+                    </div>
+                  )}
                   <div>
                     <strong>Survey URL:</strong>
                     <code className="ml-2 text-xs bg-gray-100 px-2 py-1 rounded">
@@ -265,7 +286,23 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
     title: survey?.title || "",
     anonymous: survey?.anonymous || false,
     retakeCooldownDays: survey?.retakeCooldownDays || 0,
+    companyId: survey?.companyId || "",
+    isActive: survey?.isActive !== undefined ? survey.isActive : true,
   });
+
+  // Fetch companies for dropdown
+  const { data: companiesData, error: companiesError } = useSWR(
+    "/api/companies",
+    fetcher
+  );
+  const companies = companiesData?.items || [];
+
+  // Fetch surveys for the selected company (for scrollable list)
+  const { data: surveysData } = useSWR(
+    formData.companyId ? `/api/surveys?companyId=${formData.companyId}` : null,
+    fetcher
+  );
+  const companySurveys = surveysData?.items || [];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -276,10 +313,18 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
       return;
     }
 
+    // Find selected company name
+    const selectedCompany = companies.find(
+      (c: Company) => c.id === formData.companyId
+    );
+
     onSave({
       title: formData.title.trim(),
       anonymous: formData.anonymous,
       retakeCooldownDays: formData.retakeCooldownDays,
+      companyId: formData.companyId || null,
+      companyName: selectedCompany?.name || null,
+      isActive: formData.isActive,
     });
   };
 
@@ -309,6 +354,48 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
               required
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Assigned Company (Optional)
+            </label>
+            <select
+              value={formData.companyId}
+              onChange={(e) =>
+                setFormData({ ...formData, companyId: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">No company assigned</option>
+              {companies.map((company: Company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+            {companiesError && (
+              <p className="text-sm text-red-600 mt-1">
+                Failed to load companies
+              </p>
+            )}
+          </div>
+
+          {/* Show assigned surveys for selected company */}
+          {formData.companyId && companySurveys.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Other Surveys Assigned to This Company
+              </label>
+              <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-gray-50">
+                {companySurveys.map((survey: any) => (
+                  <div key={survey.id} className="text-sm text-gray-600 py-1">
+                    • {survey.title}{" "}
+                    {survey.isAnonymous ? "(Anonymous)" : "(Authenticated)"}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3">
             <div className="flex items-center">
@@ -367,6 +454,25 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
                 ? "Cooldown is disabled for anonymous surveys"
                 : "Number of days users must wait before retaking the survey (0 = no cooldown)"}
             </p>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) =>
+                setFormData({ ...formData, isActive: e.target.checked })
+              }
+              className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
+            />
+            <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
+              <strong>Active (available for assignment)</strong>
+              <div className="text-xs text-gray-500">
+                When unchecked, this survey will be hidden from assignment forms
+                but remain accessible to users who already have it assigned.
+              </div>
+            </label>
           </div>
 
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
