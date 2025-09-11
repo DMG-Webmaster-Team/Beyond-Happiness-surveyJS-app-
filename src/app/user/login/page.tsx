@@ -6,7 +6,13 @@ import Image from "next/image";
 import {
   createSurveySession,
   setupAutoCleanup,
+  getAllActiveSurveySessions,
+  clearSurveySession,
 } from "../../../lib/auth/survey-session";
+import {
+  initializeUserSession,
+  clearAllSurveySubmissionStates,
+} from "@/lib/session-storage";
 
 interface User {
   id: string;
@@ -46,6 +52,7 @@ export default function UserLogin() {
     identifier: string;
     inputType: string;
   } | null>(null);
+  const [isMultiTabRedirect, setIsMultiTabRedirect] = useState(false);
 
   // OTP input refs for modern UX
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -74,6 +81,30 @@ export default function UserLogin() {
       setSurveyType("regular");
     }
   };
+
+  // Check for multi-tab redirect
+  useEffect(() => {
+    const multiTab = searchParams.get("multiTab");
+    if (multiTab === "true") {
+      setIsMultiTabRedirect(true);
+      console.log("🚫 Multi-tab redirect detected");
+
+      // Clear all active sessions to force fresh login
+      const activeSessions = getAllActiveSurveySessions();
+      activeSessions.forEach((session) => {
+        clearSurveySession(session.surveyId);
+      });
+      console.log(
+        `🧹 Cleared ${activeSessions.length} active sessions for multi-tab protection`
+      );
+
+      // Also clear all sessionStorage submission states
+      clearAllSurveySubmissionStates();
+      console.log(
+        "🧹 Cleared all sessionStorage submission states for fresh session"
+      );
+    }
+  }, [searchParams]);
 
   // Session management is now handled by the backend - no automatic logout
 
@@ -487,6 +518,10 @@ export default function UserLogin() {
       // Clear any previous errors
       setError("");
 
+      // Initialize new user session in sessionStorage
+      const sessionId = initializeUserSession(data.user.id);
+      console.log("🚀 Initialized user session:", sessionId);
+
       console.log("🔍 API Response:", data);
       console.log("🔍 Access verification complete:", data.access);
 
@@ -667,6 +702,30 @@ export default function UserLogin() {
           {error && (
             <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg text-center mb-4">
               {error}
+            </div>
+          )}
+
+          {isMultiTabRedirect && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm p-4 rounded-lg text-center mb-4">
+              <div className="flex items-center justify-center mb-2">
+                <svg
+                  className="w-5 h-5 mr-2 text-yellow-600"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <strong>Multiple Survey Sessions Detected</strong>
+              </div>
+              <p>
+                You were logged out because you tried to access a survey while
+                already having an active session in another tab. Please log in
+                again to access the requested survey.
+              </p>
             </div>
           )}
 

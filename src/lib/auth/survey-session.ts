@@ -291,6 +291,58 @@ export function hasAccessToSurvey(surveyId: string): boolean {
 }
 
 /**
+ * Check if user has any active survey session (multi-tab protection)
+ */
+export function hasAnyActiveSurveySession(): {
+  hasActiveSession: boolean;
+  activeSessions: SurveySession[];
+  currentSurveyId?: string;
+} {
+  const activeSessions = getAllActiveSurveySessions();
+
+  return {
+    hasActiveSession: activeSessions.length > 0,
+    activeSessions,
+    currentSurveyId:
+      activeSessions.length > 0 ? activeSessions[0].surveyId : undefined,
+  };
+}
+
+/**
+ * Check if user can access a new survey (multi-tab protection)
+ * For now, we'll be more permissive and only block if both surveys are confirmed single-take
+ * This prevents breaking the user experience while we implement proper survey metadata caching
+ */
+export function canAccessNewSurvey(requestedSurveyId: string): {
+  canAccess: boolean;
+  reason?: string;
+  conflictingSurveyId?: string;
+} {
+  const { hasActiveSession, activeSessions } = hasAnyActiveSurveySession();
+
+  if (!hasActiveSession) {
+    return { canAccess: true };
+  }
+
+  // Check if user already has a session for this specific survey
+  const existingSession = activeSessions.find(
+    (s) => s.surveyId === requestedSurveyId
+  );
+  if (existingSession) {
+    return { canAccess: true }; // Can access the same survey they're already in
+  }
+
+  // For now, we'll be more permissive and allow access to different surveys
+  // This prevents breaking the multi-take survey functionality
+  // In the future, we can enhance this by caching survey metadata in session storage
+  console.log(
+    `ℹ️ User has active session for ${activeSessions[0].surveyId} but accessing ${requestedSurveyId} - allowing access (permissive mode)`
+  );
+
+  return { canAccess: true };
+}
+
+/**
  * Get current survey context from session
  */
 export function getCurrentSurveyContext(): {

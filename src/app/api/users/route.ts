@@ -169,6 +169,13 @@ export async function POST(request: NextRequest) {
         console.log(
           `🏢 Auto-assigned ${companySurveyIds.length} regular surveys and ${companyHappinessIds.length} happiness surveys from company ${validatedData.companyId}`
         );
+        console.log(`📋 Company survey IDs:`, companySurveyIds);
+        console.log(`😊 Company happiness survey IDs:`, companyHappinessIds);
+        console.log(`📊 Final survey assignments:`, finalSurveyAssignments);
+        console.log(
+          `😊 Final happiness assignments:`,
+          finalHappinessAssignments
+        );
       } catch (error) {
         console.error("Error fetching company surveys:", error);
         // Continue with manual assignments if company survey fetch fails

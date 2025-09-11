@@ -9,7 +9,6 @@ interface User {
   id: string;
   email: string;
   name?: string;
-  phone?: string; // Add phone field
   status: string;
   companyId?: string;
   companyName?: string;
@@ -29,7 +28,11 @@ interface Pagination {
   totalPages: number;
 }
 
-export default function UserTable() {
+interface UserTableProps {
+  refreshTrigger?: number;
+}
+
+export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
   const [users, setUsers] = useState<User[]>([]);
   const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
   const [happinessSurveys, setHappinessSurveys] = useState<
@@ -123,6 +126,13 @@ export default function UserTable() {
     fetchSurveys();
     fetchHappinessSurveys();
   }, [searchQuery, statusFilter]);
+
+  // Refresh data when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchUsers(pagination.page, searchQuery, statusFilter);
+    }
+  }, [refreshTrigger]);
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -352,7 +362,7 @@ export default function UserTable() {
           <div className="flex-1 min-w-64">
             <input
               type="text"
-              placeholder="Search by email, name, or phone..."
+              placeholder="Search by email or name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
@@ -405,9 +415,6 @@ export default function UserTable() {
                   User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Company
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -433,15 +440,6 @@ export default function UserTable() {
                         <div className="text-sm text-gray-500">{user.name}</div>
                       )}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.phone ? (
-                      <div className="text-sm text-gray-900 font-mono">
-                        {user.phone}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">No phone</span>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {user.companyName ? (
@@ -570,7 +568,6 @@ export default function UserTable() {
                   const formData = new FormData(e.currentTarget);
                   handleUpdateUser({
                     name: formData.get("name") as string,
-                    phone: formData.get("phone") as string,
                     status: formData.get("status") as string,
                     companyId: selectedCompanyId || undefined,
                     surveyAssignments: selectedSurveys,
@@ -599,21 +596,6 @@ export default function UserTable() {
                     defaultValue={editingUser.name || ""}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
-                </div>
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    defaultValue={editingUser.phone || ""}
-                    placeholder="+201234567890"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Optional. Include country code, e.g. +20XXXXXXXXXX.
-                  </p>
                 </div>
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">

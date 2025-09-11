@@ -17,6 +17,11 @@ function StatusPageContent() {
   const surveyTitle = searchParams.get("surveyTitle");
   const canTakeMultiple = searchParams.get("canTakeMultiple") === "true";
   const anonymous = searchParams.get("anonymous") === "true";
+  const source = searchParams.get("source") as
+    | "sessionStorage"
+    | "localStorage"
+    | "none"
+    | null;
   const message = searchParams.get("message");
 
   const survey = surveyId
@@ -32,6 +37,8 @@ function StatusPageContent() {
       type={type || "survey-not-found"}
       survey={survey}
       message={message || undefined}
+      anonymous={anonymous}
+      source={source}
     />
   );
 }

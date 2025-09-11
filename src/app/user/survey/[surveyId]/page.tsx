@@ -14,10 +14,21 @@ import PDFExportButton from "@/components/PDFExportButton";
 import {
   canRetakeSurvey,
   validateSurveySession,
+  canAccessNewSurvey,
 } from "../../../../lib/auth/survey-session";
 import { useSurveySession } from "../../../../hooks/useSurveySession";
 import LoadingScreen from "@/components/shared/LoadingScreen";
 import { safeUrl, extractSurveyIdFromUrl } from "@/utils/url-helpers";
+import {
+  setSurveySubmitted as setSessionSurveySubmitted,
+  hasSurveyBeenSubmitted,
+  canRetakeSurveyInSession,
+  clearSurveySubmissionState,
+  initializeUserSession,
+  checkSurveySubmissionStatus,
+  createFreshAnonymousSession,
+  validateNoStaleData,
+} from "@/lib/session-storage";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -137,7 +148,10 @@ const fetcher = async (url: string) => {
 // ✅ NEW: Utility functions for localStorage survey tracking
 const getSubmissionKey = (surveyId: string) => `submitted_${surveyId}`;
 
-const isRecentlySubmitted = (surveyId: string): boolean => {
+const isRecentlySubmitted = (
+  surveyId: string,
+  isAnonymous: boolean = false
+): boolean => {
   if (typeof window === "undefined") return false;
 
   const submissionData = localStorage.getItem(getSubmissionKey(surveyId));
@@ -145,8 +159,11 @@ const isRecentlySubmitted = (surveyId: string): boolean => {
 
   try {
     const { timestamp } = JSON.parse(submissionData);
-    const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000; // 15 minutes
-    return timestamp > fifteenMinutesAgo;
+    // For anonymous surveys, use a much shorter window (30 seconds) to prevent accidental double-clicks
+    // For authenticated surveys, use 15 minutes to prevent circumventing single-submission rules
+    const timeWindow = isAnonymous ? 30 * 1000 : 15 * 60 * 1000; // 30 seconds vs 15 minutes
+    const cutoffTime = Date.now() - timeWindow;
+    return timestamp > cutoffTime;
   } catch {
     return false;
   }
@@ -209,23 +226,60 @@ export default function UserSurvey() {
     }
   }, [surveyId]);
 
-  // ✅ NEW: Early localStorage check to prevent survey loading if recently submitted
+  // ✅ UPDATED: Early submission check - only for authenticated surveys after anonymous check
   useEffect(() => {
-    if (!surveyId || !mounted) return;
+    if (!surveyId || !mounted || !anonymousSurveyChecked) return;
 
-    const recentlySubmitted = isRecentlySubmitted(surveyId);
-    if (recentlySubmitted) {
+    // For anonymous surveys, create a fresh session to prevent data leakage
+    if (isAnonymousSurvey) {
       console.log(
-        "🚫 Early check: Survey recently submitted, redirecting to status page"
+        "🌐 Anonymous survey detected - validating and creating fresh session"
+      );
+
+      // Validate no stale data exists
+      const validation = validateNoStaleData(surveyId);
+      if (validation.hasStaleData) {
+        console.warn(
+          `⚠️ Found stale data for anonymous survey ${surveyId}:`,
+          validation.staleKeys
+        );
+        console.log(`💡 Recommendations:`, validation.recommendations);
+      }
+
+      createFreshAnonymousSession(surveyId);
+      setEarlyCompletionCheck(false);
+      return;
+    }
+
+    // For authenticated surveys, use comprehensive submission check
+    const submissionStatus = checkSurveySubmissionStatus(
+      surveyId,
+      isAnonymousSurvey,
+      surveyCanTakeMultiple
+    );
+
+    console.log(`🔍 Early submission check result:`, submissionStatus);
+
+    if (submissionStatus.isSubmitted && !submissionStatus.canRetake) {
+      console.log(
+        `🚫 Survey ${surveyId} already submitted and cannot retake (${submissionStatus.source}): ${submissionStatus.reason}`
       );
       // Immediately redirect to avoid any loading states
       router.replace(
-        `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false`
+        `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=${surveyCanTakeMultiple}&source=${submissionStatus.source}`
       );
       return;
     }
+
     setEarlyCompletionCheck(false);
-  }, [surveyId, mounted]);
+  }, [
+    surveyId,
+    mounted,
+    anonymousSurveyChecked,
+    isAnonymousSurvey,
+    surveyCanTakeMultiple,
+    router,
+  ]);
 
   // This useEffect will be moved after the SWR declaration
 
@@ -275,13 +329,13 @@ export default function UserSurvey() {
             );
             // Keep loading state true for authenticated surveys until session is verified
           }
+          setAnonymousSurveyChecked(true);
         }
       } catch (error) {
         console.error("Error checking survey anonymity:", error);
         // On error, assume authenticated and redirect to login
-        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
-      } finally {
         setAnonymousSurveyChecked(true);
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
       }
     };
 
@@ -296,39 +350,32 @@ export default function UserSurvey() {
       // Only check completion after we know if it's anonymous and have checked session for authenticated surveys
       if (!surveyId || !anonymousSurveyChecked) return;
 
-      // For anonymous surveys, check localStorage only
-      if (isAnonymousSurvey) {
-        const recentlySubmitted = isRecentlySubmitted(surveyId);
-        if (recentlySubmitted) {
-          console.log(
-            "🚫 Anonymous survey recently submitted (localStorage), redirecting to status page"
-          );
-          // Redirect to status page to avoid loading state
-          router.replace(
-            `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false&anonymous=true`
-          );
-          return;
-        }
-        setIsCheckingCompletion(false);
+      // Use comprehensive submission check for all survey types
+      const submissionStatus = checkSurveySubmissionStatus(
+        surveyId,
+        isAnonymousSurvey,
+        survey?.canTakeMultiple || surveyCanTakeMultiple
+      );
+
+      console.log(`🔍 Completion check result:`, submissionStatus);
+
+      if (submissionStatus.isSubmitted && !submissionStatus.canRetake) {
+        console.log(
+          `🚫 Survey ${surveyId} already submitted and cannot retake (${submissionStatus.source}): ${submissionStatus.reason}`
+        );
+        // Redirect to status page to avoid loading state
+        const anonymousParam = isAnonymousSurvey ? "&anonymous=true" : "";
+        router.replace(
+          `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=${
+            survey?.canTakeMultiple || surveyCanTakeMultiple
+          }&source=${submissionStatus.source}${anonymousParam}`
+        );
         return;
       }
 
       // For authenticated surveys, wait for user session to be loaded
       if (!isAnonymousSurvey && !user) {
         // Still loading user session, don't check yet
-        return;
-      }
-
-      // Check localStorage first for quick redirect
-      const recentlySubmitted = isRecentlySubmitted(surveyId);
-      if (recentlySubmitted) {
-        console.log(
-          "🚫 Survey recently submitted (localStorage), redirecting to status page"
-        );
-        // Immediately redirect to status page to avoid loading state
-        router.replace(
-          `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false`
-        );
         return;
       }
 
@@ -351,9 +398,9 @@ export default function UserSurvey() {
             );
             // Redirect to status page instead of showing inline message
             router.replace(
-              `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=false&surveyTitle=${encodeURIComponent(
-                data.surveyTitle || "Survey"
-              )}`
+              `/user/status?type=already-submitted&surveyId=${surveyId}&canTakeMultiple=${
+                data.canTakeMultiple
+              }&surveyTitle=${encodeURIComponent(data.surveyTitle || "Survey")}`
             );
             return;
           } else {
@@ -598,6 +645,20 @@ export default function UserSurvey() {
   useEffect(() => {
     // Wait for survey data to be loaded before checking session
     if (surveyId && survey && !survey.isAnonymous && !isAnonymousSurvey) {
+      // First check multi-tab protection
+      const multiTabCheck = canAccessNewSurvey(surveyId);
+      if (!multiTabCheck.canAccess) {
+        console.log(
+          "🚫 Multi-tab protection: Cannot access survey",
+          multiTabCheck.reason
+        );
+        // Redirect to login to force logout from other survey
+        router.push(
+          `/user/login?redirect=${encodeURIComponent(surveyId)}&multiTab=true`
+        );
+        return;
+      }
+
       const sessionValidation = validateSurveySession(surveyId);
       if (!sessionValidation.isValid) {
         console.log(
@@ -642,7 +703,7 @@ export default function UserSurvey() {
     if (isAnonymousSurvey && survey?.json) {
       surveyData = {
         ...survey,
-        canTakeMultiple: survey.canTakeMultiple ?? false,
+        canTakeMultiple: Boolean(survey.canTakeMultiple),
       };
     }
     // For authenticated surveys, use frozen session data
@@ -657,8 +718,8 @@ export default function UserSurvey() {
           json: sessionConfig.definition,
           title: sessionConfig.title,
           description: sessionConfig.description,
-          canTakeMultiple: sessionConfig.canTakeMultiple ?? false,
-          isAnonymous: sessionConfig.isAnonymous ?? false,
+          canTakeMultiple: Boolean(sessionConfig.canTakeMultiple),
+          isAnonymous: Boolean(sessionConfig.isAnonymous),
         };
         console.log("🔒 Using frozen survey configuration from session");
       }
@@ -739,13 +800,28 @@ export default function UserSurvey() {
         // Immediately show completion without refresh
         setSurveySubmitted(true);
 
-        // ✅ NEW: Handle localStorage tracking and redirect for one-time surveys
-        if (!survey.canTakeMultiple) {
+        // ✅ UPDATED: Handle storage tracking with new comprehensive logic
+        if (!isAnonymousSurvey) {
+          // For authenticated surveys, use the new storage system
+          setSessionSurveySubmitted(survey.id, true, {
+            userId: user?.id,
+            canRetake: Boolean(survey.canTakeMultiple),
+            canTakeMultiple: Boolean(survey.canTakeMultiple),
+            retakeExpiryMinutes: survey.canTakeMultiple ? undefined : 15, // 15 minutes for single-submission surveys
+          });
           console.log(
-            "🔒 One-time survey completed - marking as submitted and scheduling redirect"
+            `📝 Stored submission state for authenticated survey ${survey.id} (canTakeMultiple: ${survey.canTakeMultiple})`
           );
+        } else {
+          // For anonymous surveys, only use localStorage with short window
           markSurveySubmitted(survey.id);
+          console.log(
+            `💾 Stored submission state for anonymous survey ${survey.id} in localStorage only`
+          );
+        }
 
+        if (!survey.canTakeMultiple && !isAnonymousSurvey) {
+          console.log("🔒 One-time survey completed - scheduling redirect");
           // Show success message with redirect notice
           setTimeout(() => {
             console.log(
@@ -795,6 +871,11 @@ export default function UserSurvey() {
 
   const handleRetakeSurvey = () => {
     setSurveySubmitted(false);
+
+    // Clear both sessionStorage and localStorage submission state to allow retake
+    clearSurveySubmissionState(surveyId);
+    console.log("🔄 Cleared all submission state for survey retake");
+
     // The survey model will be recreated automatically via useMemo when survey data changes
     // or we can trigger a manual clear if the model exists
     if (surveyModel) {
@@ -834,6 +915,36 @@ export default function UserSurvey() {
   }
 
   if (surveySubmitted) {
+    // Simple thank you message for anonymous surveys
+    if (isAnonymousSurvey) {
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="flex items-center justify-center h-screen">
+            <div className="max-w-md w-full space-y-8">
+              <div className="text-center">
+                <div className="text-6xl mb-6">🎉</div>
+                <h2 className="text-3xl font-extrabold text-gray-900 mb-4">
+                  Thank You!
+                </h2>
+                <p className="text-lg text-gray-600 mb-6">
+                  Your survey has been submitted successfully.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Process survey data to ensure proper boolean conversion
+    const processedSurvey = survey
+      ? {
+          ...survey,
+          canTakeMultiple: Boolean(survey.canTakeMultiple),
+        }
+      : null;
+
+    // Full completion screen for authenticated surveys
     return (
       <div className="min-h-screen bg-gray-50">
         {navbarComponent}
@@ -844,37 +955,27 @@ export default function UserSurvey() {
               <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
                 Survey completed successfully!
               </h2>
-              {survey?.canTakeMultiple || isAnonymousSurvey ? (
+              {survey?.canTakeMultiple || !isAnonymousSurvey ? (
                 <p className="mt-2 text-center text-sm text-gray-600">
                   &quot;You can retake this survey if needed.&quot;
                 </p>
               ) : (
-                " "
+                <p className="mt-2 text-center text-sm text-gray-600">
+                  &quot;This survey can only be completed once.&quot;
+                </p>
               )}
             </div>
 
-            {survey?.canTakeMultiple || isAnonymousSurvey ? (
+            {Boolean(survey?.canTakeMultiple) || !isAnonymousSurvey ? (
               <div className="text-center">
                 <button
                   onClick={handleRetakeSurvey}
                   className="w-full py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-blue-600"
                 >
-                  {isAnonymousSurvey ? "Take Again" : "Retake Survey"}
+                  Retake Survey
                 </button>
               </div>
-            ) : (
-              <div className="text-center">
-                <p className="text-gray-500 text-sm mb-4">
-                  This survey can only be completed once.
-                </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-blue-700 text-sm">
-                    🔄 You will be redirected to the survey login page in 10
-                    seconds...
-                  </p>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
@@ -955,19 +1056,36 @@ export default function UserSurvey() {
     return (
       <div className="min-h-screen bg-gray-50">
         {navbarComponent}
-        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
-          <div className="text-center">
-            <div className="text-red-600 text-xl mb-4">
-              Access Denied: Survey not assigned
+        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full space-y-8">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-6">
+                  <svg
+                    className="w-full h-full text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <h2 className="text-2xl font-bold text-red-600 mb-4">
+                  Survey Not Assigned
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  You are not assigned to this survey.
+                  {user.assignments && user.assignments.length > 0
+                    ? ` You are assigned to surveys: ${user.assignments
+                        .map((a) => a.surveyTitle)
+                        .join(", ")}`
+                    : " You have no survey assignments."}
+                </p>
+              </div>
             </div>
-            <p className="text-gray-600">
-              You are not authorized to access this survey.
-              {user.assignments && user.assignments.length > 0
-                ? ` You are assigned to surveys: ${user.assignments
-                    .map((a) => a.surveyTitle)
-                    .join(", ")}`
-                : " You have no survey assignments."}
-            </p>
           </div>
         </div>
       </div>

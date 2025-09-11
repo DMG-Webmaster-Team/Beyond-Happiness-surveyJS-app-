@@ -3,11 +3,19 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
+import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import LoadingScreen from "@/components/shared/LoadingScreen";
 import {
   extendSessionForRetake,
   validateSurveySession,
+  canAccessNewSurvey,
 } from "../../../lib/auth/survey-session";
+import {
+  setSurveySubmitted,
+  hasSurveyBeenSubmitted,
+  canRetakeSurveyInSession,
+  clearSurveySubmissionState,
+} from "@/lib/session-storage";
 
 interface HappinessQuestion {
   id: number;
@@ -352,6 +360,28 @@ export default function HappinessSurveyPage({
       !hasRedirected &&
       accessCheckComplete
     ) {
+      // First check multi-tab protection
+      const multiTabCheck = canAccessNewSurvey(params.surveyId);
+      if (!multiTabCheck.canAccess) {
+        console.log(
+          "🚫 Multi-tab protection: Cannot access happiness survey",
+          multiTabCheck.reason
+        );
+        // Clear any cached access data
+        const cacheKey = `happiness:access:${params.surveyId}`;
+        localStorage.removeItem(cacheKey);
+
+        // Redirect to login to force logout from other survey
+        setIsRedirecting(true);
+        setHasRedirected(true);
+        router.push(
+          `/user/login?redirect=${encodeURIComponent(
+            params.surveyId
+          )}&type=happiness&multiTab=true`
+        );
+        return;
+      }
+
       const sessionValidation = validateSurveySession(params.surveyId);
       if (!sessionValidation.isValid) {
         console.log(
@@ -550,7 +580,7 @@ export default function HappinessSurveyPage({
   if (isLoading) {
     return (
       <>
-        <UserNavbar />
+        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
         <LoadingScreen message="Loading survey..." />
       </>
     );
@@ -559,14 +589,26 @@ export default function HappinessSurveyPage({
   if (questionsError || accessCheckError) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
         <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full space-y-8">
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="text-center">
-                <div className="text-6xl mb-4">🔒</div>
+                <div className="w-16 h-16 mx-auto mb-6">
+                  <svg
+                    className="w-full h-full text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
                 <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Access Denied
+                  Survey Not Assigned
                 </h2>
                 <p className="text-gray-600 mb-6">
                   Failed to load survey. Please try again later.
@@ -602,7 +644,7 @@ export default function HappinessSurveyPage({
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
     return (
       <>
-        <UserNavbar />
+        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
         <LoadingScreen
           message={
             accessLoading ? "Checking survey access..." : "Loading survey..."
@@ -619,19 +661,31 @@ export default function HappinessSurveyPage({
   if (accessCheckError || questionsError) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
         <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full space-y-8">
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="text-center">
-                <div className="text-6xl mb-4">🔒</div>
+                <div className="w-16 h-16 mx-auto mb-6">
+                  <svg
+                    className="w-full h-full text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
                 <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Access Denied
+                  Survey Not Assigned
                 </h2>
                 <p className="text-gray-600 mb-6">
                   {accessCheckError?.message ||
                     questionsError?.message ||
-                    "You do not have permission to access this survey."}
+                    "You are not assigned to this survey."}
                 </p>
               </div>
             </div>
@@ -649,17 +703,29 @@ export default function HappinessSurveyPage({
   if (!survey || questions.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <UserNavbar />
+        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
         <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-md w-full space-y-8">
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="text-center">
-                <div className="text-6xl mb-4">🔒</div>
+                <div className="w-16 h-16 mx-auto mb-6">
+                  <svg
+                    className="w-full h-full text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
                 <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Access Denied
+                  Survey Not Assigned
                 </h2>
                 <p className="text-gray-600 mb-6">
-                  You do not have permission to access this survey.
+                  You are not assigned to this survey.
                 </p>
               </div>
             </div>

@@ -11,6 +11,7 @@ import { motion } from "motion/react";
 export default function AdminUsersPage() {
   const [activeTab, setActiveTab] = useState<"import" | "manage">("import");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -101,7 +102,7 @@ export default function AdminUsersPage() {
                       Create User
                     </motion.button>
                   </div>
-                  <UserTable />
+                  <UserTable refreshTrigger={refreshTrigger} />
                 </div>
               </motion.div>
             )}
@@ -118,7 +119,7 @@ export default function AdminUsersPage() {
               onSuccess={() => {
                 setShowCreateModal(false);
                 // Refresh the user table
-                window.location.reload();
+                setRefreshTrigger((prev) => prev + 1);
               }}
             />
           </Modal>

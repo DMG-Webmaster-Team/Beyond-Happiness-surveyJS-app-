@@ -420,17 +420,12 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
         <div className="p-4 border-b bg-blue-400 text-white sticky top-0">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-lg font-semibold text-black">
-                Survey Result Details
-              </h3>
-              <p className="text-sm text-black opacity-90">
+              <h3 className="text-lg font-semibold ">Survey Result Details</h3>
+              <p className="text-sm  opacity-90">
                 {result.userEmail || "Anonymous"} • {result.surveyTitle}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-black hover:text-gray-700 p-2"
-            >
+            <button onClick={onClose} className=" hover:text-gray-700 p-2">
               ✕
             </button>
           </div>
@@ -533,16 +528,6 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
           </div>
 
           {/* Raw Data (for debugging) */}
-          <details className="border border-gray-200 rounded-lg">
-            <summary className="p-3 cursor-pointer font-medium text-gray-700 hover:bg-gray-50">
-              Raw Answer Data (Click to expand)
-            </summary>
-            <div className="p-3 border-t bg-gray-50">
-              <pre className="text-xs text-gray-600 overflow-auto">
-                {JSON.stringify(result.answers, null, 2)}
-              </pre>
-            </div>
-          </details>
         </div>
       </div>
     </div>

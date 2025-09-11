@@ -1083,6 +1083,7 @@ async function processCompanyImport(validRows: any[], companyId: string) {
               userId: user.id,
               surveyId: survey.id,
               assignedAt: now,
+              status: "pending",
             });
             stats.insertedAssignments++;
           } catch (error: any) {
@@ -1105,6 +1106,8 @@ async function processCompanyImport(validRows: any[], companyId: string) {
               userId: user.id,
               surveyId: survey.id,
               assignedAt: now,
+              assignedBy: "system",
+              isActive: true,
             });
             stats.insertedAssignments++;
           } catch (error: any) {
@@ -1303,6 +1306,7 @@ async function processMixedImport(
               userId: user.id,
               surveyId: surveyId,
               assignedAt: now,
+              status: "pending",
             });
             stats.insertedAssignments++;
           } catch (error: any) {
@@ -1325,6 +1329,8 @@ async function processMixedImport(
               userId: user.id,
               surveyId: surveyId,
               assignedAt: now,
+              assignedBy: "system",
+              isActive: true,
             });
             stats.insertedAssignments++;
           } catch (error: any) {

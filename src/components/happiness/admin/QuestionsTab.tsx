@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { useDebounce } from "@/hooks/useDebounce";
+import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -23,6 +24,8 @@ export default function QuestionsTab() {
   const [editingQuestion, setEditingQuestion] =
     useState<HappinessQuestion | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [questionToDelete, setQuestionToDelete] = useState<number | null>(null);
 
   // Debounce search term to avoid too many API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -66,18 +69,21 @@ export default function QuestionsTab() {
     }
   };
 
-  const handleDeleteQuestion = async (questionId: number) => {
-    if (
-      !confirm(
-        "Are you sure you want to permanently delete this question? This action cannot be undone."
-      )
-    )
-      return;
+  const handleDeleteQuestion = (questionId: number) => {
+    setQuestionToDelete(questionId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteQuestion = async () => {
+    if (!questionToDelete) return;
 
     try {
-      const response = await fetch(`/api/happiness/questions/${questionId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/happiness/questions/${questionToDelete}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (response.ok) {
         mutate();
@@ -87,7 +93,15 @@ export default function QuestionsTab() {
       }
     } catch (error) {
       alert("Failed to delete question");
+    } finally {
+      setShowDeleteConfirm(false);
+      setQuestionToDelete(null);
     }
+  };
+
+  const cancelDeleteQuestion = () => {
+    setShowDeleteConfirm(false);
+    setQuestionToDelete(null);
   };
 
   if (isLoading) {
@@ -266,6 +280,17 @@ export default function QuestionsTab() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Question"
+        message="Are you sure you want to permanently delete this question? This action cannot be undone and will remove the question from all surveys."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={confirmDeleteQuestion}
+        onCancel={cancelDeleteQuestion}
+      />
     </div>
   );
 }

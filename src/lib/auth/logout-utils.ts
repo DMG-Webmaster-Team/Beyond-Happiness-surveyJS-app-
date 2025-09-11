@@ -1,4 +1,8 @@
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import {
+  clearAllSurveySubmissionStates,
+  clearSurveySubmissionState,
+} from "@/lib/session-storage";
 
 export interface LogoutOptions {
   surveyId?: string;
@@ -182,7 +186,10 @@ function clearSurveySession(surveyId: string) {
     // Clear retake expiry if exists
     sessionStorage.removeItem(`retake_expiry_${surveyId}`);
 
-    console.log(`🧹 Cleared session for survey: ${surveyId}`);
+    // Use the comprehensive submission state clearing
+    clearSurveySubmissionState(surveyId);
+
+    console.log(`🧹 Cleared comprehensive session for survey: ${surveyId}`);
   } catch (error) {
     console.warn("Error clearing survey session:", error);
   }
@@ -210,7 +217,10 @@ function clearAllSurveySessions() {
       }
     });
 
-    console.log("🧹 Cleared all survey sessions");
+    // Use the comprehensive submission state clearing for all surveys
+    clearAllSurveySubmissionStates();
+
+    console.log("🧹 Cleared all survey sessions and submission states");
   } catch (error) {
     console.warn("Error clearing all survey sessions:", error);
   }

@@ -9,17 +9,19 @@ import { handleLogoutWithSurveyPreservation } from "../../lib/auth/logout-utils"
 export default function UserNavbar() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in via cookie
+    // Single session check on mount
     const checkSession = async () => {
       try {
+        setIsCheckingSession(true);
         const response = await fetch("/api/auth/check-session", {
-          credentials: "include", // Ensure cookies are sent
+          credentials: "include",
         });
         const data = await response.json();
-        console.log("🔍 CROSS-TAB TEST - Session check:", {
+        console.log("🔍 Initial session check:", {
           isAuthenticated: data.isAuthenticated,
           hasUser: !!data.user,
           timestamp: new Date().toISOString(),
@@ -27,47 +29,15 @@ export default function UserNavbar() {
         });
         setIsLoggedIn(data.isAuthenticated);
       } catch (error) {
+        console.error("Session check error:", error);
         setIsLoggedIn(false);
+      } finally {
+        setIsCheckingSession(false);
       }
     };
+
     checkSession();
   }, []);
-
-  // Check session expiration less aggressively to allow survey retakes
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const response = await fetch("/api/auth/check-session", {
-          credentials: "include", // Ensure cookies are sent
-        });
-        const data = await response.json();
-
-        // Only logout if we were previously logged in and now we're not
-        // This prevents logout on temporary API errors
-        if (!data.isAuthenticated && isLoggedIn) {
-          console.log("🔍 Session expired, triggering logout");
-          setIsLoggedIn(false);
-          await handleLogoutWithSurveyPreservation(router);
-        }
-      } catch (error) {
-        console.error("Session check error:", error);
-        // Don't logout on API errors - just log the error
-      }
-    };
-
-    // Add 5-second delay before first check to prevent race conditions
-    const initialDelay = setTimeout(() => {
-      checkSession();
-    }, 5000);
-
-    // Check every 5 minutes instead of every minute to allow survey retakes
-    const interval = setInterval(checkSession, 5 * 60 * 1000);
-
-    return () => {
-      clearTimeout(initialDelay);
-      clearInterval(interval);
-    };
-  }, [isLoggedIn]);
 
   const handleLogoutClick = () => {
     setShowLogoutModal(true);
@@ -110,7 +80,12 @@ export default function UserNavbar() {
               />
             </div>
             <div className="flex items-center">
-              {isLoggedIn && (
+              {isCheckingSession ? (
+                <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
+                  Loading...
+                </div>
+              ) : isLoggedIn ? (
                 <button
                   onClick={handleLogoutClick}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -129,7 +104,7 @@ export default function UserNavbar() {
                   </svg>
                   Logout
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
       id: survey.id,
       title: survey.title,
       description: survey.description,
-      canTakeMultiple: survey.canTakeMultiple,
-      isAnonymous: survey.isAnonymous,
+      canTakeMultiple: Boolean(survey.canTakeMultiple), // Convert integer to boolean
+      isAnonymous: Boolean(survey.isAnonymous), // Convert integer to boolean
       companyId: survey.companyId,
       companyName: survey.companyName,
       isActive: survey.isActive,
@@ -98,8 +98,8 @@ export async function POST(request: NextRequest) {
       id: newSurvey.id,
       title: newSurvey.title,
       description: newSurvey.description,
-      canTakeMultiple: newSurvey.canTakeMultiple,
-      isAnonymous: newSurvey.isAnonymous,
+      canTakeMultiple: Boolean(newSurvey.canTakeMultiple), // Convert integer to boolean
+      isAnonymous: Boolean(newSurvey.isAnonymous), // Convert integer to boolean
       companyId: newSurvey.companyId,
       companyName: newSurvey.companyName,
       isActive: newSurvey.isActive,

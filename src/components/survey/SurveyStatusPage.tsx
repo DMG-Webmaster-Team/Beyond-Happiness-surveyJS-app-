@@ -22,6 +22,8 @@ interface SurveyStatusPageProps {
     phone?: string;
   };
   message?: string;
+  anonymous?: boolean;
+  source?: "sessionStorage" | "localStorage" | "none" | null;
 }
 
 export default function SurveyStatusPage({
@@ -29,6 +31,8 @@ export default function SurveyStatusPage({
   survey,
   user,
   message,
+  anonymous = false,
+  source = null,
 }: SurveyStatusPageProps) {
   const router = useRouter();
 
@@ -36,12 +40,26 @@ export default function SurveyStatusPage({
     switch (type) {
       case "not-assigned":
         return {
-          icon: "🚫",
+          icon: (
+            <div className="w-16 h-16 mx-auto mb-6">
+              <svg
+                className="w-full h-full text-red-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          ),
           title: "Survey Not Assigned",
           message: message || "You are not assigned to this survey.",
           color: "text-red-600",
-          bgColor: "bg-red-50",
-          borderColor: "border-red-200",
+          bgColor: "bg-white",
+          borderColor: "border-gray-200",
         };
       case "already-submitted":
         const errorMessage = getErrorMessage(
@@ -50,7 +68,11 @@ export default function SurveyStatusPage({
         return {
           icon: "✅",
           title: errorMessage.title,
-          message: message || errorMessage.message,
+          message:
+            message ||
+            (anonymous
+              ? "You have completed this survey. You can take it again if needed."
+              : errorMessage.message),
           color: "text-green-600",
           bgColor: "bg-green-50",
           borderColor: "border-green-200",
@@ -67,13 +89,26 @@ export default function SurveyStatusPage({
       case "access-denied":
       default:
         return {
-          icon: "🔒",
-          title: "Access Denied",
-          message:
-            message || "You do not have permission to access this survey.",
+          icon: (
+            <div className="w-16 h-16 mx-auto mb-6">
+              <svg
+                className="w-full h-full text-red-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+          ),
+          title: "Survey Not Assigned",
+          message: message || "You are not assigned to this survey.",
           color: "text-red-600",
-          bgColor: "bg-red-50",
-          borderColor: "border-red-200",
+          bgColor: "bg-white",
+          borderColor: "border-gray-200",
         };
     }
   };
@@ -125,7 +160,11 @@ export default function SurveyStatusPage({
           <div className="bg-white rounded-xl shadow-lg p-8">
             <div className="text-center">
               {/* Icon */}
-              <div className="text-6xl mb-4">{config.icon}</div>
+              {typeof config.icon === "string" ? (
+                <div className="text-6xl mb-4">{config.icon}</div>
+              ) : (
+                config.icon
+              )}
 
               {/* Title */}
               <h2 className={`text-2xl font-bold ${config.color} mb-4`}>
@@ -134,6 +173,13 @@ export default function SurveyStatusPage({
 
               {/* Message */}
               <p className="text-gray-600 mb-6">{config.message}</p>
+
+              {/* Debug Info (only show in development) */}
+              {process.env.NODE_ENV === "development" && source && (
+                <div className="text-xs text-gray-400 mb-4 p-2 bg-gray-50 rounded">
+                  🔍 Source: {source}
+                </div>
+              )}
 
               {/* Action Buttons */}
               <div className="space-y-3">

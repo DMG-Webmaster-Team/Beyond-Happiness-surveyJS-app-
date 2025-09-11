@@ -436,16 +436,6 @@ export async function PUT(
       updateCompanyHappinessSurveyAssignments,
     } = await import("../../../../db/queries/survey-company-assignments");
 
-    // Always update company survey assignments (even if empty arrays to clear assignments)
-    await updateCompanySurveyAssignments(id, surveyIds, "system");
-    await updateCompanyHappinessSurveyAssignments(
-      id,
-      happinessSurveyIds,
-      "system"
-    );
-
-    console.log(`✅ Company survey assignments updated successfully`);
-
     // Auto-assign surveys to all users in the company
     console.log(`🔄 Auto-assigning surveys to company users`);
 
@@ -472,55 +462,57 @@ export async function PUT(
       const userIds = companyUsers.map((u: any) => u.id);
       const now = Date.now();
 
-      // Remove ALL existing assignments for these users (to handle unselected surveys)
-      if (userIds.length > 0) {
-        // Get all surveys that were previously assigned to this company
-        const { surveyCompanyAssignments, happinessSurveyCompanyAssignments } =
-          await import("../../../../db/schema/survey-company-assignments");
+      // Get all surveys that were previously assigned to this company BEFORE updating
+      const { surveyCompanyAssignments, happinessSurveyCompanyAssignments } =
+        await import("../../../../db/schema/survey-company-assignments");
 
-        // Get all regular surveys ever assigned to this company
-        const previousRegularSurveys = await db
-          .select({ surveyId: surveyCompanyAssignments.surveyId })
-          .from(surveyCompanyAssignments)
-          .where(eq(surveyCompanyAssignments.companyId, id));
+      const previousRegularSurveys = await db
+        .select({ surveyId: surveyCompanyAssignments.surveyId })
+        .from(surveyCompanyAssignments)
+        .where(eq(surveyCompanyAssignments.companyId, id));
 
-        const previousHappinessSurveys = await db
-          .select({ surveyId: happinessSurveyCompanyAssignments.surveyId })
-          .from(happinessSurveyCompanyAssignments)
-          .where(eq(happinessSurveyCompanyAssignments.companyId, id));
+      const previousHappinessSurveys = await db
+        .select({ surveyId: happinessSurveyCompanyAssignments.surveyId })
+        .from(happinessSurveyCompanyAssignments)
+        .where(eq(happinessSurveyCompanyAssignments.companyId, id));
 
-        const allPreviousRegularSurveyIds = previousRegularSurveys.map(
-          (s) => s.surveyId
+      const allPreviousRegularSurveyIds = previousRegularSurveys.map(
+        (s) => s.surveyId
+      );
+      const allPreviousHappinessSurveyIds = previousHappinessSurveys.map(
+        (s) => s.surveyId
+      );
+
+      // Remove ALL existing assignments for these users from company surveys
+      if (allPreviousRegularSurveyIds.length > 0) {
+        await db
+          .delete(userAssignments)
+          .where(
+            and(
+              inArray(userAssignments.userId, userIds),
+              inArray(userAssignments.surveyId, allPreviousRegularSurveyIds)
+            )
+          );
+        console.log(
+          `🧹 Removed ${allPreviousRegularSurveyIds.length} previous regular survey assignments`
         );
-        const allPreviousHappinessSurveyIds = previousHappinessSurveys.map(
-          (s) => s.surveyId
+      }
+
+      if (allPreviousHappinessSurveyIds.length > 0) {
+        await db
+          .delete(happinessAssignments)
+          .where(
+            and(
+              inArray(happinessAssignments.userId, userIds),
+              inArray(
+                happinessAssignments.surveyId,
+                allPreviousHappinessSurveyIds
+              )
+            )
+          );
+        console.log(
+          `🧹 Removed ${allPreviousHappinessSurveyIds.length} previous happiness survey assignments`
         );
-
-        // Remove existing assignments for surveys that might have been unselected
-        if (allPreviousRegularSurveyIds.length > 0) {
-          await db
-            .delete(userAssignments)
-            .where(
-              and(
-                inArray(userAssignments.userId, userIds),
-                inArray(userAssignments.surveyId, allPreviousRegularSurveyIds)
-              )
-            );
-        }
-
-        if (allPreviousHappinessSurveyIds.length > 0) {
-          await db
-            .delete(happinessAssignments)
-            .where(
-              and(
-                inArray(happinessAssignments.userId, userIds),
-                inArray(
-                  happinessAssignments.surveyId,
-                  allPreviousHappinessSurveyIds
-                )
-              )
-            );
-        }
       }
 
       // Create new assignments for currently selected surveys
@@ -572,6 +564,16 @@ export async function PUT(
     } else {
       console.log(`ℹ️ No users found in company ${id}`);
     }
+
+    // Update company survey assignments AFTER user assignments are handled
+    await updateCompanySurveyAssignments(id, surveyIds, "system");
+    await updateCompanyHappinessSurveyAssignments(
+      id,
+      happinessSurveyIds,
+      "system"
+    );
+
+    console.log(`✅ Company survey assignments updated successfully`);
 
     const result = updatedCompany;
 

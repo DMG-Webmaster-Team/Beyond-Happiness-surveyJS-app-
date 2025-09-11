@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
             surveyMeta = {
               id: surveyDetails.survey.id,
               title: surveyDetails.survey.title,
-              canTakeMultiple: surveyDetails.survey.canTakeMultiple,
+              canTakeMultiple: Boolean(surveyDetails.survey.canTakeMultiple),
             };
           } else {
             // For happiness surveys, we'll use a different structure
@@ -358,13 +358,13 @@ export async function POST(req: NextRequest) {
       const surveySafe = {
         id: surveyDetails.survey.id,
         title: surveyDetails.survey.title,
-        canTakeMultiple: surveyDetails.survey.canTakeMultiple,
+        canTakeMultiple: Boolean(surveyDetails.survey.canTakeMultiple),
       };
 
       console.log("🔍 Survey details:", {
         id: surveySafe.id,
         title: surveySafe.title,
-        canTakeMultiple: surveySafe.canTakeMultiple,
+        canTakeMultiple: Boolean(surveySafe.canTakeMultiple),
         rawCanTakeMultiple: surveyDetails.survey.canTakeMultiple,
       });
 
@@ -447,10 +447,10 @@ export async function POST(req: NextRequest) {
         userId: userData.id,
         userEmail: userData.email,
         surveyId,
-        canTakeMultiple: surveySafe.canTakeMultiple,
+        canTakeMultiple: Boolean(surveySafe.canTakeMultiple),
       });
 
-      if (!surveySafe.canTakeMultiple) {
+      if (!Boolean(surveySafe.canTakeMultiple)) {
         console.log(
           `🔍 Single-take survey - checking existing submissions for user ${userData.id}`
         );
@@ -479,7 +479,7 @@ export async function POST(req: NextRequest) {
 
       // ✅ ENHANCED: Comprehensive access status
       const canAccess =
-        hasSubmitted && !surveySafe.canTakeMultiple ? false : true;
+        hasSubmitted && !Boolean(surveySafe.canTakeMultiple) ? false : true;
       const accessReason = !canAccess ? "already-submitted" : "access-granted";
 
       const responseData = {
@@ -490,7 +490,7 @@ export async function POST(req: NextRequest) {
         survey: {
           id: surveySafe.id,
           title: surveySafe.title,
-          canTakeMultiple: surveySafe.canTakeMultiple,
+          canTakeMultiple: Boolean(surveySafe.canTakeMultiple),
         },
         user: {
           id: userData.id,

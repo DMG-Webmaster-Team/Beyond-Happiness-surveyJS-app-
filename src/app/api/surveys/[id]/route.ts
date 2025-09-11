@@ -80,8 +80,8 @@ export async function GET(
       id: survey.id,
       title: survey.title,
       description: survey.description,
-      canTakeMultiple: survey.canTakeMultiple,
-      isAnonymous: survey.isAnonymous,
+      canTakeMultiple: Boolean(survey.canTakeMultiple), // Convert integer to boolean
+      isAnonymous: Boolean(survey.isAnonymous), // Convert integer to boolean
       companyId: survey.companyId,
       companyName: survey.companyName,
       isActive: survey.isActive,
@@ -142,8 +142,8 @@ export async function PUT(
       id: updatedSurvey.id,
       title: updatedSurvey.title,
       description: updatedSurvey.description,
-      canTakeMultiple: updatedSurvey.canTakeMultiple,
-      isAnonymous: updatedSurvey.isAnonymous,
+      canTakeMultiple: Boolean(updatedSurvey.canTakeMultiple), // Convert integer to boolean
+      isAnonymous: Boolean(updatedSurvey.isAnonymous), // Convert integer to boolean
       companyId: updatedSurvey.companyId,
       companyName: updatedSurvey.companyName,
       isActive: updatedSurvey.isActive,

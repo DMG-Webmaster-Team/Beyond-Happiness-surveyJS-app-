@@ -93,10 +93,10 @@ async function syncUsersWithCompanySurveys(
       for (const userId of userIds) {
         for (const surveyId of surveyIds) {
           regularAssignments.push({
-            id: nanoid(),
             userId,
             surveyId,
             assignedAt: now,
+            status: "pending",
           });
         }
       }
@@ -116,6 +116,8 @@ async function syncUsersWithCompanySurveys(
             userId,
             surveyId,
             assignedAt: now,
+            assignedBy: "system",
+            isActive: true,
           });
         }
       }
@@ -187,7 +189,7 @@ export async function POST(request: NextRequest) {
       description: description || null,
     });
 
-    // Update survey assignments
+    // Update survey assignments for the company
     await updateSurveyAssignments(
       company.id,
       name,
@@ -195,12 +197,26 @@ export async function POST(request: NextRequest) {
       happinessSurveyIds
     );
 
-    // Sync existing users with new survey assignments
-    await syncUsersWithCompanySurveys(
-      company.id,
-      surveyIds,
-      happinessSurveyIds
-    );
+    // Sync any existing users that might be assigned to this company
+    // This handles edge cases where users were created before company surveys were assigned
+    if (surveyIds.length > 0 || happinessSurveyIds.length > 0) {
+      try {
+        await syncUsersWithCompanySurveys(
+          company.id,
+          surveyIds,
+          happinessSurveyIds
+        );
+        console.log(
+          `✅ Synced existing users with new company ${company.id} survey assignments`
+        );
+      } catch (error) {
+        console.warn(
+          `⚠️ Failed to sync existing users with company ${company.id}:`,
+          error
+        );
+        // Don't fail company creation if user sync fails
+      }
+    }
 
     return NextResponse.json(company, { status: 201 });
   } catch (error) {
