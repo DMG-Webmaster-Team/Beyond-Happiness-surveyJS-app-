@@ -532,13 +532,20 @@ export async function POST(request: NextRequest) {
       console.log("🔄 Starting import process...");
 
       // Handle different import scenarios
-      console.log("🔄 Processing mixed import: company + surveys");
-      importResults = await processMixedImport(
-        validRows,
-        companyId,
-        surveyIds,
-        happinessSurveyIds
-      );
+      if (hasCompany && !hasSurveys) {
+        // Company-only import: assign all company surveys
+        console.log("🔄 Processing company-only import");
+        importResults = await processCompanyImport(validRows, companyId);
+      } else {
+        // Mixed import: company surveys + manual surveys
+        console.log("🔄 Processing mixed import: company + surveys");
+        importResults = await processMixedImport(
+          validRows,
+          companyId,
+          surveyIds,
+          happinessSurveyIds
+        );
+      }
       console.log("✅ Import process completed successfully");
     } catch (importError) {
       console.error("❌ Import process failed:", importError);

@@ -75,9 +75,17 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
         limit: pagination.limit.toString(),
         ...(query && { query }),
         ...(status && { status }),
+        _t: Date.now().toString(), // Cache busting parameter
       });
 
-      const response = await fetch(`/api/users?${params}`);
+      const response = await fetch(`/api/users?${params}`, {
+        cache: 'no-store', // Disable caching
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
       const data = await response.json();
 
       if (!response.ok) {
@@ -130,7 +138,16 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
   // Refresh data when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger) {
-      fetchUsers(pagination.page, searchQuery, statusFilter);
+      console.log('🔄 Refreshing due to trigger change');
+      // Clear current data first to show loading state
+      setUsers([]);
+      setPagination({
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      });
+      fetchUsers(1, searchQuery, statusFilter);
     }
   }, [refreshTrigger]);
 
@@ -385,6 +402,29 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
             className="px-4 py-2 bg-blue-400 text-white rounded-md hover:bg-blue-600"
           >
             Search
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={() => {
+              console.log('🔄 Manual refresh triggered');
+              // Clear current data first to show loading state
+              setUsers([]);
+              setPagination({
+                page: 1,
+                limit: 20,
+                total: 0,
+                totalPages: 0,
+              });
+              fetchUsers(1, searchQuery, statusFilter);
+            }}
+            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
           </motion.button>
         </form>
       </div>
