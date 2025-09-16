@@ -1,0 +1,243 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db";
+import { users, surveys, results, userAssignments } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
+
+interface UserSession {
+  id: string;
+  email: string;
+  phone?: string;
+  name?: string;
+  loginTime: string;
+}
+
+interface SurveySessionResponse {
+  user?: {
+    id: string;
+    email: string;
+    phone?: string;
+    name?: string;
+  };
+  survey: {
+    id: string;
+    title: string;
+    description?: string;
+    json?: string;
+    canTakeMultiple: boolean;
+    isAnonymous: boolean;
+    adminId: string;
+  };
+  submissionStatus: {
+    hasSubmitted: boolean;
+    canRetake: boolean;
+    submissionCount: number;
+  };
+  assignment?: {
+    status: string;
+    dueAt?: Date | null;
+  };
+}
+
+/**
+ * Unified endpoint for survey session management
+ * Handles both anonymous and authenticated surveys
+ * Returns all necessary data for the survey page to render without flicker
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { surveyId: string } }
+) {
+  try {
+    const { surveyId } = params;
+
+    if (!surveyId) {
+      return NextResponse.json(
+        { error: "Survey ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // 1. Fetch the survey details first
+    const [surveyData] = await db
+      .select()
+      .from(surveys)
+      .where(eq(surveys.id, surveyId))
+      .limit(1);
+
+    if (!surveyData) {
+      // Check if it's a happiness survey
+      try {
+        const { happinessSurveys } = await import("@/db/schema/happiness");
+        const [happinessSurvey] = await db
+          .select()
+          .from(happinessSurveys)
+          .where(eq(happinessSurveys.id, surveyId))
+          .limit(1);
+
+        if (happinessSurvey) {
+          return NextResponse.json(
+            {
+              error: "This is a happiness survey",
+              redirect: true,
+              redirectUrl: `/happiness/${surveyId}`,
+              surveyType: "happiness",
+            },
+            { status: 302 }
+          );
+        }
+      } catch (error) {
+        console.error("Error checking happiness survey:", error);
+      }
+
+      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
+    }
+
+    // 2. Check for user authentication from cookie
+    let userData: UserSession | null = null;
+    const userSessionCookie = request.cookies.get("user_session");
+
+    if (userSessionCookie) {
+      try {
+        const sessionData = JSON.parse(userSessionCookie.value);
+
+        // Verify session is not expired (30 minutes)
+        const loginTime = new Date(sessionData.loginTime).getTime();
+        const sessionAge = Date.now() - loginTime;
+        const thirtyMinutes = 30 * 60 * 1000;
+
+        if (sessionAge <= thirtyMinutes) {
+          // Verify user still exists in database
+          const [dbUser] = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, sessionData.id))
+            .limit(1);
+          if (dbUser) {
+            userData = {
+              id: dbUser.id,
+              email: dbUser.email,
+              phone: dbUser.phone || undefined,
+              name: dbUser.name || undefined,
+              loginTime: sessionData.loginTime,
+            };
+          } else {
+          }
+        } else {
+        }
+      } catch (error) {
+        console.error("Error parsing user session:", error);
+        // Invalid session, continue as anonymous
+      }
+    } else {
+    }
+
+    // 3. Determine submission status
+    let submissionStatus = {
+      hasSubmitted: false,
+      canRetake: false,
+      submissionCount: 0,
+    };
+
+    // For authenticated users, check their submission history
+    if (userData) {
+      const userResults = await db
+        .select()
+        .from(results)
+        .where(
+          and(eq(results.userId, userData.id), eq(results.surveyId, surveyId))
+        );
+
+      submissionStatus.submissionCount = userResults.length;
+      submissionStatus.hasSubmitted = userResults.length > 0;
+
+      // Can retake if survey allows multiple submissions OR if never submitted
+      submissionStatus.canRetake =
+        Boolean(surveyData.canTakeMultiple) ||
+        submissionStatus.submissionCount === 0;
+    } else if (surveyData.isAnonymous) {
+      // For anonymous surveys, we can't track submissions server-side
+      // The client may use temporary cookies/storage, but we always allow submission
+      submissionStatus.canRetake = true;
+      submissionStatus.hasSubmitted = false;
+    } else {
+      // Non-anonymous survey without authentication
+      // This shouldn't happen due to middleware, but handle it gracefully
+      return NextResponse.json(
+        {
+          error: "Authentication required",
+          requiresAuth: true,
+          redirectUrl: `/user/login?redirect=${surveyId}`,
+        },
+        { status: 401 }
+      );
+    }
+
+    // 4. Check for survey assignment (if user is authenticated)
+    let assignmentData = null;
+    if (userData) {
+      const [assignment] = await db
+        .select()
+        .from(userAssignments)
+        .where(
+          and(
+            eq(userAssignments.userId, userData.id),
+            eq(userAssignments.surveyId, surveyId)
+          )
+        )
+        .limit(1);
+
+      if (assignment) {
+        assignmentData = {
+          status: assignment.status || "pending",
+          dueAt: assignment.dueAt ? new Date(assignment.dueAt) : null,
+        };
+      }
+    }
+
+    // 5. Build the response
+    const response: SurveySessionResponse = {
+      survey: {
+        id: surveyData.id,
+        title: surveyData.title,
+        description: surveyData.description || undefined,
+        json: surveyData.definition || undefined,
+        canTakeMultiple: Boolean(surveyData.canTakeMultiple),
+        isAnonymous: Boolean(surveyData.isAnonymous),
+        adminId: surveyData.createdBy,
+      },
+      submissionStatus,
+    };
+
+    // Include user data if authenticated
+    if (userData) {
+      response.user = {
+        id: userData.id,
+        email: userData.email,
+        phone: userData.phone,
+        name: userData.name,
+      };
+    }
+
+    // Include assignment data if exists
+    if (assignmentData) {
+      response.assignment = assignmentData;
+    }
+
+    // Set cache headers to prevent stale data
+    const apiResponse = NextResponse.json(response);
+    apiResponse.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate"
+    );
+    apiResponse.headers.set("Pragma", "no-cache");
+    apiResponse.headers.set("Expires", "0");
+
+    return apiResponse;
+  } catch (error) {
+    console.error("Error in survey-session API:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

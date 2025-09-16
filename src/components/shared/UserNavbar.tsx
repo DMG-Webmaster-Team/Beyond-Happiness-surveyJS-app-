@@ -56,7 +56,17 @@ export default function UserNavbar() {
       // Fallback to basic logout
       setIsLoggedIn(false);
       setShowLogoutModal(false);
-      router.push("/user/login");
+
+      // Try to preserve survey ID from current URL
+      const currentPath = window.location.pathname;
+      const surveyIdMatch = currentPath.match(/\/survey\/([^\/]+)/);
+      const surveyId = surveyIdMatch ? surveyIdMatch[1] : null;
+
+      if (surveyId) {
+        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
+      } else {
+        router.push("/user/login");
+      }
     }
   };
 

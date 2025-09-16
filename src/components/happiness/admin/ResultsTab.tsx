@@ -49,6 +49,71 @@ export default function ResultsTab() {
     setPage(1); // Reset to first page when search changes
   }, [debouncedUserEmail]);
 
+  // Function to export all results to CSV
+  const handleExportAllCSV = () => {
+    if (!data?.results || data.results.length === 0) return;
+
+    // Prepare CSV data
+    const csvData = [
+      // Headers
+      [
+        "Result ID",
+        "Survey ID",
+        "Survey Title",
+        "User Email",
+        "User Name",
+        "Character Code",
+        "Character Name",
+        "Meaning Score",
+        "Delight Score",
+        "Freedom Score",
+        "Engagement Score",
+        "Vitality Score",
+        "Total Score",
+        "Submission Date",
+        "Export Date",
+      ],
+      // Data rows
+      ...data.results.map((result: HappinessResult) => [
+        result.id,
+        result.surveyId,
+        result.surveyTitle,
+        result.userEmail || "Anonymous",
+        result.userName || "N/A",
+        result.code,
+        result.characterName,
+        result.categoryTotals.Meaning,
+        result.categoryTotals.Delight,
+        result.categoryTotals.Freedom,
+        result.categoryTotals.Engagement,
+        result.categoryTotals.Vitality,
+        Object.values(result.categoryTotals).reduce(
+          (sum, score) => sum + score,
+          0
+        ),
+        new Date(result.createdAt).toISOString().split("T")[0],
+        new Date().toISOString().split("T")[0],
+      ]),
+    ];
+
+    // Convert to CSV string
+    const csvContent = csvData.map((row) => row.join(",")).join("\n");
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `happiness_survey_results_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   // Build query string
   const queryParams = new URLSearchParams();
   if (filters.surveyId) queryParams.set("surveyId", filters.surveyId);
@@ -131,21 +196,43 @@ export default function ResultsTab() {
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-medium text-gray-700">Filter Results</h3>
-          <button
-            onClick={() => {
-              setFilters({
-                surveyId: "",
-                userEmail: "",
-                startDate: "",
-                endDate: "",
-              });
-              setUserEmailInput("");
-              setPage(1);
-            }}
-            className="text-sm text-blue-400 hover:text-blue-600 font-medium"
-          >
-            Clear All Filters
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleExportAllCSV}
+              disabled={!data?.results || data.results.length === 0}
+              className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
+            >
+              <svg
+                className="w-4 h-4 mr-1.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Export CSV
+            </button>
+            <button
+              onClick={() => {
+                setFilters({
+                  surveyId: "",
+                  userEmail: "",
+                  startDate: "",
+                  endDate: "",
+                });
+                setUserEmailInput("");
+                setPage(1);
+              }}
+              className="text-sm text-blue-400 hover:text-blue-600 font-medium"
+            >
+              Clear All Filters
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
