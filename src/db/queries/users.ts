@@ -294,3 +294,27 @@ export async function upsertSurvey(surveyData: {
     return { survey: result[0], created: true };
   }
 }
+
+export async function createHappinessAssignment(assignmentData: {
+  userId: string;
+  surveyId: string;
+  assignedBy: string;
+  isActive: boolean;
+}): Promise<any> {
+  const { happinessAssignments } = await import("../schema/happiness");
+  const { nanoid } = await import("nanoid");
+
+  const [assignment] = await db
+    .insert(happinessAssignments)
+    .values({
+      id: nanoid(),
+      userId: assignmentData.userId,
+      surveyId: assignmentData.surveyId,
+      assignedBy: assignmentData.assignedBy,
+      isActive: assignmentData.isActive,
+      // assignedAt will use default value from schema
+    })
+    .returning();
+
+  return assignment;
+}

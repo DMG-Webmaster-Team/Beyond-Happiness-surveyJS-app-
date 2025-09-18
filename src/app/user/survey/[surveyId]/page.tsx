@@ -134,12 +134,140 @@ export default function SurveyPage() {
     }
 
     try {
-      const model = new Model(JSON.parse(sessionData.survey.json));
+      const originalSurveyJson = JSON.parse(sessionData.survey.json);
+      let surveyJson = { ...originalSurveyJson };
+
+      // If survey is anonymous, prepend intro page for user info collection
+      if (sessionData.survey.isAnonymous) {
+        const introPage = {
+          name: "anonymousInfoPage",
+          title: "Please provide your information",
+          description:
+            "This information helps us better understand our survey participants.",
+          elements: [
+            {
+              type: "text",
+              name: "anonymousInfo.name",
+              title: "Full Name",
+              isRequired: true,
+              placeholder: "Enter your full name",
+            },
+            {
+              type: "text",
+              name: "anonymousInfo.phone",
+              title: "Phone Number",
+              isRequired: true,
+              placeholder: "Enter your phone number",
+              inputType: "tel",
+              validators: [
+                {
+                  type: "regex",
+                  text: "Please enter a valid phone number",
+                  regex: "^[+]?[0-9\\s\\-\\(\\)]{10,}$",
+                },
+              ],
+            },
+            {
+              type: "text",
+              name: "anonymousInfo.email",
+              title: "Email Address",
+              isRequired: true,
+              placeholder: "Enter your email address",
+              inputType: "email",
+              validators: [
+                {
+                  type: "email",
+                  text: "Please enter a valid email address",
+                },
+              ],
+            },
+            {
+              type: "dropdown",
+              name: "anonymousInfo.gender",
+              title: "Gender",
+              isRequired: true,
+              choices: [
+                { value: "male", text: "Male" },
+                { value: "female", text: "Female" },
+              ],
+              placeholder: "Select your gender",
+            },
+            {
+              type: "dropdown",
+              name: "anonymousInfo.ageRange",
+              title: "Age Range",
+              isRequired: true,
+              choices: [
+                { value: "under_18", text: "Under 18" },
+                { value: "18_25", text: "18–25" },
+                { value: "26_35", text: "26–35" },
+                { value: "36_50", text: "36–50" },
+                { value: "51_plus", text: "51+" },
+              ],
+              placeholder: "Select your age range",
+            },
+          ],
+        };
+
+        // Prepend the intro page to existing pages
+        surveyJson.pages = [introPage, ...(surveyJson.pages || [])];
+
+        // Ensure we have a title if not set
+        if (!surveyJson.title) {
+          surveyJson.title = sessionData.survey.title;
+        }
+      }
+
+      const model = new Model(surveyJson);
 
       // Configure survey model
       model.showCompletedPage = false;
       model.showLoadingButtonIn = "navigation";
       model.showPreviewBeforeComplete = "showAllQuestions";
+
+      // Check if this is a multi-language survey and apply UI customizations
+      const isMultiLanguageSurvey =
+        model.getVariable("isMultiLanguageSurvey") === true ||
+        model.getQuestionByName("languageChoice") !== null;
+
+      if (isMultiLanguageSurvey) {
+        // Apply UI customizations for multi-language surveys only using proper SurveyJS settings
+        model.showTitle = false; // Hide survey title
+        model.showPageTitles = false; // Hide page titles
+        model.showNavigationButtons = true; // Enable navigation buttons
+        model.showNavigationButtonsOnTop = false; // Hide top navigation buttons
+        model.showNavigationButtonsOnBottom = true; // Show bottom navigation buttons
+        model.showPreviewBeforeComplete = "noPreview"; // Remove preview button
+        model.completeText = "Complete"; // Set complete button text
+        model.showQuestionNumbers = "off"; // Hide question numbers
+
+        // Add data attribute to survey element for CSS targeting
+        model.onAfterRenderSurvey.add((sender, options) => {
+          const surveyElement = options.htmlElement;
+          if (surveyElement) {
+            surveyElement.setAttribute("data-multilang", "true");
+          }
+        });
+
+        // Safe cleanup - only hide top footer if SurveyJS still renders it
+        model.onAfterRenderPage.add((sender, options) => {
+          const pageElement = options.htmlElement;
+          if (pageElement) {
+            // Only hide top footer elements that might still appear
+            const topFooters = pageElement.querySelectorAll(
+              ".sv-footer.sv-footer-top"
+            );
+            topFooters.forEach((el) => {
+              const htmlEl = el as HTMLElement;
+              htmlEl.style.display = "none";
+            });
+          }
+        });
+
+        console.log(
+          "🌐 Multi-language survey detected - Safe UI customizations applied"
+        );
+      }
 
       // Handle survey completion
       model.onComplete.add(async (sender) => {

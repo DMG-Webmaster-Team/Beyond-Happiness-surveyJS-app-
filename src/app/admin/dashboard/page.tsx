@@ -34,6 +34,12 @@ const PDFExportModal = dynamic(() => import("@/components/PDFExportModal"), {
   loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded"></div>,
 });
 
+// QR Code modal
+const QRCodeModal = dynamic(() => import("@/components/QRCodeModal"), {
+  ssr: false,
+  loading: () => <div className="animate-pulse bg-gray-200 h-32 rounded"></div>,
+});
+
 interface Survey {
   id: string;
   title: string;
@@ -63,6 +69,7 @@ export default function AdminDashboard() {
   const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
   const [isTableViewModalOpen, setIsTableViewModalOpen] = useState(false);
   const [IsPDFModalOpen, setIsPDFModalOpen] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [surveyToDelete, setSurveyToDelete] = useState<string | null>(null);
@@ -383,6 +390,17 @@ export default function AdminDashboard() {
                               whileTap={{ scale: 0.95 }}
                               onClick={() => {
                                 setSelectedSurveyId(survey.id);
+                                setIsQRModalOpen(true);
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-purple-300 text-sm font-medium rounded text-purple-700 bg-white hover:bg-purple-50"
+                            >
+                              QR Code
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => {
+                                setSelectedSurveyId(survey.id);
                                 setIsResultsModalOpen(true);
                               }}
                               className="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
@@ -489,6 +507,18 @@ export default function AdminDashboard() {
           isOpen={IsPDFModalOpen}
           onClose={() => {
             setIsPDFModalOpen(false);
+            setSelectedSurveyId(null);
+          }}
+        />
+      )}
+
+      {/* QR Code Modal */}
+      {selectedSurveyId && (
+        <QRCodeModal
+          surveyId={selectedSurveyId}
+          isOpen={isQRModalOpen}
+          onClose={() => {
+            setIsQRModalOpen(false);
             setSelectedSurveyId(null);
           }}
         />
