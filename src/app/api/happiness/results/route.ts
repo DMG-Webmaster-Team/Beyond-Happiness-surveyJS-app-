@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { surveyId, answers } = body;
+    const { surveyId, answers, language } = body;
 
     // Validation
     if (!surveyId || !answers || !Array.isArray(answers)) {
@@ -125,6 +125,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Validate language
+    const selectedLanguage =
+      language && ["en", "ar"].includes(language) ? language : "en";
 
     // Extract userId from session cookies
     let userId: string | null = null;
@@ -260,7 +264,8 @@ export async function POST(request: NextRequest) {
 
     // Compute happiness score
     const scoreResult = await computeHappinessScore(
-      answers as HappinessAnswer[]
+      answers as HappinessAnswer[],
+      selectedLanguage as "en" | "ar"
     );
 
     // Store result
@@ -274,6 +279,7 @@ export async function POST(request: NextRequest) {
         categoryTotals: JSON.stringify(scoreResult.categoryTotals),
         code: scoreResult.code,
         characterId: scoreResult.character.id,
+        language: selectedLanguage,
       })
       .returning();
 

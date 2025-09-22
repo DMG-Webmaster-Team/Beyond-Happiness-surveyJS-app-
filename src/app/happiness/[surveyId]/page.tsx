@@ -19,7 +19,7 @@ import {
 
 interface HappinessQuestion {
   id: number;
-  text: string;
+  text: string | { en: string; ar: string };
   category: string;
   values: number[];
   isActive: boolean;
@@ -28,6 +28,13 @@ interface HappinessQuestion {
 interface SurveyAnswer {
   questionId: number;
   valueIndex: number; // 1-5
+  questionText?: { en: string; ar: string };
+  answerText?: { en: string; ar: string };
+}
+
+interface MultilingualChoice {
+  value: number;
+  text: { en: string; ar: string };
 }
 
 export default function HappinessSurveyPage({
@@ -36,6 +43,8 @@ export default function HappinessSurveyPage({
   params: { surveyId: string };
 }) {
   const router = useRouter();
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
+  const [showLanguageSelection, setShowLanguageSelection] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<SurveyAnswer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,16 +61,36 @@ export default function HappinessSurveyPage({
   const [accessCheckError, setAccessCheckError] = useState<any>(null);
   const [questionsData, setQuestionsData] = useState<any>(null);
   const [questionsError, setQuestionsError] = useState<any>(null);
+  const [multilingualChoices, setMultilingualChoices] = useState<
+    MultilingualChoice[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessCheckComplete, setAccessCheckComplete] = useState(false);
 
-  // Store surveyId in sessionStorage for logout recovery
+  // Store surveyId in sessionStorage for logout recovery and check for language parameter
   useEffect(() => {
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
       console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
+    }
+
+    // Check for language parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get("lang");
+    if (langParam === "ar" || langParam === "en") {
+      setSelectedLanguage(langParam);
+      setShowLanguageSelection(false);
+
+      // Apply RTL/LTR direction
+      if (langParam === "ar") {
+        document.body.dir = "rtl";
+        document.documentElement.dir = "rtl";
+      } else {
+        document.body.dir = "ltr";
+        document.documentElement.dir = "ltr";
+      }
     }
   }, [params.surveyId]);
 
@@ -216,6 +245,31 @@ export default function HappinessSurveyPage({
     };
   }, [params.surveyId, router, hasRedirected]);
 
+  // Handle language selection
+  const handleLanguageSelect = (language: string) => {
+    setSelectedLanguage(language);
+    setShowLanguageSelection(false);
+
+    // Apply RTL/LTR direction
+    if (language === "ar") {
+      document.body.dir = "rtl";
+      document.documentElement.dir = "rtl";
+    } else {
+      document.body.dir = "ltr";
+      document.documentElement.dir = "ltr";
+    }
+  };
+
+  // Get localized text
+  const getLocalizedText = (
+    text: string | { en: string; ar: string } | undefined | null
+  ) => {
+    if (!text) return "";
+    if (typeof text === "string") return text;
+    const lang = selectedLanguage || "en";
+    return text[lang as "en" | "ar"] || text.en || "";
+  };
+
   // Fetch questions data
   useEffect(() => {
     if (!accessCheckComplete || !accessData) {
@@ -227,14 +281,25 @@ export default function HappinessSurveyPage({
         setIsLoading(true);
         setQuestionsError(null);
 
-        const response = await fetch("/api/happiness/questions");
-        if (!response.ok) {
-          throw new Error("Failed to fetch questions");
+        // Fetch multilingual questions
+        const multilingualResponse = await fetch(
+          "/data/happiness-questions-multilingual.json"
+        );
+        if (multilingualResponse.ok) {
+          const multilingualData = await multilingualResponse.json();
+          console.log("🔍 Multilingual questions fetched:", multilingualData);
+          setQuestionsData(multilingualData);
+          setMultilingualChoices(multilingualData.choices || []);
+        } else {
+          // Fallback to original API
+          const response = await fetch("/api/happiness/questions");
+          if (!response.ok) {
+            throw new Error("Failed to fetch questions");
+          }
+          const data = await response.json();
+          console.log("🔍 Questions fetched (fallback):", data);
+          setQuestionsData(data);
         }
-
-        const data = await response.json();
-        console.log("🔍 Questions fetched:", data);
-        setQuestionsData(data);
       } catch (error) {
         console.error("❌ Error fetching questions:", error);
         setQuestionsError(error);
@@ -248,9 +313,23 @@ export default function HappinessSurveyPage({
 
   const handleAnswer = (valueIndex: number) => {
     const currentQuestion = questions[currentQuestionIndex];
+    const selectedChoice = multilingualChoices.find(
+      (c) => c.value === valueIndex
+    );
+
     const newAnswer: SurveyAnswer = {
       questionId: currentQuestion.id,
       valueIndex,
+      questionText:
+        typeof (currentQuestion.question || currentQuestion.text) === "object"
+          ? currentQuestion.question || currentQuestion.text
+          : {
+              en: currentQuestion.question || currentQuestion.text,
+              ar: currentQuestion.question || currentQuestion.text,
+            },
+      answerText: selectedChoice
+        ? selectedChoice.text
+        : { en: `Choice ${valueIndex}`, ar: `الخيار ${valueIndex}` },
     };
 
     setAnswers((prev) => {
@@ -308,6 +387,7 @@ export default function HappinessSurveyPage({
         body: JSON.stringify({
           surveyId: params.surveyId,
           answers,
+          language: selectedLanguage,
         }),
       });
 
@@ -338,8 +418,10 @@ export default function HappinessSurveyPage({
       // Mark survey as submitted in session storage
       setSurveySubmitted(params.surveyId);
 
-      // Navigate to results page
-      router.push(`/happiness/${params.surveyId}/results`);
+      // Navigate to results page with language parameter
+      router.push(
+        `/happiness/${params.surveyId}/results?lang=${selectedLanguage}`
+      );
     } catch (error) {
       console.error("❌ Error submitting survey:", error);
       setError(error instanceof Error ? error.message : "Submission failed");
@@ -430,6 +512,62 @@ export default function HappinessSurveyPage({
 
   const questions = questionsData?.questions || [];
 
+  // Show language selection if not selected yet
+  if (showLanguageSelection) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Conditional Navbar based on survey type */}
+        {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+
+        {/* Header */}
+        <div className="bg-white shadow-sm">
+          <div className="max-w-4xl text-center mx-auto px-4 py-6">
+            <h1 className="text-2xl  font-bold text-blue-600">
+              اختر اللغة / Select Language
+            </h1>
+          </div>
+        </div>
+
+        {/* Language Selection */}
+        <div className="max-w-2xl text-center mx-auto px-4 py-8">
+          <div className="bg-white  rounded-lg  shadow-sm p-8">
+            <div className="space-y-4">
+              <button
+                onClick={() => handleLanguageSelect("en")}
+                className="w-full  p-6 text-left border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-900">
+                      English
+                    </h3>
+                    <p className="text-gray-600 mt-1">Continue in English</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => handleLanguageSelect("ar")}
+                className="w-full p-6  border-2 border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all group"
+              >
+                <div className=" text-right">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-900">
+                      العربية
+                    </h3>
+                    <p className="text-gray-600 mt-1">
+                      المتابعة باللغة العربية
+                    </p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (questions.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -454,6 +592,24 @@ export default function HappinessSurveyPage({
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
+  // Removed debug logging - fixes applied successfully
+
+  // Safety check: don't render if current question is undefined
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Loading Question...
+          </h1>
+          <p className="text-gray-600">
+            Please wait while we load the survey question.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Conditional Navbar based on survey type */}
@@ -462,9 +618,13 @@ export default function HappinessSurveyPage({
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-4xl text-center mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold text-blue-600">
+            {selectedLanguage === "ar" ? "استطلاع السعادة" : "Happiness Survey"}
+          </h1>
           <p className="text-blue-500 mt-2">
-            Discover your happiness profile through this comprehensive
-            assessment
+            {selectedLanguage === "ar"
+              ? "اكتشف ملف السعادة الخاص بك من خلال هذا التقييم الشامل"
+              : "Discover your happiness profile through this comprehensive assessment"}
           </p>
         </div>
       </div>
@@ -474,50 +634,113 @@ export default function HappinessSurveyPage({
         <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              {currentQuestion.text}
+              {getLocalizedText(
+                currentQuestion.question || currentQuestion.text
+              )}
             </h2>
 
             <div className="space-y-3">
-              {[
-                "Never / Strongly Disagree",
-                "Rarely / Disagree",
-                "Sometimes / Neutral",
-                "Often / Agree",
-                "Always / Strongly Agree",
-              ].map((label, index) => {
-                const isSelected = answers.some(
-                  (a) =>
-                    a.questionId === currentQuestion.id &&
-                    a.valueIndex === index + 1
-                );
+              {multilingualChoices.length > 0
+                ? multilingualChoices.map((choice, index) => {
+                    const label = getLocalizedText(choice.text);
+                    const isSelected = answers.some(
+                      (a) =>
+                        a.questionId === currentQuestion.id &&
+                        a.valueIndex === choice.value
+                    );
 
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleAnswer(index + 1)}
-                    className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
-                      isSelected
-                        ? "border-blue-400 bg-blue-50 text-blue-900"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{label}</span>
-                      <div
-                        className={`w-5 h-5 rounded-full border-2 ${
+                    return (
+                      <button
+                        key={choice.value}
+                        onClick={() => handleAnswer(choice.value)}
+                        className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
                           isSelected
-                            ? "border-blue-400 bg-blue-400"
-                            : "border-gray-300"
+                            ? "border-blue-400 bg-blue-50 text-blue-900"
+                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
                         }`}
                       >
-                        {isSelected && (
-                          <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{label}</span>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 ${
+                              isSelected
+                                ? "border-blue-400 bg-blue-400"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })
+                : [
+                    {
+                      value: 1,
+                      text: {
+                        en: "Never / Strongly Disagree",
+                        ar: "أبداً / أعارض بشدة",
+                      },
+                    },
+                    {
+                      value: 2,
+                      text: { en: "Rarely / Disagree", ar: "نادراً / أعارض" },
+                    },
+                    {
+                      value: 3,
+                      text: {
+                        en: "Sometimes / Neutral",
+                        ar: "أحياناً / محايد",
+                      },
+                    },
+                    {
+                      value: 4,
+                      text: { en: "Often / Agree", ar: "غالباً / أوافق" },
+                    },
+                    {
+                      value: 5,
+                      text: {
+                        en: "Always / Strongly Agree",
+                        ar: "دائماً / أوافق بشدة",
+                      },
+                    },
+                  ].map((choice) => {
+                    const label = getLocalizedText(choice.text);
+                    const isSelected = answers.some(
+                      (a) =>
+                        a.questionId === currentQuestion.id &&
+                        a.valueIndex === choice.value
+                    );
+
+                    return (
+                      <button
+                        key={choice.value}
+                        onClick={() => handleAnswer(choice.value)}
+                        className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
+                          isSelected
+                            ? "border-blue-400 bg-blue-50 text-blue-900"
+                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{label}</span>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 ${
+                              isSelected
+                                ? "border-blue-400 bg-blue-400"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
             </div>
           </div>
 
@@ -532,7 +755,7 @@ export default function HappinessSurveyPage({
                   : "bg-gray-500 hover:bg-gray-600 text-white"
               }`}
             >
-              Previous
+              {selectedLanguage === "ar" ? "السابق" : "Previous"}
             </button>
 
             {isLastQuestion ? (
@@ -552,7 +775,13 @@ export default function HappinessSurveyPage({
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {isSubmitting ? "Submitting..." : "Submit Survey"}
+                {isSubmitting
+                  ? selectedLanguage === "ar"
+                    ? "جاري الإرسال..."
+                    : "Submitting..."
+                  : selectedLanguage === "ar"
+                  ? "إرسال الاستطلاع"
+                  : "Submit Survey"}
               </button>
             ) : (
               <button
@@ -565,7 +794,7 @@ export default function HappinessSurveyPage({
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                Next
+                {selectedLanguage === "ar" ? "التالي" : "Next"}
               </button>
             )}
           </div>

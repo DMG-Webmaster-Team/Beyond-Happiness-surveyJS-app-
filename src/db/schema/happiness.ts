@@ -61,12 +61,13 @@ export const happinessResults = sqliteTable(
       .notNull()
       .references(() => happinessSurveys.id),
     userId: text("user_id"), // nullable for anonymous surveys
-    answers: text("answers").notNull(), // JSON array of {questionId, valueIndex}
+    answers: text("answers").notNull(), // JSON array of {questionId, valueIndex, questionText?, answerText?}
     categoryTotals: text("category_totals").notNull(), // JSON object {Meaning: number, ...}
     code: text("code", { length: 5 }).notNull(), // 5-bit string like "01111"
     characterId: integer("character_id")
       .notNull()
       .references(() => happinessCharacters.id),
+    language: text("language", { length: 2 }).default("en"), // "en" or "ar"
     createdAt: integer("created_at").default(sql`(unixepoch())`),
   },
   (table) => ({

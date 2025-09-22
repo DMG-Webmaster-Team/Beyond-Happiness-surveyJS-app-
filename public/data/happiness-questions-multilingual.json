@@ -1,0 +1,401 @@
+{
+  "questions": [
+    {
+      "id": 1,
+      "question": {
+        "en": "I believe that my daily activities are meaningful and contribute to a greater good.",
+        "ar": "أعتقد أن أنشطتي اليومية لها معنى وتساهم في الخير العام."
+      },
+      "category": "Meaning",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 2,
+      "question": {
+        "en": "I am committed to goals or causes that spark my passion and inspire action.",
+        "ar": "أنا ملتزم بأهداف أو قضايا تشعل شغفي وتلهمني للعمل."
+      },
+      "category": "Meaning",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 3,
+      "question": {
+        "en": "My actions and choices consistently reflect what's really important to me.",
+        "ar": "أفعالي وخياراتي تعكس باستمرار ما هو مهم حقاً بالنسبة لي."
+      },
+      "category": "Meaning",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 4,
+      "question": {
+        "en": "The places where I live, work, and spend time support me in living according to my most important values.",
+        "ar": "الأماكن التي أعيش وأعمل وأقضي فيها وقتي تدعمني في العيش وفقاً لقيمي الأهم."
+      },
+      "category": "Meaning",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 5,
+      "question": {
+        "en": "I frequently engage in experiences that challenge me and help me grow personally and professionally.",
+        "ar": "أشارك بانتظام في تجارب تتحداني وتساعدني على النمو شخصياً ومهنياً."
+      },
+      "category": "Meaning",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 6,
+      "question": {
+        "en": "I am aware of my personal strengths and actively seek opportunities to apply them in various aspects of my life.",
+        "ar": "أنا مدرك لنقاط قوتي الشخصية وأسعى بنشاط لإيجاد فرص لتطبيقها في جوانب مختلفة من حياتي."
+      },
+      "category": "Meaning",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 7,
+      "question": {
+        "en": "I frequently express gratitude and show appreciation to others for their support, kindness, or positive impact on my life.",
+        "ar": "أعبر بانتظام عن الامتنان وأظهر التقدير للآخرين لدعمهم ولطفهم أو تأثيرهم الإيجابي على حياتي."
+      },
+      "category": "Meaning",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 8,
+      "question": {
+        "en": "I regularly take a moment to acknowledge and appreciate my personal achievements, strengths, or growth.",
+        "ar": "أخذ بانتظام لحظة للاعتراف بإنجازاتي الشخصية ونقاط قوتي أو نموي وتقديرها."
+      },
+      "category": "Meaning",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 9,
+      "question": {
+        "en": "I engage in creative activities in the community where I live.",
+        "ar": "أشارك في أنشطة إبداعية في المجتمع الذي أعيش فيه."
+      },
+      "category": "Delight",
+      "values": [0, 75, 250, 375, 500]
+    },
+    {
+      "id": 10,
+      "question": {
+        "en": "I actively pursue personal interests and passions that inspire my creativity.",
+        "ar": "أسعى بنشاط وراء اهتماماتي الشخصية والشغف الذي يلهم إبداعي."
+      },
+      "category": "Delight",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 11,
+      "question": {
+        "en": "I engage in playful & fun activities in the community where I live.",
+        "ar": "أشارك في أنشطة مرحة وممتعة في المجتمع الذي أعيش فيه."
+      },
+      "category": "Delight",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 12,
+      "question": {
+        "en": "In the community where I live, I can easily meet friendly people and join in unplanned activities anytime.",
+        "ar": "في المجتمع الذي أعيش فيه، يمكنني بسهولة مقابلة أشخاص ودودين والانضمام إلى أنشطة غير مخططة في أي وقت."
+      },
+      "category": "Delight",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 13,
+      "question": {
+        "en": "I make an effort to surround myself with people and activities that boost my enthusiasm and energy.",
+        "ar": "أبذل جهداً لأحيط نفسي بأشخاص وأنشطة تعزز حماسي وطاقتي."
+      },
+      "category": "Delight",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 14,
+      "question": {
+        "en": "I maintain a positive attitude even in challenging situations.",
+        "ar": "أحافظ على موقف إيجابي حتى في المواقف الصعبة."
+      },
+      "category": "Delight",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 15,
+      "question": {
+        "en": "When I bump into something amazing, I take the time to truly appreciate and think about its meaning.",
+        "ar": "عندما أصادف شيئاً مذهلاً، أخذ الوقت لأقدره حقاً وأفكر في معناه."
+      },
+      "category": "Delight",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 16,
+      "question": {
+        "en": "My home and the community where I live have places that spark wonder, amazement, and admiration.",
+        "ar": "منزلي والمجتمع الذي أعيش فيه بهما أماكن تثير الدهشة والإعجاب والإعجاب."
+      },
+      "category": "Delight",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 17,
+      "question": {
+        "en": "My home and the community where I live are safe and secure.",
+        "ar": "منزلي والمجتمع الذي أعيش فيه آمنان ومأمونان."
+      },
+      "category": "Freedom",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 18,
+      "question": {
+        "en": "I feel financially safe.",
+        "ar": "أشعر بالأمان المالي."
+      },
+      "category": "Freedom",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 19,
+      "question": {
+        "en": "I am able to personalize my living spaces to reflect my needs, tastes and preferences.",
+        "ar": "أستطيع تخصيص مساحات المعيشة الخاصة بي لتعكس احتياجاتي وأذواقي وتفضيلاتي."
+      },
+      "category": "Freedom",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 20,
+      "question": {
+        "en": "I am able to express my talents, character and quirks in my social circles.",
+        "ar": "أستطيع التعبير عن مواهبي وشخصيتي وطباعي الفريدة في دوائري الاجتماعية."
+      },
+      "category": "Freedom",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 21,
+      "question": {
+        "en": "My home has spaces that can easily adjust to meet the needs of people I live with.",
+        "ar": "منزلي به مساحات يمكن تعديلها بسهولة لتلبية احتياجات الأشخاص الذين أعيش معهم."
+      },
+      "category": "Freedom",
+      "values": [0, 75, 250, 375, 500]
+    },
+    {
+      "id": 22,
+      "question": {
+        "en": "I am open to diverse ideas and enjoy exploring them.",
+        "ar": "أنا منفتح على الأفكار المتنوعة وأستمتع باستكشافها."
+      },
+      "category": "Freedom",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 23,
+      "question": {
+        "en": "I can choose how to adapt my home space to meet my needs and preferences.",
+        "ar": "يمكنني اختيار كيفية تكييف مساحة منزلي لتلبية احتياجاتي وتفضيلاتي."
+      },
+      "category": "Freedom",
+      "values": [0, 75, 250, 375, 500]
+    },
+    {
+      "id": 24,
+      "question": {
+        "en": "I feel in control of my life choices and decisions.",
+        "ar": "أشعر بالسيطرة على خيارات حياتي وقراراتي."
+      },
+      "category": "Freedom",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 25,
+      "question": {
+        "en": "In my household, everyone shares responsibility for chores.",
+        "ar": "في منزلي، يتشارك الجميع مسؤولية الأعمال المنزلية."
+      },
+      "category": "Engagement",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 26,
+      "question": {
+        "en": "I engage in volunteer work in my community.",
+        "ar": "أشارك في العمل التطوعي في مجتمعي."
+      },
+      "category": "Engagement",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 27,
+      "question": {
+        "en": "I feel valued, respected, and able to express my thoughts and opinions in my social environment, regardless of my background.",
+        "ar": "أشعر بالتقدير والاحترام وأستطيع التعبير عن أفكاري وآرائي في بيئتي الاجتماعية، بغض النظر عن خلفيتي."
+      },
+      "category": "Engagement",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 28,
+      "question": {
+        "en": "My home and community have designs that make spaces and activities easily accessible for everyone, considering people with disabilities.",
+        "ar": "منزلي ومجتمعي لديهما تصاميم تجعل المساحات والأنشطة سهلة الوصول للجميع، مع مراعاة الأشخاص ذوي الإعاقة."
+      },
+      "category": "Engagement",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 29,
+      "question": {
+        "en": "I have people in my community who I trust and can rely on for support.",
+        "ar": "لدي أشخاص في مجتمعي أثق بهم ويمكنني الاعتماد عليهم للحصول على الدعم."
+      },
+      "category": "Engagement",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 30,
+      "question": {
+        "en": "I make an effort to stay connected with people who are important to me.",
+        "ar": "أبذل جهداً للبقاء على تواصل مع الأشخاص المهمين بالنسبة لي."
+      },
+      "category": "Engagement",
+      "values": [0, 300, 1000, 1500, 2000]
+    },
+    {
+      "id": 31,
+      "question": {
+        "en": "I welcome people from my social circles to my home for a visit.",
+        "ar": "أرحب بالأشخاص من دوائري الاجتماعية في منزلي للزيارة."
+      },
+      "category": "Engagement",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 32,
+      "question": {
+        "en": "I participate in events or activities in the community where I live.",
+        "ar": "أشارك في الأحداث أو الأنشطة في المجتمع الذي أعيش فيه."
+      },
+      "category": "Engagement",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 33,
+      "question": {
+        "en": "My daily routine includes activities that promote physical movement, fitness, and healthy eating habits.",
+        "ar": "روتيني اليومي يتضمن أنشطة تعزز الحركة البدنية واللياقة وعادات الأكل الصحية."
+      },
+      "category": "Vitality",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 34,
+      "question": {
+        "en": "I regularly schedule and attend medical check-ups to maintain my physical health.",
+        "ar": "أجدول بانتظام وأحضر الفحوصات الطبية للحفاظ على صحتي البدنية."
+      },
+      "category": "Vitality",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 35,
+      "question": {
+        "en": "I regularly incorporate calming elements, like decluttering, using relaxing scents, and adding plants, into my living spaces.",
+        "ar": "أدمج بانتظام عناصر مهدئة، مثل إزالة الفوضى واستخدام الروائح المريحة وإضافة النباتات، في مساحات المعيشة الخاصة بي."
+      },
+      "category": "Vitality",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 36,
+      "question": {
+        "en": "I intentionally set healthy boundaries for the use of digital screens.",
+        "ar": "أضع عمداً حدوداً صحية لاستخدام الشاشات الرقمية."
+      },
+      "category": "Vitality",
+      "values": [0, 225, 750, 1125, 1500]
+    },
+    {
+      "id": 37,
+      "question": {
+        "en": "I prioritize physical comfort in my living spaces by paying attention to factors like natural light, temperature control, and ergonomics.",
+        "ar": "أعطي الأولوية للراحة البدنية في مساحات المعيشة الخاصة بي من خلال الانتباه لعوامل مثل الضوء الطبيعي والتحكم في درجة الحرارة وبيئة العمل."
+      },
+      "category": "Vitality",
+      "values": [0, 150, 500, 750, 1000]
+    },
+    {
+      "id": 38,
+      "question": {
+        "en": "I make an effort to keep my living spaces clean, organized, and clutter-free.",
+        "ar": "أبذل جهداً للحفاظ على مساحات المعيشة الخاصة بي نظيفة ومنظمة وخالية من الفوضى."
+      },
+      "category": "Vitality",
+      "values": [0, 75, 250, 375, 500]
+    },
+    {
+      "id": 39,
+      "question": {
+        "en": "I actively set aside time to relax, reflect, and recharge.",
+        "ar": "أخصص بنشاط وقتاً للاسترخاء والتأمل وإعادة الشحن."
+      },
+      "category": "Vitality",
+      "values": [0, 375, 1250, 1875, 2500]
+    },
+    {
+      "id": 40,
+      "question": {
+        "en": "I actively engage in activities that require my full attention and presence, such as meditation, yoga, or deep breathing.",
+        "ar": "أشارك بنشاط في أنشطة تتطلب انتباهي الكامل وحضوري، مثل التأمل أو اليوغا أو التنفس العميق."
+      },
+      "category": "Vitality",
+      "values": [0, 150, 500, 750, 1000]
+    }
+  ],
+  "choices": [
+    {
+      "value": 1,
+      "text": {
+        "en": "Never / Strongly Disagree",
+        "ar": "أبداً / أعارض بشدة"
+      }
+    },
+    {
+      "value": 2,
+      "text": {
+        "en": "Rarely / Disagree",
+        "ar": "نادراً / أعارض"
+      }
+    },
+    {
+      "value": 3,
+      "text": {
+        "en": "Sometimes / Neutral",
+        "ar": "أحياناً / محايد"
+      }
+    },
+    {
+      "value": 4,
+      "text": {
+        "en": "Often / Agree",
+        "ar": "غالباً / أوافق"
+      }
+    },
+    {
+      "value": 5,
+      "text": {
+        "en": "Always / Strongly Agree",
+        "ar": "دائماً / أوافق بشدة"
+      }
+    }
+  ]
+}

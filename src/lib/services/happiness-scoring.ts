@@ -26,10 +26,91 @@ export interface HappinessScore {
   };
 }
 
+export interface MultilingualCharacter {
+  id: number;
+  name: { en: string; ar: string };
+  description: { en: string; ar: string };
+  match: string;
+  avatar_url: string;
+}
+
+// Get multilingual character data
+export async function getMultilingualCharacter(
+  code: string,
+  language: "en" | "ar" = "en"
+): Promise<{
+  id: number;
+  name: string;
+  description: string;
+  avatarUrl: string;
+}> {
+  try {
+    // Try to load multilingual character data from file system
+    const fs = await import("fs");
+    const path = await import("path");
+    const filePath = path.join(
+      process.cwd(),
+      "data",
+      "happiness-characters-multilingual.json"
+    );
+
+    if (fs.existsSync(filePath)) {
+      const fileContent = fs.readFileSync(filePath, "utf8");
+      const multilingualData = JSON.parse(fileContent);
+      const character = multilingualData.characters.find(
+        (c: MultilingualCharacter) => c.match === code
+      );
+
+      if (character) {
+        return {
+          id: character.id,
+          name: character.name[language] || character.name.en,
+          description:
+            character.description[language] || character.description.en,
+          avatarUrl: character.avatar_url,
+        };
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "Failed to load multilingual character data, falling back to database"
+    );
+  }
+
+  // Fallback to database
+  const characters = await db
+    .select()
+    .from(happinessCharacters)
+    .where(eq(happinessCharacters.match, code))
+    .limit(1);
+
+  if (characters.length > 0) {
+    const char = characters[0];
+    return {
+      id: char.id,
+      name: char.name,
+      description: char.description,
+      avatarUrl: char.avatarUrl,
+    };
+  }
+
+  // Ultimate fallback
+  return {
+    id: 1,
+    name: language === "ar" ? "الرحالة الفضولي" : "Curious Nomad",
+    description:
+      language === "ar"
+        ? "مستكشف حر الروح يجد الفرح في الاكتشاف والتجارب الجديدة."
+        : "A free-spirited explorer who finds joy in discovery and new experiences.",
+    avatarUrl: "/characters/00000.png",
+  };
+}
+
 const THRESHOLD = 6000; // Threshold for each category to be considered "high"
 
 export async function computeHappinessScore(
-  answers: HappinessAnswer[]
+  answers: HappinessAnswer[],
+  language: "en" | "ar" = "en"
 ): Promise<HappinessScore> {
   try {
     // Get all question IDs from answers
@@ -85,49 +166,8 @@ export async function computeHappinessScore(
       categoryTotals.Vitality >= THRESHOLD ? "1" : "0",
     ].join("");
 
-    // Look up character by match code
-    const characters = await db
-      .select()
-      .from(happinessCharacters)
-      .where(eq(happinessCharacters.match, code))
-      .limit(1);
-
-    let character;
-    if (characters.length > 0) {
-      const char = characters[0];
-      character = {
-        id: char.id,
-        name: char.name,
-        description: char.description,
-        avatarUrl: char.avatarUrl,
-      };
-    } else {
-      // Fallback to "Curious Nomad" (id=1) if no match found
-      console.warn(`No character found for code ${code}, using fallback`);
-      const fallbackChars = await db
-        .select()
-        .from(happinessCharacters)
-        .where(eq(happinessCharacters.id, 1))
-        .limit(1);
-
-      if (fallbackChars.length > 0) {
-        const char = fallbackChars[0];
-        character = {
-          id: char.id,
-          name: char.name,
-          description: char.description,
-          avatarUrl: char.avatarUrl,
-        };
-      } else {
-        // Ultimate fallback
-        character = {
-          id: 1,
-          name: "Curious Nomad",
-          description: "A free-spirited explorer discovering life's journey.",
-          avatarUrl: "/avatars/curious-nomad.svg",
-        };
-      }
-    }
+    // Get multilingual character data
+    const character = await getMultilingualCharacter(code, language);
 
     return {
       categoryTotals,

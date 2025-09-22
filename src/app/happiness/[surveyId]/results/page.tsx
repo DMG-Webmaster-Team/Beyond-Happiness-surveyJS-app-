@@ -50,6 +50,7 @@ export default function HappinessResultsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [currentAccessData, setCurrentAccessData] = useState<any>(null);
   const [accessLoading, setAccessLoading] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "ar">("en");
 
   // Function to fetch current access data for retake button
   const fetchCurrentAccessData = async () => {
@@ -129,6 +130,22 @@ export default function HappinessResultsPage({
           parsedResult.character
         );
         setResult(parsedResult);
+
+        // Detect language from stored result or URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const langParam = urlParams.get("lang");
+        if (langParam === "ar" || langParam === "en") {
+          setSelectedLanguage(langParam);
+          // Apply RTL/LTR direction
+          if (langParam === "ar") {
+            document.body.dir = "rtl";
+            document.documentElement.dir = "rtl";
+          } else {
+            document.body.dir = "ltr";
+            document.documentElement.dir = "ltr";
+          }
+        }
+
         console.log("🔍 Result set successfully");
       } catch (error) {
         console.error("❌ Error parsing stored result:", error);
@@ -149,6 +166,81 @@ export default function HappinessResultsPage({
       console.log("🔍 Results page unmounting - localStorage preserved");
     };
   }, [params.surveyId, router]);
+
+  // Multilingual text helper
+  const getText = (key: string) => {
+    const texts: Record<string, { en: string; ar: string }> = {
+      title: {
+        en: "Your Happiness Profile",
+        ar: "ملف السعادة الخاص بك",
+      },
+      subtitle: {
+        en: "Discover your unique character and happiness dimensions",
+        ar: "اكتشف شخصيتك الفريدة وأبعاد السعادة",
+      },
+      youAre: {
+        en: "You are a",
+        ar: "أنت",
+      },
+      characterDescription: {
+        en: "Your Character Description",
+        ar: "وصف شخصيتك",
+      },
+      overallScore: {
+        en: "Overall Happiness Score",
+        ar: "معدل السعادة العام",
+      },
+      overallLevel: {
+        en: "Overall Happiness Level",
+        ar: "مستوى السعادة العام",
+      },
+      dimensionsOverview: {
+        en: "Happiness Dimensions Overview",
+        ar: "نظرة عامة على أبعاد السعادة",
+      },
+      detailedDimensions: {
+        en: "Detailed Happiness Dimensions",
+        ar: "أبعاد السعادة التفصيلية",
+      },
+      retakeSurvey: {
+        en: "Retake Survey",
+        ar: "إعادة الاستطلاع",
+      },
+      retakeAvailable: {
+        en: "You can retake this survey now",
+        ar: "يمكنك إعادة الاستطلاع الآن",
+      },
+      retakeIn: {
+        en: "Retake available in",
+        ar: "إعادة الاستطلاع متاحة في",
+      },
+      moreDays: {
+        en: "more day(s)",
+        ar: "يوم(أيام) أخرى",
+      },
+      meaning: {
+        en: "Meaning",
+        ar: "المعنى",
+      },
+      delight: {
+        en: "Delight",
+        ar: "البهجة",
+      },
+      freedom: {
+        en: "Freedom",
+        ar: "الحرية",
+      },
+      engagement: {
+        en: "Engagement",
+        ar: "الانخراط",
+      },
+      vitality: {
+        en: "Vitality",
+        ar: "الحيوية",
+      },
+    };
+    return texts[key]?.[selectedLanguage] || texts[key]?.en || key;
+  };
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -336,11 +428,9 @@ export default function HappinessResultsPage({
       <div className="bg-white shadow-sm text-center">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <h1 className="text-2xl font-bold text-blue-600">
-            Your Happiness Profile
+            {getText("title")}
           </h1>
-          <p className="text-gray-600 mt-2">
-            Discover your unique character and happiness dimensions
-          </p>
+          <p className="text-gray-600 mt-2">{getText("subtitle")}</p>
         </div>
       </div>
 
@@ -396,7 +486,7 @@ export default function HappinessResultsPage({
                   result
                 )}`}
               >
-                You are a {result.character.name}!
+                {getText("youAre")} {result.character.name}!
               </h2>
             </div>
             <div className="mb-6">
@@ -419,7 +509,7 @@ export default function HappinessResultsPage({
 
           <div className="bg-gray-50 rounded-lg p-6">
             <h3 className="font-semibold text-gray-900 mb-3">
-              Your Character Description
+              {getText("characterDescription")}
             </h3>
             <p className="text-gray-700 leading-relaxed">
               {result.character.description}
@@ -449,13 +539,16 @@ export default function HappinessResultsPage({
                     <button
                       disabled
                       className="bg-gray-300 text-gray-500 px-6 py-3 rounded-md text-sm font-medium cursor-not-allowed"
-                      title={`Retake available in ${currentAccessData.cooldownRemaining} more day(s)`}
+                      title={`${getText("retakeIn")} ${
+                        currentAccessData.cooldownRemaining
+                      } ${getText("moreDays")}`}
                     >
-                      Retake Survey
+                      {getText("retakeSurvey")}
                     </button>
                     <div className="text-sm text-gray-500">
-                      Retake available in {currentAccessData.cooldownRemaining}{" "}
-                      more day(s)
+                      {getText("retakeIn")}{" "}
+                      {currentAccessData.cooldownRemaining}{" "}
+                      {getText("moreDays")}
                     </div>
                   </div>
                 ) : (
@@ -466,14 +559,16 @@ export default function HappinessResultsPage({
                         localStorage.removeItem(
                           `happiness:lastResult:${params.surveyId}`
                         );
-                        router.push(`/happiness/${params.surveyId}?retake=1`);
+                        router.push(
+                          `/happiness/${params.surveyId}?retake=1&lang=${selectedLanguage}`
+                        );
                       }}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
                     >
-                      Retake Survey
+                      {getText("retakeSurvey")}
                     </button>
                     <div className="text-sm text-gray-500">
-                      You can retake this survey now
+                      {getText("retakeAvailable")}
                     </div>
                   </div>
                 )
@@ -485,11 +580,13 @@ export default function HappinessResultsPage({
                     localStorage.removeItem(
                       `happiness:lastResult:${params.surveyId}`
                     );
-                    router.push(`/happiness/${params.surveyId}?retake=1`);
+                    router.push(
+                      `/happiness/${params.surveyId}?retake=1&lang=${selectedLanguage}`
+                    );
                   }}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
                 >
-                  Retake Survey
+                  {getText("retakeSurvey")}
                 </button>
               )}
             </div>
@@ -499,7 +596,7 @@ export default function HappinessResultsPage({
         {/* Overall Score with Circular Progress */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Overall Happiness Score
+            {getText("overallScore")}
           </h3>
           <div className="flex items-center justify-center space-x-8">
             <div className="text-center">
@@ -507,7 +604,7 @@ export default function HappinessResultsPage({
                 <div className="text-6xl font-bold text-gray-900">
                   {overallPercentage}%
                 </div>
-                <div className="text-gray-600">Overall Happiness Level</div>
+                <div className="text-gray-600">{getText("overallLevel")}</div>
               </div>
             </div>
           </div>
@@ -516,7 +613,7 @@ export default function HappinessResultsPage({
         {/* Category Chart */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Happiness Dimensions Overview
+            {getText("dimensionsOverview")}
           </h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -550,7 +647,7 @@ export default function HappinessResultsPage({
         {/* Detailed Category Breakdown */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Detailed Happiness Dimensions
+            {getText("detailedDimensions")}
           </h3>
 
           <div className="space-y-6">
@@ -565,7 +662,7 @@ export default function HappinessResultsPage({
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}
                       >
-                        {category.name}
+                        {getText(category.name.toLowerCase())}
                       </span>
                     </div>
                     <div className="text-right">
@@ -583,7 +680,7 @@ export default function HappinessResultsPage({
                   </div>
 
                   <div className="text-sm text-gray-600">
-                    {getCategoryDescription(category.name)}
+                    {getCategoryDescription(category.name, selectedLanguage)}
                   </div>
                 </div>
               );
@@ -595,19 +692,36 @@ export default function HappinessResultsPage({
   );
 }
 
-function getCategoryDescription(category: string): string {
-  switch (category) {
-    case "Meaning":
-      return "Your sense of purpose, spiritual connection, and alignment with core values.";
-    case "Delight":
-      return "Your capacity for joy, playfulness, creativity, and appreciation of beauty.";
-    case "Freedom":
-      return "Your sense of autonomy, self-expression, and control over your life direction.";
-    case "Engagement":
-      return "Your level of involvement, focus, and utilization of skills in meaningful activities.";
-    case "Vitality":
-      return "Your physical and mental energy, health, resilience, and overall well-being.";
-    default:
-      return `Your performance in the ${category} dimension of happiness.`;
-  }
+function getCategoryDescription(
+  category: string,
+  language: "en" | "ar" = "en"
+): string {
+  const descriptions: Record<string, { en: string; ar: string }> = {
+    Meaning: {
+      en: "Your sense of purpose, spiritual connection, and alignment with core values.",
+      ar: "إحساسك بالهدف والارتباط الروحي والتوافق مع قيمك الأساسية.",
+    },
+    Delight: {
+      en: "Your capacity for joy, playfulness, creativity, and appreciation of beauty.",
+      ar: "قدرتك على الفرح والمرح والإبداع وتقدير الجمال.",
+    },
+    Freedom: {
+      en: "Your sense of autonomy, self-expression, and control over your life direction.",
+      ar: "إحساسك بالاستقلالية والتعبير عن الذات والسيطرة على اتجاه حياتك.",
+    },
+    Engagement: {
+      en: "Your level of involvement, focus, and utilization of skills in meaningful activities.",
+      ar: "مستوى مشاركتك وتركيزك واستخدام مهاراتك في الأنشطة ذات المعنى.",
+    },
+    Vitality: {
+      en: "Your physical and mental energy, health, resilience, and overall well-being.",
+      ar: "طاقتك الجسدية والذهنية وصحتك ومرونتك ورفاهيتك العامة.",
+    },
+  };
+
+  return (
+    descriptions[category]?.[language] ||
+    descriptions[category]?.en ||
+    `Your performance in the ${category} dimension of happiness.`
+  );
 }

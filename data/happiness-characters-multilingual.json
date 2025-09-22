@@ -1,0 +1,420 @@
+{
+  "characters": [
+    {
+      "id": 1,
+      "name": {
+        "en": "Curious Nomad",
+        "ar": "الرحالة الفضولي"
+      },
+      "description": {
+        "en": "A free-spirited explorer who finds joy in discovery and new experiences. You value freedom and delight in life's surprises.",
+        "ar": "مستكشف حر الروح يجد الفرح في الاكتشاف والتجارب الجديدة. تقدر الحرية وتستمتع بمفاجآت الحياة."
+      },
+      "match": "00000",
+      "avatar_url": "/characters/00000.png"
+    },
+    {
+      "id": 2,
+      "name": {
+        "en": "Mindful Seeker",
+        "ar": "الباحث الواعي"
+      },
+      "description": {
+        "en": "A contemplative soul who finds deep meaning in life's purpose and spiritual connections. You prioritize reflection and growth.",
+        "ar": "روح متأملة تجد معنى عميقاً في هدف الحياة والروابط الروحية. تعطي الأولوية للتأمل والنمو."
+      },
+      "match": "10000",
+      "avatar_url": "/characters/10000.png"
+    },
+    {
+      "id": 3,
+      "name": {
+        "en": "Joyful Creator",
+        "ar": "المبدع المبهج"
+      },
+      "description": {
+        "en": "A vibrant artist who finds delight in creativity and beauty. You bring color and playfulness to everything you do.",
+        "ar": "فنان نابض بالحياة يجد البهجة في الإبداع والجمال. تضفي اللون والمرح على كل ما تفعله."
+      },
+      "match": "01000",
+      "avatar_url": "/characters/01000.png"
+    },
+    {
+      "id": 4,
+      "name": {
+        "en": "Balanced Dreamer",
+        "ar": "الحالم المتوازن"
+      },
+      "description": {
+        "en": "A harmonious soul who balances meaning and delight. You find purpose in joy and joy in purpose.",
+        "ar": "روح متناغمة توازن بين المعنى والبهجة. تجد الهدف في الفرح والفرح في الهدف."
+      },
+      "match": "11000",
+      "avatar_url": "/characters/11000.png"
+    },
+    {
+      "id": 5,
+      "name": {
+        "en": "Free Spirit",
+        "ar": "الروح الحرة"
+      },
+      "description": {
+        "en": "An independent soul who values freedom above all. You chart your own course and live by your own rules.",
+        "ar": "روح مستقلة تقدر الحرية فوق كل شيء. ترسم مسارك الخاص وتعيش وفقاً لقواعدك الخاصة."
+      },
+      "match": "00100",
+      "avatar_url": "/characters/00100.png"
+    },
+    {
+      "id": 6,
+      "name": {
+        "en": "Purposeful Wanderer",
+        "ar": "المتجول الهادف"
+      },
+      "description": {
+        "en": "A focused explorer who combines freedom with meaning. You seek purpose while maintaining independence.",
+        "ar": "مستكشف مركز يجمع بين الحرية والمعنى. تسعى للهدف مع الحفاظ على الاستقلالية."
+      },
+      "match": "10100",
+      "avatar_url": "/characters/10100.png"
+    },
+    {
+      "id": 7,
+      "name": {
+        "en": "Playful Rebel",
+        "ar": "المتمرد المرح"
+      },
+      "description": {
+        "en": "A carefree spirit who finds joy in freedom. You delight in breaking boundaries and living spontaneously.",
+        "ar": "روح مرحة تجد الفرح في الحرية. تستمتع بكسر الحدود والعيش بعفوية."
+      },
+      "match": "01100",
+      "avatar_url": "/characters/01100.png"
+    },
+    {
+      "id": 8,
+      "name": {
+        "en": "Harmonious Explorer",
+        "ar": "المستكشف المتناغم"
+      },
+      "description": {
+        "en": "A balanced adventurer who finds meaning, delight, and freedom in equal measure. You live life fully and authentically.",
+        "ar": "مغامر متوازن يجد المعنى والبهجة والحرية بمقادير متساوية. تعيش الحياة بشكل كامل وأصيل."
+      },
+      "match": "11100",
+      "avatar_url": "/characters/11100.png"
+    },
+    {
+      "id": 9,
+      "name": {
+        "en": "Dedicated Achiever",
+        "ar": "المنجز المتفاني"
+      },
+      "description": {
+        "en": "A focused professional who finds deep engagement in meaningful work. You're committed to excellence and growth.",
+        "ar": "محترف مركز يجد انخراطاً عميقاً في العمل الهادف. أنت ملتزم بالتميز والنمو."
+      },
+      "match": "00010",
+      "avatar_url": "/characters/00010.png"
+    },
+    {
+      "id": 10,
+      "name": {
+        "en": "Spiritual Professional",
+        "ar": "المحترف الروحاني"
+      },
+      "description": {
+        "en": "A mindful worker who combines engagement with spiritual meaning. You find purpose in your professional growth.",
+        "ar": "عامل واعٍ يجمع بين الانخراط والمعنى الروحي. تجد الهدف في نموك المهني."
+      },
+      "match": "10010",
+      "avatar_url": "/characters/10010.png"
+    },
+    {
+      "id": 11,
+      "name": {
+        "en": "Creative Professional",
+        "ar": "المحترف المبدع"
+      },
+      "description": {
+        "en": "An engaged artist who finds joy in their work. You bring creativity and delight to your professional life.",
+        "ar": "فنان منخرط يجد الفرح في عمله. تجلب الإبداع والبهجة إلى حياتك المهنية."
+      },
+      "match": "01010",
+      "avatar_url": "/characters/01010.png"
+    },
+    {
+      "id": 12,
+      "name": {
+        "en": "Fulfilled Professional",
+        "ar": "المحترف المحقق"
+      },
+      "description": {
+        "en": "A satisfied worker who finds meaning, delight, and engagement in their career. You've found your calling.",
+        "ar": "عامل راضٍ يجد المعنى والبهجة والانخراط في مهنته. لقد وجدت دعوتك."
+      },
+      "match": "11010",
+      "avatar_url": "/characters/11010.png"
+    },
+    {
+      "id": 13,
+      "name": {
+        "en": "Independent Professional",
+        "ar": "المحترف المستقل"
+      },
+      "description": {
+        "en": "A self-directed worker who values freedom and engagement. You chart your own professional path.",
+        "ar": "عامل موجه ذاتياً يقدر الحرية والانخراط. ترسم مسارك المهني الخاص."
+      },
+      "match": "00110",
+      "avatar_url": "/characters/00110.png"
+    },
+    {
+      "id": 14,
+      "name": {
+        "en": "Purposeful Professional",
+        "ar": "المحترف الهادف"
+      },
+      "description": {
+        "en": "A focused worker who combines freedom, meaning, and engagement. You've found your professional purpose.",
+        "ar": "عامل مركز يجمع بين الحرية والمعنى والانخراط. لقد وجدت هدفك المهني."
+      },
+      "match": "10110",
+      "avatar_url": "/characters/10110.png"
+    },
+    {
+      "id": 15,
+      "name": {
+        "en": "Joyful Professional",
+        "ar": "المحترف المبهج"
+      },
+      "description": {
+        "en": "A happy worker who finds freedom, delight, and engagement in their career. You love what you do.",
+        "ar": "عامل سعيد يجد الحرية والبهجة والانخراط في مهنته. تحب ما تفعله."
+      },
+      "match": "01110",
+      "avatar_url": "/characters/01110.png"
+    },
+    {
+      "id": 16,
+      "name": {
+        "en": "Complete Professional",
+        "ar": "المحترف الكامل"
+      },
+      "description": {
+        "en": "A fulfilled worker who has achieved the perfect balance of freedom, meaning, delight, and engagement. You're living your dream career.",
+        "ar": "عامل محقق حقق التوازن المثالي بين الحرية والمعنى والبهجة والانخراط. تعيش مهنة أحلامك."
+      },
+      "match": "11110",
+      "avatar_url": "/characters/11110.png"
+    },
+    {
+      "id": 17,
+      "name": {
+        "en": "Vital Achiever",
+        "ar": "المنجز الحيوي"
+      },
+      "description": {
+        "en": "A healthy professional who combines engagement with vitality. You're energized and focused in your work.",
+        "ar": "محترف صحي يجمع بين الانخراط والحيوية. أنت نشيط ومركز في عملك."
+      },
+      "match": "00011",
+      "avatar_url": "/characters/00011.png"
+    },
+    {
+      "id": 18,
+      "name": {
+        "en": "Spiritual Vitalist",
+        "ar": "الحيوي الروحاني"
+      },
+      "description": {
+        "en": "A mindful person who combines vitality with spiritual meaning. You're healthy in body and soul.",
+        "ar": "شخص واعٍ يجمع بين الحيوية والمعنى الروحي. أنت صحي في الجسد والروح."
+      },
+      "match": "10001",
+      "avatar_url": "/characters/10001.png"
+    },
+    {
+      "id": 19,
+      "name": {
+        "en": "Joyful Vitalist",
+        "ar": "الحيوي المبهج"
+      },
+      "description": {
+        "en": "A healthy person who finds delight in vitality. You're energized and happy in your daily life.",
+        "ar": "شخص صحي يجد البهجة في الحيوية. أنت نشيط وسعيد في حياتك اليومية."
+      },
+      "match": "01001",
+      "avatar_url": "/characters/01001.png"
+    },
+    {
+      "id": 20,
+      "name": {
+        "en": "Fulfilled Vitalist",
+        "ar": "الحيوي المحقق"
+      },
+      "description": {
+        "en": "A healthy person who finds meaning and delight in vitality. You're energized, happy, and purposeful.",
+        "ar": "شخص صحي يجد المعنى والبهجة في الحيوية. أنت نشيط وسعيد وهادف."
+      },
+      "match": "11001",
+      "avatar_url": "/characters/11001.png"
+    },
+    {
+      "id": 21,
+      "name": {
+        "en": "Free Vitalist",
+        "ar": "الحيوي الحر"
+      },
+      "description": {
+        "en": "A healthy person who values freedom and vitality. You're energized and independent in your lifestyle.",
+        "ar": "شخص صحي يقدر الحرية والحيوية. أنت نشيط ومستقل في نمط حياتك."
+      },
+      "match": "00101",
+      "avatar_url": "/characters/00101.png"
+    },
+    {
+      "id": 22,
+      "name": {
+        "en": "Purposeful Vitalist",
+        "ar": "الحيوي الهادف"
+      },
+      "description": {
+        "en": "A healthy person who combines freedom, meaning, and vitality. You're energized, independent, and purposeful.",
+        "ar": "شخص صحي يجمع بين الحرية والمعنى والحيوية. أنت نشيط ومستقل وهادف."
+      },
+      "match": "10101",
+      "avatar_url": "/characters/10101.png"
+    },
+    {
+      "id": 23,
+      "name": {
+        "en": "Joyful Free Vitalist",
+        "ar": "الحيوي الحر المبهج"
+      },
+      "description": {
+        "en": "A healthy person who finds freedom, delight, and vitality. You're energized, independent, and happy.",
+        "ar": "شخص صحي يجد الحرية والبهجة والحيوية. أنت نشيط ومستقل وسعيد."
+      },
+      "match": "01101",
+      "avatar_url": "/characters/01101.png"
+    },
+    {
+      "id": 24,
+      "name": {
+        "en": "Complete Vitalist",
+        "ar": "الحيوي الكامل"
+      },
+      "description": {
+        "en": "A healthy person who has achieved the perfect balance of freedom, meaning, delight, and vitality. You're living your best life.",
+        "ar": "شخص صحي حقق التوازن المثالي بين الحرية والمعنى والبهجة والحيوية. تعيش أفضل حياة لك."
+      },
+      "match": "11101",
+      "avatar_url": "/characters/11101.png"
+    },
+    {
+      "id": 25,
+      "name": {
+        "en": "Engaged Vitalist",
+        "ar": "الحيوي المنخرط"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality with deep engagement. You're energized and focused in your activities.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط العميق. أنت نشيط ومركز في أنشطتك."
+      },
+      "match": "00011",
+      "avatar_url": "/characters/00011.png"
+    },
+    {
+      "id": 26,
+      "name": {
+        "en": "Spiritual Engaged Vitalist",
+        "ar": "الحيوي المنخرط الروحاني"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality, engagement, and spiritual meaning. You're energized, focused, and purposeful.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط والمعنى الروحي. أنت نشيط ومركز وهادف."
+      },
+      "match": "10011",
+      "avatar_url": "/characters/10011.png"
+    },
+    {
+      "id": 27,
+      "name": {
+        "en": "Joyful Engaged Vitalist",
+        "ar": "الحيوي المنخرط المبهج"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality, engagement, and delight. You're energized, focused, and happy.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط والبهجة. أنت نشيط ومركز وسعيد."
+      },
+      "match": "01011",
+      "avatar_url": "/characters/01011.png"
+    },
+    {
+      "id": 28,
+      "name": {
+        "en": "Fulfilled Engaged Vitalist",
+        "ar": "الحيوي المنخرط المحقق"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality, engagement, meaning, and delight. You're energized, focused, happy, and purposeful.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط والمعنى والبهجة. أنت نشيط ومركز وسعيد وهادف."
+      },
+      "match": "11011",
+      "avatar_url": "/characters/11011.png"
+    },
+    {
+      "id": 29,
+      "name": {
+        "en": "Free Engaged Vitalist",
+        "ar": "الحيوي المنخرط الحر"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality, engagement, and freedom. You're energized, focused, and independent.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط والحرية. أنت نشيط ومركز ومستقل."
+      },
+      "match": "00111",
+      "avatar_url": "/characters/00111.png"
+    },
+    {
+      "id": 30,
+      "name": {
+        "en": "Purposeful Free Engaged Vitalist",
+        "ar": "الحيوي المنخرط الحر الهادف"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality, engagement, freedom, and meaning. You're energized, focused, independent, and purposeful.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط والحرية والمعنى. أنت نشيط ومركز ومستقل وهادف."
+      },
+      "match": "10111",
+      "avatar_url": "/characters/10111.png"
+    },
+    {
+      "id": 31,
+      "name": {
+        "en": "Joyful Free Engaged Vitalist",
+        "ar": "الحيوي المنخرط الحر المبهج"
+      },
+      "description": {
+        "en": "A healthy person who combines vitality, engagement, freedom, and delight. You're energized, focused, independent, and happy.",
+        "ar": "شخص صحي يجمع بين الحيوية والانخراط والحرية والبهجة. أنت نشيط ومركز ومستقل وسعيد."
+      },
+      "match": "01111",
+      "avatar_url": "/characters/01111.png"
+    },
+    {
+      "id": 32,
+      "name": {
+        "en": "Complete Human",
+        "ar": "الإنسان الكامل"
+      },
+      "description": {
+        "en": "You've achieved the perfect balance of all five happiness dimensions: Meaning, Delight, Freedom, Engagement, and Vitality. You're living your fullest, most authentic life.",
+        "ar": "لقد حققت التوازن المثالي لجميع أبعاد السعادة الخمسة: المعنى والبهجة والحرية والانخراط والحيوية. تعيش حياتك الأكمل والأكثر أصالة."
+      },
+      "match": "11111",
+      "avatar_url": "/characters/11111.png"
+    }
+  ]
+}
