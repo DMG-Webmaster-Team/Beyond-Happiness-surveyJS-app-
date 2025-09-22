@@ -100,112 +100,143 @@ export default function HappinessSurveyPage({
           const cached = localStorage.getItem(cacheKey);
           if (cached) {
             const parsed = JSON.parse(cached);
-            const now = Date.now();
-            if (parsed.timestamp && now - parsed.timestamp < 120000) {
+            const age = Date.now() - parsed.timestamp;
+            if (age < 120000) {
               // 120s TTL
               cachedData = parsed.data;
-              console.log("🔍 Using cached access data (will revalidate)");
-              if (isMounted) {
-                setAccessData(cachedData);
-                setAccessLoading(false);
-                setAccessCheckComplete(true);
-              }
-            } else {
-              localStorage.removeItem(cacheKey); // Expired cache
+              console.log("🔍 Using cached access data (age:", age, "ms)");
             }
           }
-        } catch (error) {
-          console.warn("Cache read error:", error);
-          localStorage.removeItem(cacheKey);
+        } catch (e) {
+          console.log("🔍 Cache read error (ignoring):", e);
         }
 
-        // Always revalidate with server (single source of truth)
+        // Always make the API call for authoritative data
         const response = await fetch(
           `/api/happiness/surveys/${params.surveyId}/access`,
-          { credentials: "include" } // Ensure cookies are sent
+          {
+            credentials: "include", // Ensure cookies are sent
+          }
         );
 
-        if (!isMounted) return; // Component unmounted, don't update state
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log(
-            "🔍 CROSS-TAB TEST - Access check response (authoritative):",
-            {
-              ...data,
-              timestamp: new Date().toISOString(),
-              cacheUsed: !!cachedData,
-            }
-          );
-
-          // Cache the response for 120s to avoid flicker on subsequent loads
-          try {
-            localStorage.setItem(
-              cacheKey,
-              JSON.stringify({
-                data: data,
-                timestamp: Date.now(),
-              })
-            );
-          } catch (error) {
-            console.warn("Cache write error:", error);
-          }
-
-          setAccessData(data);
-
-          // Clear any previous error states on successful access check
-          setAccessCheckError(null);
-        } else {
-          const errorData = await response
-            .json()
-            .catch(() => ({ error: "Unknown error" }));
-          console.error("❌ Access check failed:", errorData);
-          setAccessCheckError(
-            new Error(errorData.error || "Failed to fetch access data")
-          );
-
-          // Clear cache on error
-          localStorage.removeItem(cacheKey);
+        if (!isMounted) {
+          console.log("🚫 Component unmounted during access check");
+          return;
         }
-      } catch (error) {
-        if (!isMounted) return;
-        console.error("❌ Access check exception:", error);
-        setAccessCheckError(error);
 
-        // Clear cache on error
-        const cacheKey = `happiness:access:${params.surveyId}`;
-        localStorage.removeItem(cacheKey);
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.log("🔍 Access check failed:", response.status, errorData);
+
+          // Handle different error cases with redirects
+          if (response.status === 401) {
+            console.log("🔍 Unauthorized - redirecting to login");
+            setHasRedirected(true);
+            setIsRedirecting(true);
+            router.push("/user/login");
+            return;
+          } else if (response.status === 404) {
+            console.log("🔍 Survey not found - redirecting to 404");
+            setHasRedirected(true);
+            setIsRedirecting(true);
+            router.push("/not-found");
+            return;
+          } else if (response.status === 403) {
+            console.log("🔍 Access forbidden - redirecting to home");
+            setHasRedirected(true);
+            setIsRedirecting(true);
+            router.push("/user/home");
+            return;
+          } else {
+            // Generic error - redirect to home
+            console.log("🔍 Generic error - redirecting to home");
+            setHasRedirected(true);
+            setIsRedirecting(true);
+            router.push("/user/home");
+            return;
+          }
+        }
+
+        const data = await response.json();
+        console.log("🔍 CROSS-TAB TEST - Access check response:", data);
+
+        // Cache the successful response
+        try {
+          localStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              data,
+              timestamp: Date.now(),
+            })
+          );
+        } catch (e) {
+          console.log("🔍 Cache write error (ignoring):", e);
+        }
+
+        // Handle cooldown case
+        if (data.cooldown === true && (data.cooldownRemaining ?? 0) > 0) {
+          console.log("🔍 Survey in cooldown - redirecting to results");
+          setHasRedirected(true);
+          setIsRedirecting(true);
+          router.push(
+            `/happiness/${params.surveyId}/results?cooldown=true&remaining=${data.cooldownRemaining}`
+          );
+          return;
+        }
+
+        // Handle retake case
+        if (data.retake === true) {
+          console.log("🔍 Retake allowed - proceeding with survey");
+          // Clear any previous submission state for retakes
+          clearSurveySubmissionState(params.surveyId);
+        }
+
+        // Success - set access data
+        setAccessData(data);
+        setAccessCheckComplete(true);
+      } catch (error) {
+        console.error("🔍 Access check error:", error);
+        if (isMounted) {
+          // On network error, redirect to home
+          setHasRedirected(true);
+          setIsRedirecting(true);
+          router.push("/user/home");
+        }
       } finally {
         if (isMounted) {
           setAccessLoading(false);
-          setAccessCheckComplete(true);
         }
       }
     };
 
     performSingleAccessCheck();
 
-    // Cleanup function
     return () => {
       isMounted = false;
     };
-  }, [params.surveyId, hasRedirected]);
+  }, [params.surveyId, router, hasRedirected]);
 
-  // Fetch active questions
+  // Fetch questions data
   useEffect(() => {
+    if (!accessCheckComplete || !accessData) {
+      return;
+    }
+
     const fetchQuestions = async () => {
       try {
-        const response = await fetch("/api/happiness/questions?isActive=true");
-        if (response.ok) {
-          const data = await response.json();
-          setQuestionsData(data);
+        setIsLoading(true);
+        setQuestionsError(null);
 
-          // Clear any previous error states on successful questions fetch
-          setQuestionsError(null);
-        } else {
-          setQuestionsError(new Error("Failed to fetch questions"));
+        const response = await fetch("/api/happiness/questions");
+        if (!response.ok) {
+          throw new Error("Failed to fetch questions");
         }
+
+        const data = await response.json();
+        console.log("🔍 Questions fetched:", data);
+        setQuestionsData(data);
       } catch (error) {
+        console.error("❌ Error fetching questions:", error);
         setQuestionsError(error);
       } finally {
         setIsLoading(false);
@@ -213,243 +244,26 @@ export default function HappinessSurveyPage({
     };
 
     fetchQuestions();
-  }, []);
+  }, [accessCheckComplete, accessData]);
 
-  // Debug logging
-  useEffect(() => {
-    console.log("🔍 Happiness Survey Debug:", {
-      surveyId: params.surveyId,
-      accessData,
-      accessCheckError,
-      canAccess: accessData?.canAccess,
-      requiresAuth: accessData?.requiresAuth,
-      hasRedirected,
-    });
-  }, [params.surveyId, accessData, accessCheckError, hasRedirected]);
-
-  const survey = accessData?.survey;
-  const questions = questionsData?.questions || [];
-  const canAccess = accessData?.canAccess;
-
-  // SINGLE AUTHORITATIVE ACCESS GATE - Backend is source of truth
-  useEffect(() => {
-    // Only process access decisions after the access check is complete
-    if (!accessCheckComplete || hasRedirected) return;
-
-    // Handle access check errors
-    if (accessCheckError) {
-      console.error("❌ Access check failed, redirecting to 404");
-      router.push("/404");
-      return;
-    }
-
-    // Handle missing survey data
-    if (accessData && !accessData.survey) {
-      console.error("❌ Survey not found, redirecting to 404");
-      router.push("/404");
-      return;
-    }
-
-    // If no access data yet, wait
-    if (!accessData) return;
-
-    console.log("🛡️ SINGLE ACCESS GATE - Backend Decision:", {
-      canAccess: accessData.canAccess,
-      requiresAuth: accessData.requiresAuth,
-      assigned: accessData.assigned,
-      cooldown: accessData.cooldown,
-      cooldownRemaining: accessData.cooldownRemaining,
-      hasPreviousResult: accessData.hasPreviousResult,
-    });
-
-    // Check if this is a retake request
-    const urlParams = new URLSearchParams(window.location.search);
-    const isRetake = urlParams.get("retake") === "1";
-
-    // ✅ Extend session for retakes
-    if (isRetake) {
-      const extended = extendSessionForRetake(params.surveyId, 30); // 30 more minutes
-      console.log("🔄 Extended session for retake:", extended);
-    }
-
-    // PRIORITY 1: Handle cooldown (redirect to results)
-    if (accessData.cooldown === true) {
-      console.log("⏰ Cooldown active, redirecting to results");
-      setHasRedirected(true);
-
-      if (accessData.previousResult) {
-        localStorage.setItem(
-          `happiness:lastResult:${params.surveyId}`,
-          JSON.stringify(accessData.previousResult)
-        );
-      }
-
-      router.push(`/happiness/${params.surveyId}/results?cooldown=true`);
-      return;
-    }
-
-    // PRIORITY 2: Handle authentication requirement
-    if (accessData.requiresAuth === true && accessData.canAccess === false) {
-      console.log("🔐 Authentication required, redirecting to login");
-      setIsRedirecting(true);
-      setHasRedirected(true);
-      router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
-      return;
-    }
-
-    // PRIORITY 3: Handle assignment issues
-    if (accessData.assigned === false) {
-      console.log("❌ User not assigned, redirecting to not-assigned page");
-      setIsRedirecting(true);
-      setHasRedirected(true);
-      router.push(
-        `/user/status/not-assigned?surveyId=${encodeURIComponent(
-          params.surveyId
-        )}`
-      );
-      return;
-    }
-
-    // PRIORITY 4: Handle retake requests when cooldown has expired
-    if (
-      isRetake &&
-      accessData.hasPreviousResult &&
-      accessData.canAccess === true
-    ) {
-      console.log("🔄 Valid retake request - clearing previous result");
-      localStorage.removeItem(`happiness:lastResult:${params.surveyId}`);
-      // Continue to render survey
-    }
-
-    // PRIORITY 5: Check final access permission
-    if (accessData.canAccess !== true) {
-      console.log("🚫 Access denied by backend");
-      setIsRedirecting(true);
-      setHasRedirected(true);
-      router.push(
-        `/user/status/access-denied?surveyId=${encodeURIComponent(
-          params.surveyId
-        )}`
-      );
-      return;
-    }
-
-    // If we reach here, access is granted - survey will render
-    console.log("✅ Access granted - survey will render");
-  }, [
-    accessCheckComplete,
-    accessData,
-    accessCheckError,
-    hasRedirected,
-    params.surveyId,
-    // Removed 'router' to prevent infinite loops on redirect
-  ]);
-
-  // ✅ Validate survey-scoped session for authenticated happiness surveys
-  useEffect(() => {
-    // Only validate session if:
-    // 1. We have survey data
-    // 2. Survey is not anonymous
-    // 3. Access has been granted
-    // 4. We haven't redirected yet
-    // 5. Access check is complete
-    if (
-      survey &&
-      !survey.anonymous &&
-      accessData?.canAccess === true &&
-      !hasRedirected &&
-      accessCheckComplete
-    ) {
-      // First check multi-tab protection
-      const multiTabCheck = canAccessNewSurvey(params.surveyId);
-      if (!multiTabCheck.canAccess) {
-        console.log(
-          "🚫 Multi-tab protection: Cannot access happiness survey",
-          multiTabCheck.reason
-        );
-        // Clear any cached access data
-        const cacheKey = `happiness:access:${params.surveyId}`;
-        localStorage.removeItem(cacheKey);
-
-        // Redirect to login to force logout from other survey
-        setIsRedirecting(true);
-        setHasRedirected(true);
-        router.push(
-          `/user/login?redirect=${encodeURIComponent(
-            params.surveyId
-          )}&type=happiness&multiTab=true`
-        );
-        return;
-      }
-
-      const sessionValidation = validateSurveySession(params.surveyId);
-      if (!sessionValidation.isValid) {
-        console.log(
-          "🚫 Survey session invalid for happiness survey:",
-          sessionValidation.reason
-        );
-        // Clear any cached access data and error states since session is invalid
-        const cacheKey = `happiness:access:${params.surveyId}`;
-        localStorage.removeItem(cacheKey);
-
-        // Clear any previous error states
-        setAccessCheckError(null);
-        setQuestionsError(null);
-
-        // Redirect to login with survey context
-        setIsRedirecting(true);
-        setHasRedirected(true);
-        router.push(
-          `/user/login?redirect=${encodeURIComponent(
-            params.surveyId
-          )}&type=happiness`
-        );
-        return;
-      }
-      console.log(
-        "✅ Survey session valid for happiness survey:",
-        params.surveyId
-      );
-    }
-  }, [
-    survey,
-    accessData,
-    hasRedirected,
-    accessCheckComplete,
-    params.surveyId,
-    router,
-  ]);
-
-  const handleAnswerSelect = (valueIndex: number) => {
+  const handleAnswer = (valueIndex: number) => {
     const currentQuestion = questions[currentQuestionIndex];
-    if (!currentQuestion) return;
+    const newAnswer: SurveyAnswer = {
+      questionId: currentQuestion.id,
+      valueIndex,
+    };
 
-    const newAnswers = [...answers];
-    const existingIndex = newAnswers.findIndex(
-      (a) => a.questionId === currentQuestion.id
-    );
-
-    if (existingIndex >= 0) {
-      newAnswers[existingIndex] = {
-        questionId: currentQuestion.id,
-        valueIndex,
-      };
-    } else {
-      newAnswers.push({ questionId: currentQuestion.id, valueIndex });
-    }
-
-    setAnswers(newAnswers);
-  };
-
-  const getCurrentAnswer = () => {
-    const currentQuestion = questions[currentQuestionIndex];
-    if (!currentQuestion) return null;
-
-    return answers.find((a) => a.questionId === currentQuestion.id);
-  };
-
-  const canProceed = () => {
-    return getCurrentAnswer() !== undefined;
+    setAnswers((prev) => {
+      const existingIndex = prev.findIndex(
+        (a) => a.questionId === currentQuestion.id
+      );
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = newAnswer;
+        return updated;
+      }
+      return [...prev, newAnswer];
+    });
   };
 
   const handleNext = () => {
@@ -464,83 +278,53 @@ export default function HappinessSurveyPage({
     }
   };
 
-  const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      if (isLastQuestion) {
-        if (
-          canProceed() &&
-          answers.length === questions.length &&
-          !isSubmitting
-        ) {
-          handleSubmit();
-        }
-      } else {
-        if (canProceed()) {
-          handleNext();
-        }
-      }
-    }
-  };
-
-  const handleAnswerKeyPress = (
-    event: React.KeyboardEvent,
-    valueIndex: number
-  ) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      handleAnswerSelect(valueIndex);
-      // Auto-advance after selecting an answer
-      setTimeout(() => {
-        if (isLastQuestion) {
-          if (
-            canProceed() &&
-            answers.length === questions.length &&
-            !isSubmitting
-          ) {
-            handleSubmit();
-          }
-        } else {
-          if (canProceed()) {
-            handleNext();
-          }
-        }
-      }, 100);
-    }
+  const canProceed = () => {
+    const currentQuestion = questions[currentQuestionIndex];
+    return answers.some((a) => a.questionId === currentQuestion.id);
   };
 
   const handleSubmit = async () => {
-    if (isSubmitting || !canProceed() || answers.length !== questions.length) {
+    if (isSubmitting || submissionCompletedRef.current) {
+      console.log("🚫 Submission already in progress or completed");
       return;
     }
 
-    setIsSubmitting(true);
-    setError("");
-
     try {
-      console.log("🔍 Submitting happiness survey...");
-      console.log("🔍 Answers:", answers);
-      console.log("🔍 Survey ID:", params.surveyId);
+      setIsSubmitting(true);
+      submissionCompletedRef.current = true;
 
-      const response = await fetch("/api/happiness/results", {
+      console.log("🔍 Submitting happiness survey:", {
+        surveyId: params.surveyId,
+        answers: answers.length,
+        timestamp: new Date().toISOString(),
+      });
+
+      const response = await fetch(`/api/happiness/results`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Ensure cookies are sent
+        credentials: "include",
         body: JSON.stringify({
           surveyId: params.surveyId,
-          answers: answers,
+          answers,
         }),
       });
 
-      const result = await response.json();
-      console.log("🔍 Submission response:", result);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("❌ Submission failed:", errorData);
+        throw new Error(errorData.error || "Failed to submit survey");
+      }
 
-      if (response.ok && result.ok) {
-        // Store the FULL server response including character data
-        const resultData = {
-          ok: result.ok,
+      const result = await response.json();
+      console.log("✅ Survey submitted successfully:", result);
+
+      // Store result in localStorage for results page
+      localStorage.setItem(
+        `happiness:lastResult:${params.surveyId}`,
+        JSON.stringify({
+          ok: true,
           surveyId: result.surveyId,
           code: result.code,
           character: result.character,
@@ -548,94 +332,65 @@ export default function HappinessSurveyPage({
           cooldown: result.cooldown,
           cooldownRemaining: result.cooldownRemaining,
           message: result.message,
-        };
+        })
+      );
 
-        console.log("🔍 Storing full result data:", resultData);
-        console.log("🔍 Character data being stored:", resultData.character);
+      // Mark survey as submitted in session storage
+      setSurveySubmitted(params.surveyId);
 
-        localStorage.setItem(
-          `happiness:lastResult:${params.surveyId}`,
-          JSON.stringify(resultData)
-        );
-
-        if (result.cooldown === true) {
-          // User is in cooldown, redirect to results with cooldown flag
-          router.push(`/happiness/${params.surveyId}/results?cooldown=true`);
-        } else {
-          // Normal submission, redirect to results
-          router.push(`/happiness/${params.surveyId}/results`);
-        }
-      } else {
-        setError(result.error || "Failed to submit survey");
-      }
+      // Navigate to results page
+      router.push(`/happiness/${params.surveyId}/results`);
     } catch (error) {
       console.error("❌ Error submitting survey:", error);
-      setError("Failed to submit survey. Please try again.");
+      setError(error instanceof Error ? error.message : "Submission failed");
+      submissionCompletedRef.current = false; // Reset on error
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Show loading state while fetching data
-  if (isLoading) {
-    return (
-      <>
-        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
-        <LoadingScreen message="Loading survey..." />
-      </>
-    );
-  }
+  // Handle global Enter key press
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Only proceed if we have questions data and can proceed
+      if (!questionsData?.questions || questionsData.questions.length === 0)
+        return;
 
-  if (questionsError || accessCheckError) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
-        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md w-full space-y-8">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6">
-                  <svg
-                    className="w-full h-full text-red-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Survey Not Assigned
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  Failed to load survey. Please try again later.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      const questions = questionsData.questions;
+      const currentQuestion = questions[currentQuestionIndex];
+      const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
-  // Show redirecting state to prevent flash screens
-  if (isRedirecting || hasRedirected) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
-          <h2 className="text-lg font-medium text-gray-900 mb-2">
-            Redirecting...
-          </h2>
-          <p className="text-sm text-gray-500">
-            Please wait while we redirect you to the appropriate page.
-          </p>
-        </div>
-      </div>
-    );
+      // Check if user can proceed (has answered current question)
+      const canProceedNow = answers.some(
+        (a) => a.questionId === currentQuestion?.id
+      );
+
+      if (e.key === "Enter" && canProceedNow) {
+        e.preventDefault();
+        if (isLastQuestion) {
+          if (answers.length === questions.length && !isSubmitting) {
+            handleSubmit();
+          }
+        } else {
+          handleNext();
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, [
+    currentQuestionIndex,
+    answers,
+    questionsData,
+    isSubmitting,
+    handleNext,
+    handleSubmit,
+  ]);
+
+  // Show loading screen if redirecting
+  if (isRedirecting) {
+    return <LoadingScreen message="Redirecting..." />;
   }
 
   // Error handling is now done through redirects to standard error pages
@@ -644,239 +399,141 @@ export default function HappinessSurveyPage({
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
     return (
       <>
-        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
-        <LoadingScreen
-          message={
-            accessLoading ? "Checking survey access..." : "Loading survey..."
-          }
-        />
+        {/* Show navbar based on survey type */}
+        {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+        <LoadingScreen message="Loading survey..." />
       </>
     );
   }
 
-  // Cooldown and other access checks are now handled in the single access gate above
-  // This eliminates race conditions and ensures backend is the single source of truth
-
-  // Show error state if there are errors
-  if (accessCheckError || questionsError) {
+  // Handle questions error
+  if (questionsError) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
-        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md w-full space-y-8">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6">
-                  <svg
-                    className="w-full h-full text-red-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Survey Not Assigned
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  {accessCheckError?.message ||
-                    questionsError?.message ||
-                    "You are not assigned to this survey."}
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            Unable to Load Survey
+          </h1>
+          <p className="text-gray-600 mb-6">
+            There was an error loading the survey questions.
+          </p>
+          <button
+            onClick={() => router.push("/user/home")}
+            className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
   }
 
-  // If we have data but no access, and user is not authenticated, redirect to login
-  // Backend handles all authentication and access control now
-  // No client-side authentication checks needed
+  const questions = questionsData?.questions || [];
 
-  // If no survey or questions, show error
-  if (!survey || questions.length === 0) {
+  if (questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
-        <div className="flex items-center justify-center h-[calc(100vh-64px)] py-12 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-md w-full space-y-8">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-6">
-                  <svg
-                    className="w-full h-full text-red-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-red-600 mb-4">
-                  Survey Not Assigned
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  You are not assigned to this survey.
-                </p>
-              </div>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+            No Questions Available
+          </h1>
+          <p className="text-gray-600 mb-6">
+            This survey doesn&apos;t have any active questions yet.
+          </p>
+          <button
+            onClick={() => router.push("/user/home")}
+            className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
+          >
+            Go Home
+          </button>
         </div>
       </div>
     );
   }
 
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* User Navbar - Only show for non-anonymous surveys */}
-      {!survey?.anonymous && <UserNavbar />}
+      {/* Conditional Navbar based on survey type */}
+      {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
 
       {/* Header */}
       <div className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">{survey.title}</h1>
-          <p className="text-gray-600 mt-2">
+        <div className="max-w-4xl text-center mx-auto px-4 py-6">
+          <p className="text-blue-500 mt-2">
             Discover your happiness profile through this comprehensive
             assessment
           </p>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div className="bg-white border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm text-gray-600">
-              Question {currentQuestionIndex + 1} of {questions.length}
-            </span>
-            <span className="text-sm text-gray-600">
-              {Math.round(progress)}% Complete
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="bg-blue-400 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
       {/* Question */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div
-          className="bg-white rounded-lg shadow-sm p-8"
-          onKeyDown={handleKeyPress}
-          tabIndex={0}
-        >
-          {/* Question Header */}
+        <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                {currentQuestion.category}
-              </span>
-              <span className="text-sm text-gray-500">
-                #{currentQuestion.id}
-              </span>
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900 leading-relaxed">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {currentQuestion.text}
             </h2>
-          </div>
 
-          {/* Answer Options */}
-          <div className="space-y-3 mb-8">
-            {[1, 2, 3, 4, 5].map((valueIndex) => {
-              const isSelected = getCurrentAnswer()?.valueIndex === valueIndex;
-              const labels = [
+            <div className="space-y-3">
+              {[
                 "Never / Strongly Disagree",
                 "Rarely / Disagree",
                 "Sometimes / Neutral",
                 "Often / Agree",
                 "Always / Strongly Agree",
-              ];
+              ].map((label, index) => {
+                const isSelected = answers.some(
+                  (a) =>
+                    a.questionId === currentQuestion.id &&
+                    a.valueIndex === index + 1
+                );
 
-              return (
-                <button
-                  key={valueIndex}
-                  onClick={() => handleAnswerSelect(valueIndex)}
-                  onKeyDown={(e) => handleAnswerKeyPress(e, valueIndex)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                    isSelected
-                      ? "border-blue-400 bg-blue-50 text-blue-900"
-                      : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {labels[valueIndex - 1]}
-                    </span>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 ${
-                        isSelected
-                          ? "border-blue-400 bg-blue-400"
-                          : "border-gray-300"
-                      }`}
-                    >
-                      {isSelected && (
-                        <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
-                          <div className="w-2 h-2 rounded-full bg-blue-400"></div>
-                        </div>
-                      )}
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswer(index + 1)}
+                    className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
+                      isSelected
+                        ? "border-blue-400 bg-blue-50 text-blue-900"
+                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{label}</span>
+                      <div
+                        className={`w-5 h-5 rounded-full border-2 ${
+                          isSelected
+                            ? "border-blue-400 bg-blue-400"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {isSelected && (
+                          <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Navigation */}
           <div className="flex justify-between items-center">
             <button
               onClick={handlePrevious}
-              onKeyDown={(e) => e.key === "Enter" && handlePrevious()}
               disabled={currentQuestionIndex === 0}
               className={`px-6 py-2 rounded-md text-sm font-medium ${
                 currentQuestionIndex === 0
-                  ? "text-gray-400 cursor-not-allowed"
-                  : "text-gray-700 hover:text-gray-900 border border-gray-300 hover:bg-gray-50"
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-gray-500 hover:bg-gray-600 text-white"
               }`}
             >
               Previous
             </button>
-
-            <div className="text-center">
-              <div className="text-sm text-gray-500 mb-1">
-                {answers.length} of {questions.length} answered
-              </div>
-              <div className="flex space-x-1">
-                {questions.map((question: HappinessQuestion, index: number) => (
-                  <div
-                    key={index}
-                    className={`w-2 h-2 rounded-full ${
-                      answers.some((a) => a.questionId === questions[index].id)
-                        ? "bg-blue-400"
-                        : index === currentQuestionIndex
-                        ? "bg-blue-200"
-                        : "bg-gray-200"
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
 
             {isLastQuestion ? (
               <button
@@ -913,6 +570,19 @@ export default function HappinessSurveyPage({
             )}
           </div>
         </div>
+
+        {/* Error Display */}
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800">{error}</p>
+            <button
+              onClick={() => setError(null)}
+              className="mt-2 text-sm text-red-600 hover:text-red-800"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { happinessQuestions } from "@/db/schema/happiness";
-import { eq, like, desc } from "drizzle-orm";
+import { eq, like, desc, asc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // GET - List happiness questions with filters
@@ -12,11 +12,11 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const isActive = searchParams.get("isActive");
 
-    // Fetch all questions first
+    // Fetch all questions first - sorted by ID ascending (1, 2, 3, ...)
     const questions = await db
       .select()
       .from(happinessQuestions)
-      .orderBy(desc(happinessQuestions.id));
+      .orderBy(asc(happinessQuestions.id));
 
     // Parse values JSON for each question
     let parsedQuestions = questions.map((q) => ({

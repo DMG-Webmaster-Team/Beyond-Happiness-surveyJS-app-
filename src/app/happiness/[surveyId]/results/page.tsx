@@ -4,6 +4,18 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
 
 interface HappinessResult {
   ok: boolean;
@@ -145,32 +157,44 @@ export default function HappinessResultsPage({
           bg: "bg-purple-100",
           text: "text-purple-800",
           bar: "bg-purple-500",
+          hex: "#8B5CF6",
         };
       case "Delight":
         return {
           bg: "bg-yellow-100",
           text: "text-yellow-800",
           bar: "bg-yellow-500",
+          hex: "#EAB308",
         };
       case "Freedom":
         return {
           bg: "bg-green-100",
           text: "text-green-800",
           bar: "bg-green-500",
+          hex: "#22C55E",
         };
       case "Engagement":
-        return { bg: "bg-blue-100", text: "text-blue-800", bar: "bg-blue-500" };
+        return {
+          bg: "bg-blue-100",
+          text: "text-blue-800",
+          bar: "bg-blue-500",
+          hex: "#3B82F6",
+        };
       case "Vitality":
-        return { bg: "bg-red-100", text: "text-red-800", bar: "bg-red-500" };
+        return {
+          bg: "bg-red-100",
+          text: "text-red-800",
+          bar: "bg-red-500",
+          hex: "#EF4444",
+        };
       default:
-        return { bg: "bg-gray-100", text: "text-gray-800", bar: "bg-gray-500" };
+        return {
+          bg: "bg-gray-100",
+          text: "text-gray-800",
+          bar: "bg-gray-500",
+          hex: "#6B7280",
+        };
     }
-  };
-
-  const getScoreLevel = (score: number) => {
-    if (score >= 6000) return { level: "High", color: "text-green-600" };
-    if (score >= 4000) return { level: "Medium", color: "text-yellow-600" };
-    return { level: "Low", color: "text-red-600" };
   };
 
   const getCharacterNameColor = (result: HappinessResult) => {
@@ -186,6 +210,75 @@ export default function HappinessResultsPage({
     if (totalScore >= 15000) return "text-green-600 font-medium"; // Good
     if (totalScore >= 10000) return "text-yellow-600 font-medium"; // Average
     return "text-red-600 font-medium"; // Below average
+  };
+
+  // Calculate percentages and prepare chart data
+  const calculatePercentages = (categoryTotals: any) => {
+    const maxPossibleScore = 10000; // Assuming max possible score per category is 10000
+    const totalMaxScore = maxPossibleScore * 5; // 5 categories
+
+    const categoryPercentages = Object.entries(categoryTotals).map(
+      ([category, score]) => ({
+        name: category,
+        value: Math.round(((score as number) / maxPossibleScore) * 100),
+        score: score as number,
+        color: getCategoryColor(category).hex,
+      })
+    );
+
+    const totalScore = Object.values(categoryTotals).reduce(
+      (sum, score) => sum + (score as number),
+      0
+    );
+    const overallPercentage = Math.round((totalScore / totalMaxScore) * 100);
+
+    return { categoryPercentages, overallPercentage, totalScore };
+  };
+
+  // Circular Progress Component
+  const CircularProgress = ({
+    percentage,
+    size = 120,
+  }: {
+    percentage: number;
+    size?: number;
+  }) => {
+    const radius = (size - 20) / 2;
+    const circumference = radius * 2 * Math.PI;
+    const strokeDasharray = `${
+      (percentage / 100) * circumference
+    } ${circumference}`;
+
+    return (
+      <div className="relative inline-flex items-center justify-center">
+        <svg width={size} height={size} className="transform -rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="#E5E7EB"
+            strokeWidth="10"
+            fill="transparent"
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="#3B82F6"
+            strokeWidth="10"
+            fill="transparent"
+            strokeDasharray={strokeDasharray}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl font-bold text-blue-600">
+            {percentage}%
+          </span>
+        </div>
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -231,11 +324,8 @@ export default function HappinessResultsPage({
   });
   console.log("Category totals:", result.categoryTotals);
 
-  const maxScore = Math.max(...Object.values(result.categoryTotals));
-  const totalScore = Object.values(result.categoryTotals).reduce(
-    (sum, score) => sum + score,
-    0
-  );
+  const { categoryPercentages, overallPercentage, totalScore } =
+    calculatePercentages(result.categoryTotals);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -243,9 +333,9 @@ export default function HappinessResultsPage({
       {survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
 
       {/* Header */}
-      <div className="bg-white shadow-sm">
+      <div className="bg-white shadow-sm text-center">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-blue-600">
             Your Happiness Profile
           </h1>
           <p className="text-gray-600 mt-2">
@@ -308,26 +398,6 @@ export default function HappinessResultsPage({
               >
                 You are a {result.character.name}!
               </h2>
-              {/* <div className="mt-2">
-                <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getCharacterNameColor(
-                    result
-                  )
-                    .replace("text-", "bg-")
-                    .replace("-600", "-100")} ${getCharacterNameColor(result)}`}
-                >
-                  {(() => {
-                    const totalScore = Object.values(
-                      result.categoryTotals
-                    ).reduce((sum, score) => sum + score, 0);
-                    if (totalScore >= 25000) return "🌟 Exceptional";
-                    if (totalScore >= 20000) return "⭐ High";
-                    if (totalScore >= 15000) return "✨ Good";
-                    if (totalScore >= 10000) return "📊 Average";
-                    return "📈 Growing";
-                  })()}
-                </span>
-              </div> */}
             </div>
             <div className="mb-6">
               <div className="w-70 h-70 mx-auto p-2 ">
@@ -426,67 +496,94 @@ export default function HappinessResultsPage({
           )}
         </div>
 
-        {/* Overall Score */}
+        {/* Overall Score with Circular Progress */}
         <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">
             Overall Happiness Score
           </h3>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-blue-600 mb-2">
-              {totalScore.toLocaleString()}
-            </div>
-            <div className="text-gray-600">
-              Total points across all happiness dimensions
+          <div className="flex items-center justify-center space-x-8">
+            <div className="text-center">
+              <div className="mt-4">
+                <div className="text-6xl font-bold text-gray-900">
+                  {overallPercentage}%
+                </div>
+                <div className="text-gray-600">Overall Happiness Level</div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Category Breakdown */}
+        {/* Category Chart */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
-            Happiness Dimensions
+            Happiness Dimensions Overview
+          </h3>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={categoryPercentages}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis
+                  domain={[0, 100]}
+                  tickFormatter={(value) => `${value}%`}
+                />
+                <Tooltip
+                  formatter={(value: any, name: any) => [
+                    `${value}%`,
+                    "Percentage",
+                  ]}
+                  labelFormatter={(label) => `${label} Dimension`}
+                />
+                <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]}>
+                  {categoryPercentages.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Detailed Category Breakdown */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">
+            Detailed Happiness Dimensions
           </h3>
 
           <div className="space-y-6">
-            {Object.entries(result.categoryTotals).map(([category, score]) => {
-              const colors = getCategoryColor(category);
-              const scoreLevel = getScoreLevel(score);
-              const percentage = maxScore > 0 ? (score / maxScore) * 100 : 0;
+            {categoryPercentages.map((category) => {
+              const colors = getCategoryColor(category.name);
+              const percentage = category.value;
 
               return (
-                <div key={category} className="space-y-3">
+                <div key={category.name} className="space-y-3">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}
                       >
-                        {category}
-                      </span>
-                      <span
-                        className={`text-sm font-medium ${scoreLevel.color}`}
-                      >
-                        {scoreLevel.level}
+                        {category.name}
                       </span>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {score.toLocaleString()}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {score >= 6000 ? "Threshold Met" : "Below Threshold"}
+                      <div className="text-2xl font-bold text-gray-900">
+                        {percentage}%
                       </div>
                     </div>
                   </div>
 
-                  <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div className="w-full bg-gray-200 rounded-full h-4">
                     <div
-                      className={`h-3 rounded-full transition-all duration-500 ${colors.bar}`}
+                      className={`h-4 rounded-full transition-all duration-1000 ease-out ${colors.bar}`}
                       style={{ width: `${percentage}%` }}
                     />
                   </div>
 
                   <div className="text-sm text-gray-600">
-                    {getCategoryDescription(category)}
+                    {getCategoryDescription(category.name)}
                   </div>
                 </div>
               );

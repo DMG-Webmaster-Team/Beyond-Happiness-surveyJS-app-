@@ -104,6 +104,12 @@ export default function QuestionsTab() {
     setQuestionToDelete(null);
   };
 
+  // Sort questions by ID (ascending order)
+  const sortedQuestions = useMemo(() => {
+    const questions = data?.questions || [];
+    return [...questions].sort((a, b) => a.id - b.id);
+  }, [data?.questions]);
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -129,14 +135,12 @@ export default function QuestionsTab() {
     );
   }
 
-  const questions = data?.questions || [];
-
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-semibold text-gray-900">
-          Happiness Questions ({questions.length})
+          Happiness Questions ({sortedQuestions.length}) - Sorted by ID
         </h2>
         <button
           onClick={() => setShowAddForm(true)}
@@ -196,9 +200,9 @@ export default function QuestionsTab() {
         </select>
       </div>
 
-      {/* Questions List */}
+      {/* Questions List - Now sorted by ID */}
       <div className="space-y-3">
-        {questions.map((question: HappinessQuestion) => (
+        {sortedQuestions.map((question: HappinessQuestion) => (
           <div
             key={question.id}
             className={`border rounded-lg p-4 ${
@@ -208,7 +212,7 @@ export default function QuestionsTab() {
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-sm font-medium text-gray-500">
+                  <span className="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
                     #{question.id}
                   </span>
                   <span
@@ -262,7 +266,7 @@ export default function QuestionsTab() {
         ))}
       </div>
 
-      {questions.length === 0 && (
+      {sortedQuestions.length === 0 && (
         <div className="text-center py-8 text-gray-500">
           No questions found matching your filters.
         </div>
