@@ -1,12 +1,1369 @@
 
 > surveyjs-nextjs@0.1.0 dev
-> next dev
+> next dev -p 4007
 
- ⚠ Port 3000 is in use, trying 3001 instead.
    ▲ Next.js 14.1.0
-   - Local:        http://localhost:3001
+   - Local:        http://localhost:4007
    - Environments: .env.local
 
- ✓ Ready in 1493ms
- ✓ Compiled /api/test in 306ms (38 modules)
-[?25h
+ ✓ Ready in 1552ms
+ ✓ Compiled /api/test-new-route in 240ms (38 modules)
+ ✓ Compiled /api/generate-pdf in 67ms (41 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-123",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-123",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-ar-123",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل ذي المعنى.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+❌ PDF generation error: TypeError: Cannot convert argument to a ByteString because the character at index 22 has a value of 1575 which is greater than 255.
+    at webidl.converters.ByteString (node:internal/deps/undici/undici:4423:17)
+    at Object.record<ByteString, ByteString> (node:internal/deps/undici/undici:4320:32)
+    at webidl.converters.HeadersInit (node:internal/deps/undici/undici:9639:67)
+    at Object.ResponseInit (node:internal/deps/undici/undici:4373:21)
+    at new Response (node:internal/deps/undici/undici:9744:34)
+    at new NextResponse (webpack-internal:///(rsc)/./node_modules/next/dist/server/web/spec-extension/response.js:38:9)
+    at POST (webpack-internal:///(rsc)/./src/app/api/generate-pdf/route.ts:354:20)
+    at async /Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:63809
+    at async eU.execute (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:53964)
+    at async eU.handle (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:65062)
+    at async doRender (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1333:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1555:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1463:28)
+    at async DevServer.renderPageComponent (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1856:24)
+    at async DevServer.renderToResponseImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1894:32)
+    at async DevServer.pipeImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:911:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/next-server.js:271:17)
+    at async DevServer.handleRequestImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:807:17)
+    at async /Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/dev/next-dev-server.js:331:20
+    at async Span.traceAsyncFn (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/trace/trace.js:151:20)
+    at async DevServer.handleRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/dev/next-dev-server.js:328:24)
+    at async invokeRender (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:163:21)
+    at async handleRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:342:24)
+    at async requestHandlerImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:366:13)
+    at async Server.requestListener (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/start-server.js:140:13)
+🔒 Browser closed
+ ✓ Compiled in 80ms (41 modules)
+ ✓ Compiled in 47ms (41 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-ar-123",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل ذي المعنى.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+❌ PDF generation error: TypeError: Cannot convert argument to a ByteString because the character at index 22 has a value of 1575 which is greater than 255.
+    at webidl.converters.ByteString (node:internal/deps/undici/undici:4423:17)
+    at Object.record<ByteString, ByteString> (node:internal/deps/undici/undici:4320:32)
+    at webidl.converters.HeadersInit (node:internal/deps/undici/undici:9639:67)
+    at Object.ResponseInit (node:internal/deps/undici/undici:4373:21)
+    at new Response (node:internal/deps/undici/undici:9744:34)
+    at new NextResponse (webpack-internal:///(rsc)/./node_modules/next/dist/server/web/spec-extension/response.js:38:9)
+    at POST (webpack-internal:///(rsc)/./src/app/api/generate-pdf/route.ts:362:20)
+    at async /Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:63809
+    at async eU.execute (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:53964)
+    at async eU.handle (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:65062)
+    at async doRender (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1333:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1555:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1463:28)
+    at async DevServer.renderPageComponent (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1856:24)
+    at async DevServer.renderToResponseImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1894:32)
+    at async DevServer.pipeImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:911:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/next-server.js:271:17)
+    at async DevServer.handleRequestImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:807:17)
+    at async /Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/dev/next-dev-server.js:331:20
+    at async Span.traceAsyncFn (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/trace/trace.js:151:20)
+    at async DevServer.handleRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/dev/next-dev-server.js:328:24)
+    at async invokeRender (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:163:21)
+    at async handleRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:342:24)
+    at async requestHandlerImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:366:13)
+    at async Server.requestListener (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/start-server.js:140:13)
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "character": {
+      "name": "Test Arabic المحقق"
+    },
+    "categoryTotals": {
+      "Meaning": 1000,
+      "Delight": 2000,
+      "Freedom": 3000,
+      "Engagement": 4000,
+      "Vitality": 5000
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: Test Arabic المحقق
+📊 Category totals: {
+  Meaning: 1000,
+  Delight: 2000,
+  Freedom: 3000,
+  Engagement: 4000,
+  Vitality: 5000
+}
+📄 Generating HTML content directly
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+❌ PDF generation error: TypeError: Cannot convert argument to a ByteString because the character at index 34 has a value of 1575 which is greater than 255.
+    at webidl.converters.ByteString (node:internal/deps/undici/undici:4423:17)
+    at Object.record<ByteString, ByteString> (node:internal/deps/undici/undici:4320:32)
+    at webidl.converters.HeadersInit (node:internal/deps/undici/undici:9639:67)
+    at Object.ResponseInit (node:internal/deps/undici/undici:4373:21)
+    at new Response (node:internal/deps/undici/undici:9744:34)
+    at new NextResponse (webpack-internal:///(rsc)/./node_modules/next/dist/server/web/spec-extension/response.js:38:9)
+    at POST (webpack-internal:///(rsc)/./src/app/api/generate-pdf/route.ts:362:20)
+    at async /Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:63809
+    at async eU.execute (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:53964)
+    at async eU.handle (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/compiled/next-server/app-route.runtime.dev.js:6:65062)
+    at async doRender (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1333:42)
+    at async cacheEntry.responseCache.get.routeKind (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1555:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1463:28)
+    at async DevServer.renderPageComponent (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1856:24)
+    at async DevServer.renderToResponseImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:1894:32)
+    at async DevServer.pipeImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:911:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/next-server.js:271:17)
+    at async DevServer.handleRequestImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/base-server.js:807:17)
+    at async /Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/dev/next-dev-server.js:331:20
+    at async Span.traceAsyncFn (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/trace/trace.js:151:20)
+    at async DevServer.handleRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/dev/next-dev-server.js:328:24)
+    at async invokeRender (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:163:21)
+    at async handleRequest (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:342:24)
+    at async requestHandlerImpl (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/router-server.js:366:13)
+    at async Server.requestListener (/Users/ahmedhassan/Desktop/surveyjs-nextjs/node_modules/next/dist/server/lib/start-server.js:140:13)
+🔒 Browser closed
+ ✓ Compiled in 241ms (39 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "character": {
+      "name": "Test Arabic المحقق"
+    },
+    "categoryTotals": {
+      "Meaning": 1000,
+      "Delight": 2000,
+      "Freedom": 3000,
+      "Engagement": 4000,
+      "Vitality": 5000
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: Test Arabic المحقق
+📊 Category totals: {
+  Meaning: 1000,
+  Delight: 2000,
+  Freedom: 3000,
+  Engagement: 4000,
+  Vitality: 5000
+}
+📄 Generating HTML content directly
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 1185ms (229 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 134ms (39 modules)
+ ○ Compiling /happiness/[surveyId]/results ...
+ ✓ Compiled /happiness/[surveyId]/results in 5s (2918 modules)
+ ✓ Compiled in 187ms (1444 modules)
+ ○ Compiling /not-found ...
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, stat '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled /api/happiness/surveys/[id]/access in 3.5s (3095 modules)
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+📊 Database connection closed
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+📊 Database connection closed
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+📊 Database connection closed
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+📊 Database connection closed
+ ✓ Compiled in 1018ms (1458 modules)
+ ✓ Compiled in 160ms (1458 modules)
+ ✓ Compiled in 1067ms (1458 modules)
+ ✓ Compiled in 95ms (1458 modules)
+ ✓ Compiled in 322ms (1458 modules)
+ ✓ Compiled in 264ms (1458 modules)
+ ✓ Compiled in 203ms (1458 modules)
+ ✓ Compiled in 1075ms (1458 modules)
+ ✓ Compiled in 146ms (1458 modules)
+ ✓ Compiled in 381ms (1458 modules)
+ ✓ Compiled in 441ms (1458 modules)
+ ✓ Compiled in 559ms (1458 modules)
+ ✓ Compiled in 431ms (1458 modules)
+ ✓ Compiled in 583ms (1458 modules)
+ ✓ Compiled in 533ms (1458 modules)
+ ✓ Compiled in 306ms (1458 modules)
+ ✓ Compiled in 324ms (1458 modules)
+ ✓ Compiled in 317ms (1458 modules)
+ ⨯ ./src/app/api/generate-pdf/route.ts:3:0
+Module not found: Can't resolve '../../utils/pdf/loadImageAsBase64'
+[0m [90m 1 |[39m [36mimport[39m { [33mNextRequest[39m[33m,[39m [33mNextResponse[39m } [36mfrom[39m [32m"next/server"[39m[33m;[39m[0m
+[0m [90m 2 |[39m [36mimport[39m puppeteer [36mfrom[39m [32m"puppeteer"[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { loadImageAsBase64 } [36mfrom[39m [32m"../../utils/pdf/loadImageAsBase64"[39m[33m;[39m[0m
+[0m [90m 4 |[39m[0m
+[0m [90m 5 |[39m [36masync[39m [36mfunction[39m generatePDFHTML(result[33m:[39m any[33m,[39m language[33m:[39m string) {[0m
+[0m [90m 6 |[39m   [36mconst[39m isRTL [33m=[39m language [33m===[39m [32m"ar"[39m[33m;[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ ○ Compiling /not-found ...
+ ⨯ ./src/app/api/generate-pdf/route.ts:3:0
+Module not found: Can't resolve '../../utils/pdf/loadImageAsBase64'
+[0m [90m 1 |[39m [36mimport[39m { [33mNextRequest[39m[33m,[39m [33mNextResponse[39m } [36mfrom[39m [32m"next/server"[39m[33m;[39m[0m
+[0m [90m 2 |[39m [36mimport[39m puppeteer [36mfrom[39m [32m"puppeteer"[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { loadImageAsBase64 } [36mfrom[39m [32m"../../utils/pdf/loadImageAsBase64"[39m[33m;[39m[0m
+[0m [90m 4 |[39m[0m
+[0m [90m 5 |[39m [36masync[39m [36mfunction[39m generatePDFHTML(result[33m:[39m any[33m,[39m language[33m:[39m string) {[0m
+[0m [90m 6 |[39m   [36mconst[39m isRTL [33m=[39m language [33m===[39m [32m"ar"[39m[33m;[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ ⨯ ./src/app/api/generate-pdf/route.ts:3:0
+Module not found: Can't resolve '../../utils/pdf/loadImageAsBase64'
+[0m [90m 1 |[39m [36mimport[39m { [33mNextRequest[39m[33m,[39m [33mNextResponse[39m } [36mfrom[39m [32m"next/server"[39m[33m;[39m[0m
+[0m [90m 2 |[39m [36mimport[39m puppeteer [36mfrom[39m [32m"puppeteer"[39m[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { loadImageAsBase64 } [36mfrom[39m [32m"../../utils/pdf/loadImageAsBase64"[39m[33m;[39m[0m
+[0m [90m 4 |[39m[0m
+[0m [90m 5 |[39m [36masync[39m [36mfunction[39m generatePDFHTML(result[33m:[39m any[33m,[39m language[33m:[39m string) {[0m
+[0m [90m 6 |[39m   [36mconst[39m isRTL [33m=[39m language [33m===[39m [32m"ar"[39m[33m;[39m[0m
+
+https://nextjs.org/docs/messages/module-not-found
+ ✓ Compiled /_error in 421ms (3112 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-fixed-123",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-final-123",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You are committed to excellence and growth through meaningful challenges.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-arabic-final",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل ذي المعنى. أنت ملتزم بالتميز والنمو.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 1324ms (3105 modules)
+   Reload env: .env.local
+ ✓ Compiled in 530ms (3105 modules)
+ ✓ Compiled in 1633ms (3082 modules)
+ ✓ Compiled in 457ms (1580 modules)
+ ✓ Compiled in 767ms (1580 modules)
+ ✓ Compiled in 464ms (1580 modules)
+ ✓ Compiled in 245ms (1580 modules)
+ ✓ Compiled in 2.8s (3082 modules)
+ ✓ Compiled in 1962ms (3082 modules)
+ ✓ Compiled in 1026ms (3082 modules)
+ ✓ Compiled in 872ms (3082 modules)
+ ✓ Compiled in 820ms (3082 modules)
+ ✓ Compiled in 1476ms (3082 modules)
+ ✓ Compiled in 1157ms (3082 modules)
+ ✓ Compiled in 846ms (3082 modules)
+ ✓ Compiled in 891ms (3082 modules)
+ ✓ Compiled in 1732ms (3082 modules)
+ ✓ Compiled /api/generate-pdf in 311ms (1525 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-brand-colors",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You are committed to excellence and growth through meaningful challenges and continuous learning.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-arabic-brand",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل ذي المعنى. أنت ملتزم بالتميز والنمو من خلال التحديات الهادفة والتعلم المستمر.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 1736ms (3105 modules)
+ ✓ Compiled in 1135ms (3082 modules)
+ ✓ Compiled in 471ms (1580 modules)
+ ✓ Compiled in 236ms (1580 modules)
+ ✓ Compiled in 778ms (1580 modules)
+ ✓ Compiled in 181ms (1580 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 435ms (1580 modules)
+ ✓ Compiled in 758ms (1580 modules)
+ ✓ Compiled in 233ms (1580 modules)
+ ✓ Compiled in 237ms (1580 modules)
+ ✓ Compiled in 360ms (1580 modules)
+ ✓ Compiled in 869ms (1580 modules)
+ ✓ Compiled in 1241ms (3082 modules)
+ ✓ Compiled /api/generate-pdf in 191ms (1525 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-english-styled",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You are committed to excellence and growth through meaningful challenges and continuous learning.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-arabic-styled",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل ذي المعنى. أنت ملتزم بالتميز والنمو من خلال التحديات الهادفة والتعلم المستمر.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 949ms (3105 modules)
+ ✓ Compiled in 4.1s (3082 modules)
+ ✓ Compiled in 857ms (1580 modules)
+ ✓ Compiled in 588ms (1580 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/1.pack.gz_' -> '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/1.pack.gz'
+ ✓ Compiled in 1330ms (3082 modules)
+ ✓ Compiled in 788ms (3082 modules)
+ ○ Compiling /api/generate-pdf ...
+ ✓ Compiled /api/generate-pdf in 598ms (1525 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-layout-match",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You are committed to excellence and growth through meaningful challenges and continuous learning.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-layout-arabic",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل ذي المعنى. أنت ملتزم بالتميز والنمو من خلال التحديات الهادفة والتعلم المستمر.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 1246ms (3105 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 1536ms (3082 modules)
+ ✓ Compiled in 1666ms (3082 modules)
+ ✓ Compiled in 1182ms (3082 modules)
+ ✓ Compiled in 2.1s (1580 modules)
+ ✓ Compiled in 656ms (1580 modules)
+ ✓ Compiled in 1377ms (1580 modules)
+ ✓ Compiled in 444ms (1580 modules)
+ ✓ Compiled in 593ms (1580 modules)
+ ✓ Compiled in 840ms (1580 modules)
+ ✓ Compiled in 1634ms (3082 modules)
+ ✓ Compiled /api/generate-pdf in 433ms (1525 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-subtypes",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You are committed to excellence and growth through meaningful challenges and continuous learning.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-subtypes-ar",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل الهادف. أنت ملتزم بالتميز والنمو من خلال التحديات الهادفة والتعلم المستمر.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 1399ms (3082 modules)
+ ✓ Compiled in 198ms (1580 modules)
+ ✓ Compiled in 1806ms (3082 modules)
+ ✓ Compiled in 833ms (3082 modules)
+ ✓ Compiled in 1334ms (3082 modules)
+ ✓ Compiled in 816ms (3082 modules)
+ ✓ Compiled in 1110ms (3082 modules)
+ ○ Compiling /happiness/[surveyId] ...
+ ✓ Compiled /happiness/[surveyId] in 506ms (3090 modules)
+ ✓ Compiled /api/generate-pdf in 163ms (1530 modules)
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-web-subtypes",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work. You are committed to excellence and growth through meaningful challenges and continuous learning.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    }
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 882ms (3113 modules)
+ ✓ Compiled in 1170ms (3085 modules)
+ ✓ Compiled in 454ms (1583 modules)
+ ✓ Compiled in 903ms (1583 modules)
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ✓ Compiled /api/generate-pdf in 399ms (1801 modules)
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ○ Compiling /_error ...
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/lib/services/subtype-scoring.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ✓ Compiled /api/generate-pdf in 216ms (1803 modules)
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/lib/services/subtype-scoring.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ○ Compiling /_error ...
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/lib/services/subtype-scoring.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/lib/services/subtype-scoring.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/lib/services/subtype-scoring.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ⨯ ./node_modules/better-sqlite3/lib/database.js:2:11
+Module not found: Can't resolve 'fs'
+
+https://nextjs.org/docs/messages/module-not-found
+
+Import trace for requested module:
+./node_modules/better-sqlite3/lib/index.js
+./src/db/client.ts
+./src/db/index.ts
+./src/lib/services/subtype-scoring.ts
+./src/utils/pdf/generateHappinessPdf.ts
+./src/components/DownloadPDFButton.tsx
+./src/app/happiness/[surveyId]/results/page.tsx
+ ✓ Compiled /_error in 1677ms (3242 modules)
+ ✓ Compiled in 1494ms (3242 modules)
+ ○ Compiling /not-found ...
+ ✓ Compiled /not-found in 722ms (3233 modules)
+ ✓ Compiled /api/happiness/surveys in 159ms (1665 modules)
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+ ✓ Compiled in 272ms (1585 modules)
+ ✓ Compiled in 2s (3250 modules)
+ ✓ Compiled in 1427ms (3250 modules)
+ ✓ Compiled in 1421ms (3250 modules)
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-fixed-typescript",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Dedicated Achiever",
+      "description": "A focused professional who finds deep engagement in meaningful work.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    },
+    "answers": [
+      {
+        "questionId": 1,
+        "valueIndex": 5
+      },
+      {
+        "questionId": 2,
+        "valueIndex": 4
+      },
+      {
+        "questionId": 3,
+        "valueIndex": 2
+      },
+      {
+        "questionId": 4,
+        "valueIndex": 1
+      },
+      {
+        "questionId": 5,
+        "valueIndex": 3
+      },
+      {
+        "questionId": 6,
+        "valueIndex": 5
+      },
+      {
+        "questionId": 7,
+        "valueIndex": 1
+      },
+      {
+        "questionId": 8,
+        "valueIndex": 2
+      }
+    ]
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Dedicated Achiever
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+📊 Calculated subtype scores from individual answers: {
+  Meaning: { A: 2750, B: 300, C: 1500, D: 150 },
+  Delight: { A: 0, B: 0, C: 0, D: 0 },
+  Freedom: { A: 0, B: 0, C: 0, D: 0 },
+  Engagement: { A: 0, B: 0, C: 0, D: 0 },
+  Vitality: { A: 0, B: 0, C: 0, D: 0 }
+}
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-arabic-subtypes",
+    "surveyId": "4N7rUJd-EiyeThYY56SK1",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "المحقق المتفاني",
+      "description": "محترف مركز يجد اندماجاً عميقاً في العمل الهادف.",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    },
+    "answers": [
+      {
+        "questionId": 1,
+        "valueIndex": 5
+      },
+      {
+        "questionId": 2,
+        "valueIndex": 3
+      },
+      {
+        "questionId": 3,
+        "valueIndex": 1
+      },
+      {
+        "questionId": 4,
+        "valueIndex": 2
+      },
+      {
+        "questionId": 5,
+        "valueIndex": 4
+      },
+      {
+        "questionId": 6,
+        "valueIndex": 5
+      },
+      {
+        "questionId": 7,
+        "valueIndex": 2
+      },
+      {
+        "questionId": 8,
+        "valueIndex": 1
+      }
+    ]
+  },
+  "lang": "ar"
+}
+🚀 Starting PDF generation for character: المحقق المتفاني
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+📊 Calculated subtype scores from individual answers: {
+  Meaning: { A: 2500, B: 150, C: 1750, D: 150 },
+  Delight: { A: 0, B: 0, C: 0, D: 0 },
+  Freedom: { A: 0, B: 0, C: 0, D: 0 },
+  Engagement: { A: 0, B: 0, C: 0, D: 0 },
+  Vitality: { A: 0, B: 0, C: 0, D: 0 }
+}
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 3.8s (3240 modules)
+ ✓ Compiled in 1044ms (1583 modules)
+ ✓ Compiled in 1508ms (3085 modules)
+ ✓ Compiled in 1553ms (3085 modules)
+ ✓ Compiled in 1287ms (3085 modules)
+ ✓ Compiled /api/generate-pdf in 158ms (1657 modules)
+📊 SQLite database connected: /Users/ahmedhassan/Desktop/surveyjs-nextjs/surveyjs.db
+🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache
+🔥 NEW PDF API CALLED - Option 1 Implementation v2
+📦 Received body: {
+  "result": {
+    "id": "test-with-real-answers",
+    "surveyId": "test",
+    "code": "00010",
+    "character": {
+      "id": 9,
+      "name": "Test Character",
+      "description": "Test description",
+      "avatarUrl": "/characters/00010.png"
+    },
+    "categoryTotals": {
+      "Meaning": 4600,
+      "Delight": 750,
+      "Freedom": 3675,
+      "Engagement": 7750,
+      "Vitality": 1875
+    },
+    "answers": [
+      {
+        "questionId": 1,
+        "valueIndex": 5
+      },
+      {
+        "questionId": 2,
+        "valueIndex": 1
+      },
+      {
+        "questionId": 3,
+        "valueIndex": 3
+      },
+      {
+        "questionId": 4,
+        "valueIndex": 2
+      },
+      {
+        "questionId": 5,
+        "valueIndex": 4
+      },
+      {
+        "questionId": 6,
+        "valueIndex": 5
+      },
+      {
+        "questionId": 7,
+        "valueIndex": 2
+      },
+      {
+        "questionId": 8,
+        "valueIndex": 1
+      }
+    ]
+  },
+  "lang": "en"
+}
+🚀 Starting PDF generation for character: Test Character
+📊 Category totals: {
+  Meaning: 4600,
+  Delight: 750,
+  Freedom: 3675,
+  Engagement: 7750,
+  Vitality: 1875
+}
+ ✓ Compiled in 1353ms (1583 modules)
+📄 Generating HTML content directly
+🖼️ Loading avatar: /characters/00010.png, success: true
+📊 Calculated subtype scores from individual answers: {
+  Meaning: { A: 2000, B: 1150, C: 1750, D: 150 },
+  Delight: { A: 0, B: 0, C: 0, D: 0 },
+  Freedom: { A: 0, B: 0, C: 0, D: 0 },
+  Engagement: { A: 0, B: 0, C: 0, D: 0 },
+  Vitality: { A: 0, B: 0, C: 0, D: 0 }
+}
+✅ HTML content set successfully
+🎨 Generating PDF...
+✅ PDF generated successfully
+🔒 Browser closed
+ ✓ Compiled in 2.3s (3085 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/ahmedhassan/Desktop/surveyjs-nextjs/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 1820ms (2727 modules)
+ ✓ Compiled in 437ms (1404 modules)
+ ✓ Compiled in 693ms (1404 modules)
+ ✓ Compiled in 241ms (1404 modules)
+ ✓ Compiled in 387ms (1404 modules)
+ ✓ Compiled in 838ms (2727 modules)
+ ✓ Compiled in 187ms (1404 modules)
+ ✓ Compiled in 400ms (1404 modules)
+ ✓ Compiled in 1135ms (2727 modules)
+ ✓ Compiled in 772ms (2727 modules)
+ ✓ Compiled in 1737ms (1404 modules)
+ ✓ Compiled in 858ms (1404 modules)
+ ✓ Compiled in 1024ms (1404 modules)
+ ✓ Compiled in 685ms (1404 modules)
+ ✓ Compiled in 1418ms (1404 modules)
+ ✓ Compiled in 736ms (1404 modules)
+ ✓ Compiled in 791ms (1404 modules)
+ ✓ Compiled in 683ms (1404 modules)
+ ✓ Compiled in 509ms (1404 modules)
+ ✓ Compiled in 1209ms (1404 modules)
+ ✓ Compiled in 554ms (1404 modules)
+ ✓ Compiled in 1191ms (1404 modules)

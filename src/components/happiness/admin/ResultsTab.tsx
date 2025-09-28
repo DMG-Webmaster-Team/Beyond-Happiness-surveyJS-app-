@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import useSWR from "swr";
 import { useDebounce } from "@/hooks/useDebounce";
+import * as XLSX from "xlsx";
+import { motion } from "motion/react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -39,6 +41,7 @@ export default function ResultsTab() {
     null
   );
   const [page, setPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Debounce the user email input with 2 second delay
   const debouncedUserEmail = useDebounce(userEmailInput, 2000);
@@ -49,12 +52,30 @@ export default function ResultsTab() {
     setPage(1); // Reset to first page when search changes
   }, [debouncedUserEmail]);
 
-  // Function to export all results to CSV
-  const handleExportAllCSV = () => {
-    if (!data?.results || data.results.length === 0) return;
+  // Function to export all results to Excel
+  const handleExportAllExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Build query params for fetching ALL results (no pagination)
+      const exportQueryParams = new URLSearchParams();
+      if (filters.surveyId) exportQueryParams.set("surveyId", filters.surveyId);
+      if (filters.userEmail) exportQueryParams.set("userEmail", filters.userEmail);
+      if (filters.startDate) exportQueryParams.set("startDate", filters.startDate);
+      if (filters.endDate) exportQueryParams.set("endDate", filters.endDate);
+      exportQueryParams.set("limit", "10000"); // Set a high limit to get all results
+      exportQueryParams.set("page", "1");
 
-    // Prepare CSV data
-    const csvData = [
+      // Fetch all results for export
+      const response = await fetch(`/api/happiness/results?${exportQueryParams.toString()}`);
+      const allData = await response.json();
+
+      if (!allData?.results || allData.results.length === 0) {
+        alert("No results to export");
+        return;
+      }
+
+    // Prepare Excel data
+    const excelData = [
       // Headers
       [
         "Result ID",
@@ -62,7 +83,7 @@ export default function ResultsTab() {
         "Survey Title",
         "User Email",
         "User Name",
-        "Character Code",
+        "Character Code (5-bit)",
         "Character Name",
         "Meaning Score",
         "Delight Score",
@@ -74,13 +95,13 @@ export default function ResultsTab() {
         "Export Date",
       ],
       // Data rows
-      ...data.results.map((result: HappinessResult) => [
+      ...allData.results.map((result: HappinessResult) => [
         result.id,
         result.surveyId,
         result.surveyTitle,
         result.userEmail || "Anonymous",
         result.userName || "N/A",
-        result.code,
+        result.code, // This is the 5-bit character code
         result.characterName,
         result.categoryTotals.Meaning,
         result.categoryTotals.Delight,
@@ -91,27 +112,40 @@ export default function ResultsTab() {
           (sum, score) => sum + score,
           0
         ),
-        new Date(result.createdAt).toISOString().split("T")[0],
-        new Date().toISOString().split("T")[0],
+        new Date(result.createdAt).toLocaleDateString(),
+        new Date().toLocaleDateString(),
       ]),
     ];
 
-    // Convert to CSV string
-    const csvContent = csvData.map((row) => row.join(",")).join("\n");
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `happiness_survey_results_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Auto-size columns
+    const colWidths = excelData[0].map((_: any, colIndex: number) => {
+      const maxLength = Math.max(
+        ...excelData.map((row) => String(row[colIndex] || "").length)
+      );
+      return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
+    });
+    ws["!cols"] = colWidths;
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Happiness Survey Results");
+
+    // Generate filename with current date
+    const filename = `happiness_survey_results_${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
+
+    // Save file
+    XLSX.writeFile(wb, filename);
+    } catch (error) {
+      console.error("Error exporting Excel:", error);
+      alert("Failed to export Excel file. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   // Build query string
@@ -127,6 +161,11 @@ export default function ResultsTab() {
     `/api/happiness/results?${queryParams.toString()}`,
     fetcher
   );
+
+  // Handle page changes
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   // Also fetch surveys for filter dropdown
   const { data: surveysData } = useSWR("/api/happiness/surveys", fetcher);
@@ -183,40 +222,45 @@ export default function ResultsTab() {
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">
-          Happiness Survey Results ({results.length})
-        </h2>
-        <p className="text-sm text-gray-600">
-          View and analyze happiness survey responses and character assignments
-        </p>
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            Happiness Survey Results ({results.length})
+          </h2>
+          <p className="text-sm text-gray-600">
+            View and analyze happiness survey responses and character
+            assignments
+          </p>
+        </div>
+
+        <button
+          onClick={handleExportAllExcel}
+          disabled={!data?.results || data.results.length === 0 || isExporting}
+          className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
+        >
+          <svg
+            className="w-4 h-4 mr-1.5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+{isExporting ? "Exporting..." : "Export Excel"}
+        </button>
       </div>
 
       {/* Filters */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-medium text-gray-700">Filter Results</h3>
+
           <div className="flex gap-3">
-            <button
-              onClick={handleExportAllCSV}
-              disabled={!data?.results || data.results.length === 0}
-              className="inline-flex items-center px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white text-sm font-medium rounded-md transition-colors"
-            >
-              <svg
-                className="w-4 h-4 mr-1.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              Export CSV
-            </button>
             <button
               onClick={() => {
                 setFilters({
@@ -469,14 +513,42 @@ export default function ResultsTab() {
       )}
 
       {/* Pagination */}
-      {data?.hasMore && (
-        <div className="mt-6 flex justify-center">
-          <button
-            onClick={() => setPage(page + 1)}
-            className="bg-blue-400 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium"
-          >
-            Load More Results
-          </button>
+      {data?.pagination && data.pagination.totalPages > 1 && (
+        <div className="mt-6 px-6 py-4 border-t border-gray-200 bg-white rounded-b-lg">
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-700">
+              Showing {(data.pagination.page - 1) * data.pagination.limit + 1}{" "}
+              to{" "}
+              {Math.min(
+                data.pagination.page * data.pagination.limit,
+                data.pagination.total
+              )}{" "}
+              of {data.pagination.total} results
+            </div>
+            <div className="flex space-x-2">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handlePageChange(data.pagination.page - 1)}
+                disabled={data.pagination.page === 1}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </motion.button>
+              <span className="px-3 py-2 text-sm text-gray-700">
+                Page {data.pagination.page} of {data.pagination.totalPages}
+              </span>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => handlePageChange(data.pagination.page + 1)}
+                disabled={data.pagination.page === data.pagination.totalPages}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </motion.button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -577,9 +649,6 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
                           }`}
                           style={{ width: `${percentage}%` }}
                         />
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {score >= 6000 ? "High" : "Low"}
                       </div>
                     </div>
                   );

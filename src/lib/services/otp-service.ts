@@ -140,63 +140,85 @@ const sendOTPEmail = async (
   surveyTitle?: string
 ): Promise<boolean> => {
   try {
-    // Check if email is configured
+    // Check if Mailgun is configured
     if (
-      !process.env.EMAIL_USER ||
-      !process.env.EMAIL_PASS ||
-      process.env.EMAIL_USER === "your-email@gmail.com" ||
-      process.env.EMAIL_PASS === "your-app-password" ||
-      process.env.EMAIL_PASS === "YOUR_GMAIL_APP_PASSWORD" ||
-      !process.env.EMAIL_USER.includes("@gmail.com")
+      !process.env.MAILGUN_DOMAIN ||
+      !process.env.MAILGUN_FROM ||
+      !process.env.MAILGUN_API_URL ||
+      !process.env.MAILGUN_PRIVATE_API_KEY
     ) {
-      console.log(`📧 Email not configured - cannot send OTP to ${email}`);
-      console.log(` Add EMAIL_USER and EMAIL_PASS to your .env.local file`);
+      console.log(`📧 Mailgun not configured - cannot send OTP to ${email}`);
+      console.log(`💡 Add MAILGUN credentials to your .env.local file`);
+      console.log(
+        `💡 Required: MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_API_URL, MAILGUN_PRIVATE_API_KEY`
+      );
       return false;
     }
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp.gmail.com",
-      port: 587,
-      secure: false, // true for 465, false for 587
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
+    // Prepare email HTML content as specified in requirements
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <p>Your one-time OTP is:</p>
+        <h2 style="color: #0067E6 ; text-align: center;">${otp}</h2>
+        <p><strong>Important:</strong></p>
+        <ul>
+          <li>This code expires in ${OTP_EXPIRY_MINUTES} minutes</li>
+          <li>Do not share this code with anyone</li>
+          <li>If you didn't request this code, please ignore this email</li>
+        </ul>
+        <p style="color: #666; font-size: 12px;">
+          This is an automated message. Please do not reply to this email.
+        </p>
+      </div>
+    `;
+
+    // Determine the base URL for the API call
+    const baseUrl =
+      process.env.NEXTAUTH_URL ||
+      (process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : "http://localhost:4004");
+
+    console.log(`🔗 Using base URL for Mailgun API: ${baseUrl}`);
+    console.log(`🔧 Environment check:`, {
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      VERCEL_URL: process.env.VERCEL_URL,
+      NODE_ENV: process.env.NODE_ENV,
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_USER || "noreply@surveyjs.com",
-      to: email,
-      subject: surveyTitle
-        ? `Survey Access Code - ${surveyTitle}`
-        : "Your Survey Access Code",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">🔐 Survey Access Code</h2>
-          ${surveyTitle ? `<p><strong>Survey:</strong> ${surveyTitle}</p>` : ""}
-          <p>Your 6-digit access code is:</p>
-          <div style="background: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
-            <h1 style="color: #007bff; font-size: 32px; margin: 0; letter-spacing: 5px;">${otp}</h1>
-          </div>
-          <p><strong>Important:</strong></p>
-          <ul>
-            <li>This code expires in ${OTP_EXPIRY_MINUTES} minutes</li>
-            <li>Do not share this code with anyone</li>
-            <li>If you didn't request this code, please ignore this email</li>
-          </ul>
-          <p style="color: #666; font-size: 12px;">
-            This is an automated message. Please do not reply to this email.
-          </p>
-        </div>
-      `,
-    };
+    // Use the new Mailgun API route
+    const response = await fetch(`${baseUrl}/api/send-mail`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        to: email,
+        subject: surveyTitle || "Survey Access",
+        html: htmlContent,
+      }),
+    });
 
-    await transporter.sendMail(mailOptions);
-    console.log(`📧 OTP email sent successfully to ${email}`);
-    return true;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `❌ Mailgun API route returned ${response.status}:`,
+        errorText
+      );
+      return false;
+    }
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log(
+        `📧 OTP email sent successfully to ${email} via Mailgun (ID: ${result.messageId})`
+      );
+      return true;
+    } else {
+      console.error(`❌ Failed to send OTP email via Mailgun:`, result.error);
+      return false;
+    }
   } catch (error) {
     console.error(`❌ Failed to send OTP email to ${email}:`, error);
     return false;
@@ -390,7 +412,9 @@ export const sendOTP = async (
     // Send OTP based on method and identifier type
     if (method === "email" || method === "both") {
       if (isEmailIdentifier) {
+        console.log(`📧 Attempting to send OTP email to: ${identifier}`);
         emailSuccess = await sendOTPEmail(identifier, otp, surveyTitle);
+        console.log(`📧 Email sending result: ${emailSuccess}`);
       }
     }
 

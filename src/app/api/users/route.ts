@@ -90,10 +90,13 @@ export async function GET(request: NextRequest) {
     });
 
     // Add cache-busting headers
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    response.headers.set('Pragma', 'no-cache');
-    response.headers.set('Expires', '0');
-    response.headers.set('Surrogate-Control', 'no-store');
+    response.headers.set(
+      "Cache-Control",
+      "no-store, no-cache, must-revalidate, proxy-revalidate"
+    );
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+    response.headers.set("Surrogate-Control", "no-store");
 
     return response;
   } catch (error) {
@@ -190,6 +193,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Fetch company name if companyId is provided
+    let companyName = null;
+    if (validatedData.companyId) {
+      try {
+        const { getCompanyById } = await import(
+          "../../../db/queries/companies"
+        );
+        const company = await getCompanyById(validatedData.companyId);
+        if (company) {
+          companyName = company.name;
+          console.log(
+            `🏢 Found company: ${companyName} (${validatedData.companyId})`
+          );
+        } else {
+          console.warn(
+            `⚠️ Company not found for ID: ${validatedData.companyId}`
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching company name:", error);
+      }
+    }
+
     // Create user
     const newUser = await createUser({
       email: validatedData.email,
@@ -197,6 +223,7 @@ export async function POST(request: NextRequest) {
       phone: validatedData.phone,
       status: validatedData.status,
       companyId: validatedData.companyId,
+      companyName: companyName,
     });
 
     // Create survey assignments

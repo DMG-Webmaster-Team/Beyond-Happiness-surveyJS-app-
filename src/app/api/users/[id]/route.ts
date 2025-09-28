@@ -52,6 +52,31 @@ export async function PATCH(
       updateData.companyId !== undefined &&
       updateData.companyId !== existingUser.companyId;
 
+    // Fetch company name if companyId is being updated
+    if (updateData.companyId) {
+      try {
+        const { getCompanyById } = await import(
+          "../../../../db/queries/companies"
+        );
+        const company = await getCompanyById(updateData.companyId);
+        if (company) {
+          updateData.companyName = company.name;
+          console.log(
+            `🏢 Updated company name: ${company.name} (${updateData.companyId})`
+          );
+        } else {
+          console.warn(`⚠️ Company not found for ID: ${updateData.companyId}`);
+          updateData.companyName = null;
+        }
+      } catch (error) {
+        console.error("Error fetching company name during update:", error);
+        updateData.companyName = null;
+      }
+    } else if (updateData.companyId === null || updateData.companyId === "") {
+      // If company is being removed, clear the company name
+      updateData.companyName = null;
+    }
+
     // Update user
     const updatedUser = await updateUser(id, updateData);
 

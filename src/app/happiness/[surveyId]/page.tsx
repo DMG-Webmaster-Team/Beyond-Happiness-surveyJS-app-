@@ -400,10 +400,17 @@ export default function HappinessSurveyPage({
       const result = await response.json();
       console.log("✅ Survey submitted successfully:", result);
 
+      // Store answers separately for subtype calculation
+      localStorage.setItem(
+        `happiness:answers:${params.surveyId}`,
+        JSON.stringify(answers)
+      );
+
       // Store result in localStorage for results page
       localStorage.setItem(
         `happiness:lastResult:${params.surveyId}`,
         JSON.stringify({
+          id: result.id, // Include the ID for PDF generation
           ok: true,
           surveyId: result.surveyId,
           code: result.code,
@@ -412,6 +419,7 @@ export default function HappinessSurveyPage({
           cooldown: result.cooldown,
           cooldownRemaining: result.cooldownRemaining,
           message: result.message,
+          answers: answers, // Include answers for subtype calculation
         })
       );
 

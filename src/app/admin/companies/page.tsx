@@ -285,8 +285,9 @@ export default function CompaniesPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         <AdminNavbar />
-        <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400"></div>
+          <div className="text-xl text-gray-600 mb-4 mt-4">Loading...</div>
         </div>
       </div>
     );

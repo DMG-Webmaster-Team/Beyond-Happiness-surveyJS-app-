@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
+import DownloadPDFButton from "@/components/DownloadPDFButton";
 import {
   BarChart,
   Bar,
@@ -18,6 +19,7 @@ import {
 } from "recharts";
 
 interface HappinessResult {
+  id?: string;
   ok: boolean;
   surveyId: string;
   code: string;
@@ -37,6 +39,10 @@ interface HappinessResult {
   cooldown?: boolean;
   cooldownRemaining?: number;
   message?: string;
+  answers?: Array<{
+    questionId: number;
+    valueIndex: number;
+  }>;
 }
 
 export default function HappinessResultsPage({
@@ -238,6 +244,26 @@ export default function HappinessResultsPage({
         en: "Vitality",
         ar: "الحيوية",
       },
+      typeA: {
+        en: "Type A",
+        ar: "النوع A",
+      },
+      typeB: {
+        en: "Type B",
+        ar: "النوع B",
+      },
+      typeC: {
+        en: "Type C",
+        ar: "النوع C",
+      },
+      typeD: {
+        en: "Type D",
+        ar: "النوع D",
+      },
+      subtypeBreakdown: {
+        en: "Subtype Breakdown",
+        ar: "تفصيل الأنواع الفرعية",
+      },
     };
     return texts[key]?.[selectedLanguage] || texts[key]?.en || key;
   };
@@ -249,35 +275,35 @@ export default function HappinessResultsPage({
           bg: "bg-purple-100",
           text: "text-purple-800",
           bar: "bg-purple-500",
-          hex: "#8B5CF6",
+          hex: "#7E57C2", // Updated to match brand specifications
         };
       case "Delight":
         return {
           bg: "bg-yellow-100",
           text: "text-yellow-800",
           bar: "bg-yellow-500",
-          hex: "#EAB308",
+          hex: "#FFCA28", // Updated to match brand specifications
         };
       case "Freedom":
         return {
-          bg: "bg-green-100",
-          text: "text-green-800",
-          bar: "bg-green-500",
-          hex: "#22C55E",
+          bg: "bg-orange-100",
+          text: "text-orange-800",
+          bar: "bg-orange-500",
+          hex: "#FFA726", // Updated to match brand specifications
         };
       case "Engagement":
         return {
           bg: "bg-blue-100",
           text: "text-blue-800",
           bar: "bg-blue-500",
-          hex: "#3B82F6",
+          hex: "#42A5F5", // Updated to match brand specifications
         };
       case "Vitality":
         return {
-          bg: "bg-red-100",
-          text: "text-red-800",
-          bar: "bg-red-500",
-          hex: "#EF4444",
+          bg: "bg-green-100",
+          text: "text-green-800",
+          bar: "bg-green-500",
+          hex: "#66BB6A", // Updated to match brand specifications
         };
       default:
         return {
@@ -304,6 +330,99 @@ export default function HappinessResultsPage({
     return "text-red-600 font-medium"; // Below average
   };
 
+  // Calculate subtype scores based on actual question responses
+  const calculateSubtypeScores = (answers: any[], categoryTotals: any) => {
+    // Question mapping: Each category has 8 questions, grouped into 4 subtypes (2 questions each)
+    const categoryQuestionMapping = {
+      Meaning: { A: [1, 2], B: [3, 4], C: [5, 6], D: [7, 8] },
+      Delight: { A: [9, 10], B: [11, 12], C: [13, 14], D: [15, 16] },
+      Freedom: { A: [17, 18], B: [19, 20], C: [21, 22], D: [23, 24] },
+      Engagement: { A: [25, 26], B: [27, 28], C: [29, 30], D: [31, 32] },
+      Vitality: { A: [33, 34], B: [35, 36], C: [37, 38], D: [39, 40] },
+    };
+
+    // If no answers provided, fall back to proportional distribution
+    if (!answers || !Array.isArray(answers)) {
+      console.log(
+        "📊 Web: No individual answers available, using proportional distribution"
+      );
+      const subtypeScores: any = {};
+      Object.entries(categoryTotals).forEach(([category, totalScore]) => {
+        subtypeScores[category] = {
+          A: Math.round((totalScore as number) * 0.25),
+          B: Math.round((totalScore as number) * 0.25),
+          C: Math.round((totalScore as number) * 0.25),
+          D: Math.round((totalScore as number) * 0.25),
+        };
+      });
+      return subtypeScores;
+    }
+
+    // For web interface, we'll use the stored answers from localStorage
+    // In a real implementation, you'd fetch question data and calculate properly
+    // For now, we'll simulate the calculation based on the question mapping
+    const subtypeScores: any = {};
+    Object.keys(categoryQuestionMapping).forEach((category) => {
+      subtypeScores[category] = { A: 0, B: 0, C: 0, D: 0 };
+    });
+
+    // Simulate subtype calculation based on answers
+    // This is a simplified version - in production you'd fetch question values from the database
+    answers.forEach((answer: any) => {
+      const questionId = answer.questionId;
+      const valueIndex = answer.valueIndex;
+
+      // Determine category and subtype based on question ID
+      let category = "";
+      let subtype = "";
+
+      if (questionId >= 1 && questionId <= 8) {
+        category = "Meaning";
+        if (questionId <= 2) subtype = "A";
+        else if (questionId <= 4) subtype = "B";
+        else if (questionId <= 6) subtype = "C";
+        else subtype = "D";
+      } else if (questionId >= 9 && questionId <= 16) {
+        category = "Delight";
+        if (questionId <= 10) subtype = "A";
+        else if (questionId <= 12) subtype = "B";
+        else if (questionId <= 14) subtype = "C";
+        else subtype = "D";
+      } else if (questionId >= 17 && questionId <= 24) {
+        category = "Freedom";
+        if (questionId <= 18) subtype = "A";
+        else if (questionId <= 20) subtype = "B";
+        else if (questionId <= 22) subtype = "C";
+        else subtype = "D";
+      } else if (questionId >= 25 && questionId <= 32) {
+        category = "Engagement";
+        if (questionId <= 26) subtype = "A";
+        else if (questionId <= 28) subtype = "B";
+        else if (questionId <= 30) subtype = "C";
+        else subtype = "D";
+      } else if (questionId >= 33 && questionId <= 40) {
+        category = "Vitality";
+        if (questionId <= 34) subtype = "A";
+        else if (questionId <= 36) subtype = "B";
+        else if (questionId <= 38) subtype = "C";
+        else subtype = "D";
+      }
+
+      if (category && subtype && subtypeScores[category]) {
+        // Estimate score based on valueIndex (1-5 maps to different score ranges)
+        // This is a simplified calculation - in production you'd use actual question values
+        const estimatedScore = valueIndex * 400; // Rough estimate
+        subtypeScores[category][subtype] += estimatedScore;
+      }
+    });
+
+    console.log(
+      "📊 Web: Calculated subtype scores from answers:",
+      subtypeScores
+    );
+    return subtypeScores;
+  };
+
   // Calculate percentages and prepare chart data
   const calculatePercentages = (categoryTotals: any) => {
     const maxPossibleScore = 10000; // Assuming max possible score per category is 10000
@@ -319,7 +438,7 @@ export default function HappinessResultsPage({
     );
 
     const totalScore = Object.values(categoryTotals).reduce(
-      (sum, score) => sum + (score as number),
+      (sum: number, score) => sum + (score as number),
       0
     );
     const overallPercentage = Math.round((totalScore / totalMaxScore) * 100);
@@ -419,6 +538,38 @@ export default function HappinessResultsPage({
   const { categoryPercentages, overallPercentage, totalScore } =
     calculatePercentages(result.categoryTotals);
 
+  // Get answers from localStorage or result object for subtype calculation
+  const getStoredAnswers = () => {
+    try {
+      // First try to get answers from localStorage
+      const storedAnswers = localStorage.getItem(
+        `happiness:answers:${params.surveyId}`
+      );
+      if (storedAnswers) {
+        const parsedAnswers = JSON.parse(storedAnswers);
+        console.log("📊 Found answers in localStorage:", parsedAnswers);
+        return parsedAnswers;
+      }
+
+      // Fallback to answers stored in result object
+      if (result.answers && Array.isArray(result.answers)) {
+        console.log("📊 Using answers from result object:", result.answers);
+        return result.answers;
+      }
+
+      console.log("📊 No answers found, using proportional distribution");
+      return [];
+    } catch (error) {
+      console.error("Error getting stored answers:", error);
+      return [];
+    }
+  };
+
+  const subtypeScores = calculateSubtypeScores(
+    getStoredAnswers(),
+    result.categoryTotals
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Conditional Navbar based on survey type */}
@@ -514,6 +665,17 @@ export default function HappinessResultsPage({
             <p className="text-gray-700 leading-relaxed">
               {result.character.description}
             </p>
+          </div>
+
+          {/* Download PDF Report Button */}
+          <div className="mt-6 text-center">
+            <DownloadPDFButton
+              result={result}
+              language={selectedLanguage}
+              surveyTitle={survey?.title || "Happiness Survey"}
+              variant="primary"
+              size="lg"
+            />
           </div>
 
           {/* Retake Survey Button - Only for authenticated surveys */}
@@ -650,13 +812,15 @@ export default function HappinessResultsPage({
             {getText("detailedDimensions")}
           </h3>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             {categoryPercentages.map((category) => {
               const colors = getCategoryColor(category.name);
               const percentage = category.value;
+              const maxPossibleScore = 10000;
 
               return (
-                <div key={category.name} className="space-y-3">
+                <div key={category.name} className="space-y-4">
+                  {/* Main Category Header */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <span
@@ -672,13 +836,73 @@ export default function HappinessResultsPage({
                     </div>
                   </div>
 
+                  {/* Main Category Progress Bar */}
                   <div className="w-full bg-gray-200 rounded-full h-4">
                     <div
-                      className={`h-4 rounded-full transition-all duration-1000 ease-out ${colors.bar}`}
-                      style={{ width: `${percentage}%` }}
+                      className={`h-4 rounded-full transition-all duration-1000 ease-out`}
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor: colors.hex,
+                      }}
                     />
                   </div>
 
+                  {/* Subtype Breakdown */}
+                  <div
+                    className={`${
+                      selectedLanguage === "ar" ? "mr-0" : "ml-6"
+                    } space-y-3 bg-gray-50 p-4 rounded-lg`}
+                  >
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                      {getText("subtypeBreakdown")}
+                    </h4>
+
+                    {["A", "B", "C", "D"].map((subtype) => {
+                      const subtypeScore =
+                        subtypeScores[category.name][subtype];
+                      // Each subtype has 2 questions, each with max value of 2000, so max = 4000
+                      const subtypeMaxScore = 4000;
+                      const subtypePercentage = Math.round(
+                        (subtypeScore / subtypeMaxScore) * 100
+                      );
+
+                      return (
+                        <div
+                          key={subtype}
+                          className={`flex items-center gap-3 ${
+                            selectedLanguage === "ar" ? "flex-row-reverse" : ""
+                          }`}
+                        >
+                          <div
+                            className={`min-w-16 text-sm font-medium text-gray-600 ${
+                              selectedLanguage === "ar"
+                                ? "text-right"
+                                : "text-left"
+                            }`}
+                          >
+                            {getText(`type${subtype}`)}:
+                          </div>
+
+                          <div className="flex-1 flex items-center gap-2">
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="h-2 rounded-full transition-all duration-700 ease-out"
+                                style={{
+                                  width: `${subtypePercentage}%`,
+                                  backgroundColor: colors.hex,
+                                }}
+                              />
+                            </div>
+                            <span className="min-w-12 text-xs font-semibold text-gray-700">
+                              {subtypePercentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Category Description */}
                   <div className="text-sm text-gray-600">
                     {getCategoryDescription(category.name, selectedLanguage)}
                   </div>

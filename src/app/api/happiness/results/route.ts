@@ -89,6 +89,20 @@ export async function GET(request: NextRequest) {
             .limit(limit)
             .offset(offset);
 
+    // Get total count for pagination
+    const countQuery = db
+      .select({ count: happinessResults.id })
+      .from(happinessResults)
+      .leftJoin(users, eq(happinessResults.userId, users.id));
+
+    const totalResults =
+      whereConditions.length > 0
+        ? await countQuery.where(and(...whereConditions))
+        : await countQuery;
+
+    const total = totalResults.length;
+    const totalPages = Math.ceil(total / limit);
+
     // Parse JSON fields
     const parsedResults = results.map((result) => ({
       ...result,
@@ -99,9 +113,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       results: parsedResults,
-      page,
-      limit,
-      hasMore: results.length === limit,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasMore: results.length === limit,
+      },
     });
   } catch (error) {
     console.error("Error fetching happiness results:", error);
@@ -236,6 +254,7 @@ export async function POST(request: NextRequest) {
 
             // Instead of rejecting, return the previous result for cooldown period
             return NextResponse.json({
+              id: lastSubmission.id, // Include the database ID for PDF generation
               ok: true,
               surveyId,
               code: lastSubmission.code,
@@ -284,6 +303,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json({
+      id: newResult[0].id, // Include the database ID for PDF generation
       ok: true,
       surveyId,
       code: scoreResult.code,

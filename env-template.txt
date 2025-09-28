@@ -1,7 +1,13 @@
 # Database Configuration
 DATABASE_URL="file:./surveyjs.db"
 
-# Email Configuration (for OTP)
+# Mailgun Configuration (Primary Email Service for OTP)
+MAILGUN_DOMAIN="mountainviewegypt.com"
+MAILGUN_FROM="Beyond Happiness <salesvisit@mountainviewegypt.com>"
+MAILGUN_API_URL="https://api.mailgun.net/v3"
+MAILGUN_PRIVATE_API_KEY="YXBpOmQ0YjFhMjlmZTZhNTIwMDJlY2NmMTM5Y2FjZmYyOTAwLWQwMTBiZGFmLWRmYzU1NDQ4"
+
+# Legacy Email Configuration (for OTP - can be removed after Mailgun works)
 EMAIL_USER="your-email@gmail.com"
 EMAIL_PASS="your-app-password"
 
@@ -16,6 +22,7 @@ NEXTAUTH_URL="http://localhost:3000"
 
 # Instructions:
 # 1. Copy this content to .env.local
-# 2. For Gmail: Use App Password (not regular password)
+# 2. For Mailgun: Use the provided credentials above (already configured)
 # 3. For Twilio: Get credentials from twilio.com (free trial)
-# 4. Replace all "your-*" values with actual credentials
+# 4. Replace "your-*" values with actual credentials
+# 5. After testing Mailgun, you can remove EMAIL_USER and EMAIL_PASS

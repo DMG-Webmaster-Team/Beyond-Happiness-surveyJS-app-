@@ -90,7 +90,7 @@ export async function getMultilingualCharacter(
       id: char.id,
       name: char.name,
       description: char.description,
-      avatarUrl: char.avatarUrl,
+      avatarUrl: char.avatarUrl || `/characters/${code}.png`,
     };
   }
 
