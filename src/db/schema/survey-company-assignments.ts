@@ -1,30 +1,31 @@
 import {
-  sqliteTable,
-  text,
-  integer,
+  mysqlTable,
+  varchar,
+  timestamp,
   index,
   primaryKey,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/mysql-core";
 import { createId } from "@paralleldrive/cuid2";
+import { sql } from "drizzle-orm";
 import { surveys } from "./surveys";
 import { companies } from "./companies";
 
-export const surveyCompanyAssignments = sqliteTable(
+export const surveyCompanyAssignments = mysqlTable(
   "survey_company_assignments",
   {
-    id: text("id")
+    id: varchar("id", { length: 128 })
       .primaryKey()
       .$defaultFn(() => createId()),
-    surveyId: text("survey_id")
+    surveyId: varchar("survey_id", { length: 128 })
       .notNull()
       .references(() => surveys.id, { onDelete: "cascade" }),
-    companyId: text("company_id")
+    companyId: varchar("company_id", { length: 128 })
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
 
     // Assignment metadata
-    assignedAt: integer("assigned_at").$defaultFn(() => Date.now()),
-    assignedBy: text("assigned_by"), // Admin who made the assignment
+    assignedAt: timestamp("assigned_at").default(sql`CURRENT_TIMESTAMP`),
+    assignedBy: varchar("assigned_by", { length: 128 }), // Admin who made the assignment
   },
   (table) => ({
     surveyIdIdx: index("survey_company_assignment_survey_id_idx").on(
@@ -41,22 +42,22 @@ export const surveyCompanyAssignments = sqliteTable(
 );
 
 // Similar table for happiness surveys
-export const happinessSurveyCompanyAssignments = sqliteTable(
+export const happinessSurveyCompanyAssignments = mysqlTable(
   "happiness_survey_company_assignments",
   {
-    id: text("id")
+    id: varchar("id", { length: 128 })
       .primaryKey()
       .$defaultFn(() => createId()),
-    surveyId: text("survey_id")
+    surveyId: varchar("survey_id", { length: 128 })
       .notNull()
       .references(() => surveys.id, { onDelete: "cascade" }), // References happiness surveys
-    companyId: text("company_id")
+    companyId: varchar("company_id", { length: 128 })
       .notNull()
       .references(() => companies.id, { onDelete: "cascade" }),
 
     // Assignment metadata
-    assignedAt: integer("assigned_at").$defaultFn(() => Date.now()),
-    assignedBy: text("assigned_by"), // Admin who made the assignment
+    assignedAt: timestamp("assigned_at").default(sql`CURRENT_TIMESTAMP`),
+    assignedBy: varchar("assigned_by", { length: 128 }), // Admin who made the assignment
   },
   (table) => ({
     surveyIdIdx: index("happiness_survey_company_assignment_survey_id_idx").on(
@@ -80,4 +81,3 @@ export type HappinessSurveyCompanyAssignment =
   typeof happinessSurveyCompanyAssignments.$inferSelect;
 export type NewHappinessSurveyCompanyAssignment =
   typeof happinessSurveyCompanyAssignments.$inferInsert;
-

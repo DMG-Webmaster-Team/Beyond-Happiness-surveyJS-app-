@@ -1,39 +1,47 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  mysqlTable,
+  varchar,
+  text,
+  timestamp,
+  boolean,
+  index,
+} from "drizzle-orm/mysql-core";
 import { createId } from "@paralleldrive/cuid2";
+import { sql } from "drizzle-orm";
 import { users } from "./users";
 import { surveys } from "./surveys";
 
-export const userSurveySessions = sqliteTable(
+export const userSurveySessions = mysqlTable(
   "user_survey_sessions",
   {
-    id: text("id")
+    id: varchar("id", { length: 128 })
       .primaryKey()
       .$defaultFn(() => createId()),
-    userId: text("user_id")
+    userId: varchar("user_id", { length: 128 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    surveyId: text("survey_id")
+    surveyId: varchar("survey_id", { length: 128 })
       .notNull()
       .references(() => surveys.id, { onDelete: "cascade" }),
 
     // Survey configuration snapshot at session creation time
     surveyConfig: text("survey_config").notNull(), // JSON string of survey definition
-    surveyTitle: text("survey_title").notNull(),
+    surveyTitle: varchar("survey_title", { length: 255 }).notNull(),
     surveyDescription: text("survey_description"),
-    canTakeMultiple: integer("can_take_multiple", { mode: "boolean" }).default(
-      false
-    ),
-    isAnonymous: integer("is_anonymous", { mode: "boolean" }).default(false),
+    canTakeMultiple: boolean("can_take_multiple").default(false),
+    isAnonymous: boolean("is_anonymous").default(false),
 
     // Session metadata
-    status: text("status").notNull().default("active"), // active, completed, expired, abandoned
+    status: varchar("status", { length: 50 }).notNull().default("active"), // active, completed, expired, abandoned
     progress: text("progress"), // JSON string of current progress/answers
 
     // Timestamps
-    createdAt: integer("created_at").$defaultFn(() => Date.now()),
-    updatedAt: integer("updated_at").$defaultFn(() => Date.now()),
-    expiresAt: integer("expires_at"), // Session expiry timestamp
-    completedAt: integer("completed_at"), // When survey was completed
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
+    expiresAt: timestamp("expires_at"), // Session expiry timestamp
+    completedAt: timestamp("completed_at"), // When survey was completed
   },
   (table) => ({
     userIdIdx: index("user_survey_session_user_id_idx").on(table.userId),
@@ -51,4 +59,3 @@ export const userSurveySessions = sqliteTable(
 
 export type UserSurveySession = typeof userSurveySessions.$inferSelect;
 export type NewUserSurveySession = typeof userSurveySessions.$inferInsert;
-

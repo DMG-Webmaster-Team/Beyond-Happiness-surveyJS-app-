@@ -1,24 +1,34 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { createId } from "@paralleldrive/cuid2";
+import {
+  mysqlTable,
+  varchar,
+  json,
+  timestamp,
+  index,
+} from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 import { surveys } from "./surveys";
 import { users } from "./users";
 import { admins } from "./admins";
 
-export const results = sqliteTable(
+export const results = mysqlTable(
   "results",
   {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => createId()),
-    surveyId: text("survey_id")
+    id: varchar("id", { length: 255 }).primaryKey(),
+    surveyId: varchar("survey_id", { length: 255 })
       .notNull()
       .references(() => surveys.id, { onDelete: "cascade" }),
-    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
-    adminId: text("admin_id").references(() => admins.id, {
+    userId: varchar("user_id", { length: 255 }).references(() => users.id, {
       onDelete: "cascade",
     }),
-    data: text("data").notNull(), // Survey response data as text
-    submittedAt: integer("submitted_at").$defaultFn(() => Date.now()),
+    adminId: varchar("admin_id", { length: 255 }).references(() => admins.id, {
+      onDelete: "cascade",
+    }),
+    data: json("data").notNull(), // Survey response data as JSON
+    submittedAt: timestamp("submitted_at").default(sql`CURRENT_TIMESTAMP`),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
   },
   (table) => ({
     surveyIdIdx: index("result_survey_id_idx").on(table.surveyId),

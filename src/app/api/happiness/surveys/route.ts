@@ -67,25 +67,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newSurvey = await db
-      .insert(happinessSurveys)
-      .values({
-        id: nanoid(),
-        title: title.trim(),
-        anonymous: anonymous || false,
-        // Force cooldown to 0 for anonymous surveys
-        retakeCooldownDays: anonymous ? 0 : retakeCooldownDays || 0,
-        companyId: companyId || null,
-        companyName: companyName || null,
-        isActive: true, // Default to active
-        isPublished: true, // Default to published
-      })
-      .returning();
+    const surveyId = nanoid();
+    await db.insert(happinessSurveys).values({
+      id: surveyId,
+      title: title.trim(),
+      anonymous: anonymous || false,
+      // Force cooldown to 0 for anonymous surveys
+      retakeCooldownDays: anonymous ? 0 : retakeCooldownDays || 0,
+      companyId: companyId || null,
+      companyName: companyName || null,
+      isActive: true, // Default to active
+      isPublished: true, // Default to published
+    });
 
     return NextResponse.json({
       success: true,
       survey: {
-        ...newSurvey[0],
+        id: surveyId,
+        title: title.trim(),
+        anonymous: anonymous || false,
+        retakeCooldownDays: anonymous ? 0 : retakeCooldownDays || 0,
+        companyId: companyId || null,
+        companyName: companyName || null,
+        isActive: true,
+        isPublished: true,
         resultCount: 0,
       },
     });

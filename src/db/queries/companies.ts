@@ -40,8 +40,9 @@ export async function listCompanies(): Promise<Company[]> {
 }
 
 export async function createCompany(companyData: NewCompany): Promise<Company> {
-  const result = await db.insert(companies).values(companyData).returning();
-  return result[0];
+  const companyId = companyData.id || require("nanoid").nanoid();
+  await db.insert(companies).values({ ...companyData, id: companyId });
+  return { ...companyData, id: companyId };
 }
 
 export async function updateCompany(
@@ -50,14 +51,12 @@ export async function updateCompany(
 ): Promise<Company | undefined> {
   const updateData = {
     ...companyData,
-    updatedAt: Date.now(),
+    updatedAt: new Date(),
   };
 
-  const result = await db
-    .update(companies)
-    .set(updateData)
-    .where(eq(companies.id, id))
-    .returning();
+  await db.update(companies).set(updateData).where(eq(companies.id, id));
+
+  const result = await getCompanyById(id);
 
   return result[0];
 }

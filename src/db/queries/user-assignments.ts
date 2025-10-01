@@ -16,9 +16,7 @@ export async function updateAssignmentStatus(
           eq(userAssignments.userId, userId),
           eq(userAssignments.surveyId, surveyId)
         )
-      )
-      .returning();
-
+      );
     return result[0] || null;
   } catch (error) {
     console.error("Error updating assignment status:", error);

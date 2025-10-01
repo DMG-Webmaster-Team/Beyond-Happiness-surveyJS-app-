@@ -94,8 +94,9 @@ export async function createSurvey(surveyData: any): Promise<Survey> {
     metadata,
   };
 
-  const result = await db.insert(surveys).values(dataToInsert).returning();
-  return result[0];
+  const surveyId = dataToInsert.id || require("nanoid").nanoid();
+  await db.insert(surveys).values({ ...dataToInsert, id: surveyId });
+  return { ...dataToInsert, id: surveyId };
 }
 
 export async function updateSurvey(
@@ -186,15 +187,14 @@ export async function updateSurvey(
   }
 
   // Always update the updatedAt timestamp
-  dataToUpdate.updatedAt = Date.now();
+  dataToUpdate.updatedAt = new Date();
 
   console.log("Data to update:", dataToUpdate);
 
   const result = await db
     .update(surveys)
     .set(dataToUpdate)
-    .where(eq(surveys.id, id))
-    .returning();
+    .where(eq(surveys.id, id));
   return result[0];
 }
 
@@ -205,8 +205,7 @@ export async function updateSurveyTitle(
   const result = await db
     .update(surveys)
     .set({ title })
-    .where(eq(surveys.id, id))
-    .returning();
+    .where(eq(surveys.id, id));
   return result[0];
 }
 

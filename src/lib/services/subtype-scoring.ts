@@ -67,7 +67,10 @@ export async function calculateSubtypeScores(
 
       const category =
         question.category as keyof typeof categoryQuestionMapping;
-      const values = JSON.parse(question.values) as number[];
+      // Handle both JSON string and already parsed array (MySQL auto-parses JSON)
+      const values = Array.isArray(question.values)
+        ? question.values
+        : (JSON.parse(question.values) as number[]);
       const scoreIndex = answer.valueIndex - 1;
 
       if (scoreIndex >= 0 && scoreIndex < values.length) {

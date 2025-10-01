@@ -39,8 +39,9 @@ export async function createResult(resultData: any): Promise<Result> {
         : JSON.stringify(resultData.data || {}),
   };
 
-  const result = await db.insert(results).values(dataToInsert).returning();
-  return result[0];
+  const resultId = dataToInsert.id || require("nanoid").nanoid();
+  await db.insert(results).values({ ...dataToInsert, id: resultId });
+  return { ...dataToInsert, id: resultId };
 }
 
 export async function listResultsBySurvey(surveyId: string): Promise<any[]> {

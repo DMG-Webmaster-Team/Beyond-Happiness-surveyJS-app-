@@ -51,7 +51,7 @@ export async function PUT(
 
     if (text !== undefined) updateData.text = text;
     if (category !== undefined) updateData.category = category;
-    if (values !== undefined) updateData.values = JSON.stringify(values);
+    if (values !== undefined) updateData.values = values; // MySQL JSON column handles this
     if (isActive !== undefined) updateData.isActive = isActive;
 
     const updatedQuestion = await db
@@ -71,7 +71,9 @@ export async function PUT(
       success: true,
       question: {
         ...updatedQuestion[0],
-        values: JSON.parse(updatedQuestion[0].values),
+        values: Array.isArray(updatedQuestion[0].values)
+          ? updatedQuestion[0].values
+          : JSON.parse(updatedQuestion[0].values),
       },
     });
   } catch (error) {

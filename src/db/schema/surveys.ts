@@ -1,26 +1,37 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  mysqlTable,
+  varchar,
+  text,
+  json,
+  boolean,
+  timestamp,
+  index,
+} from "drizzle-orm/mysql-core";
 import { createId } from "@paralleldrive/cuid2";
+import { sql } from "drizzle-orm";
 import { admins } from "./admins";
 
-export const surveys = sqliteTable(
+export const surveys = mysqlTable(
   "surveys",
   {
-    id: text("id")
+    id: varchar("id", { length: 128 })
       .primaryKey()
       .$defaultFn(() => createId()),
-    title: text("title").notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
-    definition: text("definition").notNull(), // SurveyJS JSON definition as text
-    canTakeMultiple: integer("can_take_multiple").default(0), // Match actual DB column name
-    isAnonymous: integer("is_anonymous").default(0), // New: boolean field for anonymous surveys
-    companyId: text("company_id"),
-    companyName: text("company_name"),
+    definition: json("definition").notNull(), // SurveyJS JSON definition
+    canTakeMultiple: boolean("can_take_multiple").default(false),
+    isAnonymous: boolean("is_anonymous").default(false), // New: boolean field for anonymous surveys
+    companyId: varchar("company_id", { length: 128 }),
+    companyName: varchar("company_name", { length: 255 }),
     metadata: text("metadata"), // JSON string for additional data
-    isActive: integer("is_active", { mode: "boolean" }).default(true), // true = visible in assignable forms
-    isPublished: integer("is_published", { mode: "boolean" }).default(true), // false = "deleted" from admin UI
-    createdBy: text("created_by").notNull(), // Match actual DB column name
-    createdAt: text("created_at").$defaultFn(() => Date.now().toString()), // Match actual DB column name
-    updatedAt: text("updated_at").$defaultFn(() => Date.now().toString()), // Match actual DB column name
+    isActive: boolean("is_active").default(true), // true = visible in assignable forms
+    isPublished: boolean("is_published").default(true), // false = "deleted" from admin UI
+    createdBy: varchar("created_by", { length: 128 }).notNull(),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
   },
   (table) => ({
     createdByIdx: index("survey_created_by_idx").on(table.createdBy),

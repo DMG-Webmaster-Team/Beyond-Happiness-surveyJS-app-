@@ -49,7 +49,9 @@ export async function createSurveySession(
   }
 
   const surveyData = survey[0];
-  const expiresAt = Date.now() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000;
+  const expiresAt = new Date(
+    Date.now() + SESSION_EXPIRY_HOURS * 60 * 60 * 1000
+  );
 
   // Check if user already has an active session for this survey
   const existingSession = await getActiveSession(userId, surveyId);
@@ -64,31 +66,28 @@ export async function createSurveySession(
         canTakeMultiple: Boolean(surveyData.canTakeMultiple),
         isAnonymous: Boolean(surveyData.isAnonymous),
         expiresAt,
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       })
-      .where(eq(userSurveySessions.id, existingSession.id))
-      .returning();
-
-    return updatedSession[0];
+      .where(eq(userSurveySessions.id, existingSession.id));
+    return await getActiveSession(userId, surveyId);
   }
 
   // Create new session
-  const newSession = await db
-    .insert(userSurveySessions)
-    .values({
-      userId,
-      surveyId,
-      surveyConfig: surveyData.definition,
-      surveyTitle: surveyData.title,
-      surveyDescription: surveyData.description,
-      canTakeMultiple: Boolean(surveyData.canTakeMultiple),
-      isAnonymous: Boolean(surveyData.isAnonymous),
-      status: "active",
-      expiresAt,
-    })
-    .returning();
+  const sessionId = require("nanoid").nanoid();
+  await db.insert(userSurveySessions).values({
+    id: sessionId,
+    userId,
+    surveyId,
+    surveyConfig: surveyData.definition,
+    surveyTitle: surveyData.title,
+    surveyDescription: surveyData.description,
+    canTakeMultiple: Boolean(surveyData.canTakeMultiple),
+    isAnonymous: Boolean(surveyData.isAnonymous),
+    status: "active",
+    expiresAt,
+  });
 
-  return newSession[0];
+  return await getActiveSession(userId, surveyId);
 }
 
 /**
@@ -118,7 +117,7 @@ export async function getActiveSession(
   const session = sessions[0];
 
   // Check if session has expired
-  if (session.expiresAt && Date.now() > session.expiresAt) {
+  if (session.expiresAt && new Date() > new Date(session.expiresAt)) {
     // Mark as expired
     await updateSessionStatus(session.id, "expired");
     return null;
@@ -153,11 +152,9 @@ export async function updateSessionProgress(
     .update(userSurveySessions)
     .set({
       progress: JSON.stringify(progress),
-      updatedAt: Date.now(),
+      updatedAt: new Date(),
     })
-    .where(eq(userSurveySessions.id, sessionId))
-    .returning();
-
+    .where(eq(userSurveySessions.id, sessionId));
   return updatedSessions.length > 0 ? updatedSessions[0] : null;
 }
 
@@ -167,11 +164,11 @@ export async function updateSessionProgress(
 export async function updateSessionStatus(
   sessionId: string,
   status: "active" | "completed" | "expired" | "abandoned",
-  completedAt?: number
+  completedAt?: Date
 ): Promise<UserSurveySession | null> {
   const updateData: any = {
     status,
-    updatedAt: Date.now(),
+    updatedAt: new Date(),
   };
 
   if (status === "completed" && completedAt) {
@@ -181,9 +178,7 @@ export async function updateSessionStatus(
   const updatedSessions = await db
     .update(userSurveySessions)
     .set(updateData)
-    .where(eq(userSurveySessions.id, sessionId))
-    .returning();
-
+    .where(eq(userSurveySessions.id, sessionId));
   return updatedSessions.length > 0 ? updatedSessions[0] : null;
 }
 
@@ -193,7 +188,7 @@ export async function updateSessionStatus(
 export async function completeSession(
   sessionId: string
 ): Promise<UserSurveySession | null> {
-  return updateSessionStatus(sessionId, "completed", Date.now());
+  return updateSessionStatus(sessionId, "completed", new Date());
 }
 
 /**
@@ -222,8 +217,9 @@ export async function getUserSessions(
  * Clean up expired sessions
  */
 export async function cleanupExpiredSessions(): Promise<number> {
-  const cleanupThreshold =
-    Date.now() - SESSION_CLEANUP_DAYS * 24 * 60 * 60 * 1000;
+  const cleanupThreshold = new Date(
+    Date.now() - SESSION_CLEANUP_DAYS * 24 * 60 * 60 * 1000
+  );
 
   const deletedSessions = await db
     .delete(userSurveySessions)
@@ -263,4 +259,3 @@ export async function getSessionStats(): Promise<{
 
   return stats;
 }
-

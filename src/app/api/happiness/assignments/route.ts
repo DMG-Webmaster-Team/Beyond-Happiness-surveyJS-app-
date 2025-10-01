@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { happinessAssignments, happinessSurveys, users } from "@/db/schema";
+import { happinessAssignments, happinessSurveys } from "@/db/schema/happiness";
+import { users } from "@/db/schema/users";
 import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 

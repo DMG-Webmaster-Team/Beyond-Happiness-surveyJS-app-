@@ -1,21 +1,19 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
+import { drizzle } from "drizzle-orm/mysql2";
+import mysql from "mysql2/promise";
 import * as schema from "./schema";
-import fs from "fs";
-import path from "path";
 
-// SQLite database instance
-let sqlite: any;
+// MySQL connection pool
+let connectionPool: mysql.Pool | null = null;
 
 // Cleanup function for graceful shutdown
-export function closeDatabase() {
-  if (sqlite) {
+export async function closeDatabase() {
+  if (connectionPool) {
     try {
-      sqlite.close();
-      sqlite = null;
-      console.log("📊 Database connection closed");
+      await connectionPool.end();
+      connectionPool = null;
+      console.log("📊 Database connection pool closed");
     } catch (error) {
-      console.error("Error closing database:", error);
+      console.error("Error closing database pool:", error);
     }
   }
 }
@@ -33,62 +31,36 @@ function createConnection() {
     throw new Error("Database client cannot be used in browser environment");
   }
 
-  if (!sqlite) {
-    // Always use local SQLite file for now, ignore DATABASE_URL
-    const dbPath = path.join(process.cwd(), "surveyjs.db");
+  if (!connectionPool) {
+    const connectionConfig = {
+      host: "localhost",
+      user: "root",
+      password: "root",
+      database: "happiness_survey",
+      socketPath: "/Applications/MAMP/tmp/mysql/mysql.sock",
+      connectionLimit: 3, // Further reduced to prevent connection issues
+      queueLimit: 0,
+    };
 
-    // Ensure the directory exists
-    const dbDir = path.dirname(dbPath);
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true });
-    }
-
-    sqlite = new Database(dbPath);
-
-    // Enable foreign keys
-    sqlite.pragma("foreign_keys = ON");
-
-    // Performance optimizations with better I/O error handling
     try {
-      // Try WAL mode first, fallback to DELETE if it fails
-      const journalMode = sqlite.pragma("journal_mode = WAL", { simple: true });
-      if (journalMode !== "wal") {
-        console.warn("⚠️ WAL mode failed, falling back to DELETE mode");
-        sqlite.pragma("journal_mode = DELETE");
-      }
+      connectionPool = mysql.createPool(connectionConfig);
 
-      sqlite.pragma("synchronous = NORMAL");
-      sqlite.pragma("temp_store = MEMORY");
-      sqlite.pragma("cache_size = -64000"); // 64MB cache
-
-      // Only set mmap if WAL mode is working
-      if (journalMode === "wal") {
-        sqlite.pragma("mmap_size = 268435456"); // 256MB mmap
-      }
-
-      // Test a simple query to ensure connection is working
-      sqlite.prepare("SELECT 1").get();
-    } catch (error) {
-      console.error(
-        "⚠️ Database optimization failed, using default settings:",
-        error
+      console.log(
+        "📊 MySQL database connected via socket:",
+        connectionConfig.socketPath
       );
-      // Reset to safe defaults
-      sqlite.pragma("journal_mode = DELETE");
-      sqlite.pragma("synchronous = FULL");
+      console.log("🚀 Connection pool created with 10 connections");
+    } catch (error) {
+      console.error("❌ Failed to create MySQL connection pool:", error);
+      throw error;
     }
-
-    console.log("📊 SQLite database connected:", dbPath);
-    console.log(
-      "🚀 Performance optimizations enabled: WAL mode, NORMAL sync, 64MB cache"
-    );
   }
 
-  return sqlite;
+  return connectionPool;
 }
 
-// Initialize Drizzle with SQLite
-export const db = drizzle(createConnection(), { schema });
+// Initialize Drizzle with MySQL
+export const db = drizzle(createConnection(), { schema, mode: "default" });
 
 // Export types for use in other parts of the application
 export type DatabaseInstance = typeof db;

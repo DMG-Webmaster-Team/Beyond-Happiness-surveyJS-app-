@@ -18,10 +18,10 @@ export async function GET(request: NextRequest) {
       .from(happinessQuestions)
       .orderBy(asc(happinessQuestions.id));
 
-    // Parse values JSON for each question
+    // Values are already parsed as JSON in MySQL, no need to parse again
     let parsedQuestions = questions.map((q) => ({
       ...q,
-      values: JSON.parse(q.values),
+      values: Array.isArray(q.values) ? q.values : JSON.parse(q.values),
     }));
 
     // Apply client-side filtering since Drizzle ORM filtering can be complex
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     if (isActive && isActive !== "all") {
       const activeFilter = isActive === "true";
       parsedQuestions = parsedQuestions.filter(
-        (q) => q.isActive === activeFilter
+        (q) => Boolean(q.isActive) === activeFilter
       );
     }
 
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         id: nextId,
         text,
         category,
-        values: JSON.stringify(values),
+        values: values, // MySQL JSON column handles this automatically
         isActive: true,
       })
       .returning();
@@ -112,7 +112,9 @@ export async function POST(request: NextRequest) {
       success: true,
       question: {
         ...newQuestion[0],
-        values: JSON.parse(newQuestion[0].values),
+        values: Array.isArray(newQuestion[0].values)
+          ? newQuestion[0].values
+          : JSON.parse(newQuestion[0].values),
       },
     });
   } catch (error) {

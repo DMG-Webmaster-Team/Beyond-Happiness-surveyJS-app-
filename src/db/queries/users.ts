@@ -56,7 +56,7 @@ export async function getUsersByCompany(companyId: string): Promise<User[]> {
 export async function createUser(
   userData: Omit<NewUser, "id" | "createdAt" | "updatedAt">
 ): Promise<User> {
-  const now = Date.now();
+  const now = new Date();
   const newUser: NewUser = {
     id: createId(),
     ...userData,
@@ -64,8 +64,9 @@ export async function createUser(
     updatedAt: now,
   };
 
-  const result = await db.insert(users).values(newUser).returning();
-  return result[0];
+  const userId = newUser.id || require("nanoid").nanoid();
+  await db.insert(users).values({ ...newUser, id: userId });
+  return { ...newUser, id: userId };
 }
 
 // Update user
@@ -75,14 +76,10 @@ export async function updateUser(
 ): Promise<User | undefined> {
   const updateData = {
     ...userData,
-    updatedAt: Date.now(),
+    updatedAt: new Date(),
   };
 
-  const result = await db
-    .update(users)
-    .set(updateData)
-    .where(eq(users.id, id))
-    .returning();
+  const result = await db.update(users).set(updateData).where(eq(users.id, id));
   return result[0];
 }
 
@@ -107,7 +104,7 @@ export async function upsertUser(
 export async function deleteUser(id: string): Promise<boolean> {
   const result = await db
     .update(users)
-    .set({ status: "inactive", updatedAt: Date.now() })
+    .set({ status: "inactive", updatedAt: new Date() })
     .where(eq(users.id, id));
 
   return result.changes > 0;
@@ -188,7 +185,7 @@ export async function createUserAssignment(assignmentData: {
   dueAt?: number;
   status?: string;
 }): Promise<any> {
-  const now = Date.now();
+  const now = new Date();
   const newAssignment = {
     userId: assignmentData.userId,
     surveyId: assignmentData.surveyId,
@@ -197,10 +194,7 @@ export async function createUserAssignment(assignmentData: {
     status: assignmentData.status || "pending",
   };
 
-  const result = await db
-    .insert(userAssignments)
-    .values(newAssignment)
-    .returning();
+  const result = await db.insert(userAssignments).values(newAssignment);
   return result[0];
 }
 
@@ -235,8 +229,7 @@ export async function upsertUserAssignment(assignmentData: {
           eq(userAssignments.userId, assignmentData.userId),
           eq(userAssignments.surveyId, assignmentData.surveyId)
         )
-      )
-      .returning();
+      );
     return result[0];
   } else {
     // Create new assignment
@@ -271,14 +264,14 @@ export async function upsertSurvey(surveyData: {
       .set({
         title: surveyData.title,
         description: surveyData.description || existingSurvey.description,
-        updatedAt: Date.now().toString(),
+        updatedAt: new Date().toISOString(),
       })
-      .where(eq(surveys.id, surveyData.id))
-      .returning();
-    return { survey: result[0], created: false };
+      .where(eq(surveys.id, surveyData.id));
+    const updatedSurvey = await getSurveyById(surveyData.id);
+    return { survey: updatedSurvey, created: false };
   } else {
     // Create new survey
-    const now = Date.now();
+    const now = new Date();
     const newSurvey = {
       id: surveyData.id,
       title: surveyData.title,
@@ -286,12 +279,12 @@ export async function upsertSurvey(surveyData: {
       definition: "{}", // Default empty JSON definition
       canTakeMultiple: surveyData.canTakeMultiple ? 1 : 0,
       createdBy: surveyData.createdBy,
-      createdAt: now.toString(),
-      updatedAt: now.toString(),
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
     };
 
-    const result = await db.insert(surveys).values(newSurvey).returning();
-    return { survey: result[0], created: true };
+    await db.insert(surveys).values(newSurvey);
+    return { survey: newSurvey, created: true };
   }
 }
 
@@ -304,17 +297,13 @@ export async function createHappinessAssignment(assignmentData: {
   const { happinessAssignments } = await import("../schema/happiness");
   const { nanoid } = await import("nanoid");
 
-  const [assignment] = await db
-    .insert(happinessAssignments)
-    .values({
-      id: nanoid(),
-      userId: assignmentData.userId,
-      surveyId: assignmentData.surveyId,
-      assignedBy: assignmentData.assignedBy,
-      isActive: assignmentData.isActive,
-      // assignedAt will use default value from schema
-    })
-    .returning();
-
+  const [assignment] = await db.insert(happinessAssignments).values({
+    id: nanoid(),
+    userId: assignmentData.userId,
+    surveyId: assignmentData.surveyId,
+    assignedBy: assignmentData.assignedBy,
+    isActive: assignmentData.isActive,
+    // assignedAt will use default value from schema
+  });
   return assignment;
 }

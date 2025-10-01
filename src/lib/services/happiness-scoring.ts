@@ -142,8 +142,10 @@ export async function computeHappinessScore(
         continue;
       }
 
-      // Parse values array from JSON
-      const values = JSON.parse(question.values) as number[];
+      // Parse values array (handle both JSON string and already parsed array)
+      const values = Array.isArray(question.values)
+        ? question.values
+        : (JSON.parse(question.values) as number[]);
 
       // Get score for this answer (valueIndex is 1-based, array is 0-based)
       const scoreIndex = answer.valueIndex - 1;

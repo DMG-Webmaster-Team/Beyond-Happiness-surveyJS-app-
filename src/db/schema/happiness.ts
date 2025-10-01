@@ -1,19 +1,28 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  mysqlTable,
+  varchar,
+  text,
+  int,
+  json,
+  boolean,
+  timestamp,
+  index,
+} from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
 // Happiness Questions Table
-export const happinessQuestions = sqliteTable(
+export const happinessQuestions = mysqlTable(
   "happiness_questions",
   {
-    id: integer("id").primaryKey(),
+    id: int("id").primaryKey().autoincrement(),
     text: text("text").notNull(),
-    category: text("category", {
-      enum: ["Meaning", "Delight", "Freedom", "Engagement", "Vitality"],
-    }).notNull(),
-    values: text("values").notNull(), // JSON string of [int, int, int, int, int]
-    isActive: integer("is_active", { mode: "boolean" }).default(true),
-    createdAt: integer("created_at").default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at").default(sql`(unixepoch())`),
+    category: varchar("category", { length: 100 }).notNull(),
+    values: json("values").notNull(), // JSON array of [int, int, int, int, int]
+    isActive: boolean("is_active").default(true),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
   },
   (table) => ({
     categoryIdx: index("happiness_questions_category_idx").on(table.category),
@@ -22,16 +31,18 @@ export const happinessQuestions = sqliteTable(
 );
 
 // Happiness Characters Table
-export const happinessCharacters = sqliteTable(
+export const happinessCharacters = mysqlTable(
   "happiness_characters",
   {
-    id: integer("id").primaryKey(),
-    name: text("name").notNull(),
+    id: int("id").primaryKey().autoincrement(),
+    name: varchar("name", { length: 100 }).notNull(),
     description: text("description").notNull(),
-    match: text("match", { length: 5 }).notNull(), // 5-bit code like "01111"
-    avatarUrl: text("avatar_url"),
-    createdAt: integer("created_at").default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at").default(sql`(unixepoch())`),
+    match: varchar("match", { length: 5 }).notNull(), // 5-bit code like "01111"
+    avatarUrl: varchar("avatar_url", { length: 500 }),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
   },
   (table) => ({
     matchIdx: index("happiness_characters_match_idx").on(table.match),
@@ -39,36 +50,39 @@ export const happinessCharacters = sqliteTable(
 );
 
 // Happiness Surveys Table
-export const happinessSurveys = sqliteTable("happiness_surveys", {
-  id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  anonymous: integer("anonymous", { mode: "boolean" }).default(false),
-  retakeCooldownDays: integer("retake_cooldown_days").default(0), // Days before user can retake
-  companyId: text("company_id"), // Company assignment
-  companyName: text("company_name"), // Company name for easier queries
-  isActive: integer("is_active", { mode: "boolean" }).default(true), // true = visible in assignable forms
-  isPublished: integer("is_published", { mode: "boolean" }).default(true), // false = "deleted" from admin UI
-  createdAt: integer("created_at").default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at").default(sql`(unixepoch())`),
+export const happinessSurveys = mysqlTable("happiness_surveys", {
+  id: varchar("id", { length: 128 }).primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  anonymous: boolean("anonymous").default(false),
+  retakeCooldownDays: int("retake_cooldown_days").default(0), // Days before user can retake
+  companyId: varchar("company_id", { length: 128 }), // Company assignment
+  companyName: varchar("company_name", { length: 255 }), // Company name for easier queries
+  isActive: boolean("is_active").default(true), // true = visible in assignable forms
+  isPublished: boolean("is_published").default(true), // false = "deleted" from admin UI
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: timestamp("updated_at")
+    .default(sql`CURRENT_TIMESTAMP`)
+    .onUpdateNow(),
 });
 
 // Happiness Results Table
-export const happinessResults = sqliteTable(
+export const happinessResults = mysqlTable(
   "happiness_results",
   {
-    id: text("id").primaryKey(),
-    surveyId: text("survey_id")
+    id: varchar("id", { length: 128 }).primaryKey(),
+    surveyId: varchar("survey_id", { length: 128 })
       .notNull()
       .references(() => happinessSurveys.id),
-    userId: text("user_id"), // nullable for anonymous surveys
-    answers: text("answers").notNull(), // JSON array of {questionId, valueIndex, questionText?, answerText?}
-    categoryTotals: text("category_totals").notNull(), // JSON object {Meaning: number, ...}
-    code: text("code", { length: 5 }).notNull(), // 5-bit string like "01111"
-    characterId: integer("character_id")
+    userId: varchar("user_id", { length: 128 }), // nullable for anonymous surveys
+    answers: json("answers").notNull(), // JSON array of {questionId, valueIndex, questionText?, answerText?}
+    categoryTotals: json("category_totals").notNull(), // JSON object {Meaning: number, ...}
+    code: varchar("code", { length: 10 }).notNull(), // 5-bit string like "01111"
+    characterId: int("character_id")
       .notNull()
       .references(() => happinessCharacters.id),
-    language: text("language", { length: 2 }).default("en"), // "en" or "ar"
-    createdAt: integer("created_at").default(sql`(unixepoch())`),
+    language: varchar("language", { length: 10 }).default("en"), // "en" or "ar"
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    submittedAt: timestamp("submitted_at").default(sql`CURRENT_TIMESTAMP`),
   },
   (table) => ({
     surveyUserIdx: index("happiness_results_survey_user_idx").on(
@@ -82,18 +96,18 @@ export const happinessResults = sqliteTable(
 );
 
 // Happiness Survey Assignments Table
-export const happinessAssignments = sqliteTable(
+export const happinessAssignments = mysqlTable(
   "happiness_assignments",
   {
-    id: text("id").primaryKey(),
-    surveyId: text("survey_id")
+    id: varchar("id", { length: 128 }).primaryKey(),
+    surveyId: varchar("survey_id", { length: 128 })
       .notNull()
       .references(() => happinessSurveys.id),
-    userId: text("user_id").notNull(),
-    assignedBy: text("assigned_by"), // Admin who assigned
-    assignedAt: integer("assigned_at").default(sql`(unixepoch())`),
-    completedAt: integer("completed_at"),
-    isActive: integer("is_active", { mode: "boolean" }).default(true),
+    userId: varchar("user_id", { length: 128 }).notNull(),
+    assignedBy: varchar("assigned_by", { length: 128 }), // Admin who assigned
+    assignedAt: timestamp("assigned_at").default(sql`CURRENT_TIMESTAMP`),
+    completedAt: timestamp("completed_at"),
+    isActive: boolean("is_active").default(true),
     notes: text("notes"), // Optional assignment notes
   },
   (table) => ({

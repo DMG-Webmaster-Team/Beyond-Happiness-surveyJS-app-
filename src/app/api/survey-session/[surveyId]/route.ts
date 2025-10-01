@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { users, surveys, results, userAssignments } from "@/db/schema";
+import { users } from "@/db/schema/users";
+import { surveys } from "@/db/schema/surveys";
+import { results } from "@/db/schema/results";
+import { userAssignments } from "@/db/schema/user-assignments";
 import { eq, and } from "drizzle-orm";
 
 interface UserSession {
@@ -188,8 +191,10 @@ export async function GET(
 
       if (assignment) {
         assignmentData = {
-          status: assignment.status || "pending",
-          dueAt: assignment.dueAt ? new Date(assignment.dueAt) : null,
+          status: (assignment as any).status || "pending",
+          dueAt: (assignment as any).dueAt
+            ? new Date((assignment as any).dueAt)
+            : null,
         };
       }
     }
@@ -200,7 +205,10 @@ export async function GET(
         id: surveyData.id,
         title: surveyData.title,
         description: surveyData.description || undefined,
-        json: surveyData.definition || undefined,
+        json:
+          typeof surveyData.definition === "string"
+            ? surveyData.definition
+            : undefined,
         canTakeMultiple: Boolean(surveyData.canTakeMultiple),
         isAnonymous: Boolean(surveyData.isAnonymous),
         adminId: surveyData.createdBy,

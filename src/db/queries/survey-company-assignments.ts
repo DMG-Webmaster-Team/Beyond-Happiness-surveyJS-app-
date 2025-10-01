@@ -53,11 +53,7 @@ export async function assignSurveyToCompanies(
     assignedBy,
   }));
 
-  const result = await db
-    .insert(surveyCompanyAssignments)
-    .values(assignments)
-    .returning();
-
+  const result = await db.insert(surveyCompanyAssignments).values(assignments);
   return result;
 }
 
@@ -104,9 +100,7 @@ export async function assignHappinessSurveyToCompanies(
 
   const result = await db
     .insert(happinessSurveyCompanyAssignments)
-    .values(assignments)
-    .returning();
-
+    .values(assignments);
   return result;
 }
 

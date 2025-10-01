@@ -1,16 +1,25 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  mysqlTable,
+  varchar,
+  text,
+  timestamp,
+  index,
+} from "drizzle-orm/mysql-core";
 import { createId } from "@paralleldrive/cuid2";
+import { sql } from "drizzle-orm";
 
-export const companies = sqliteTable(
+export const companies = mysqlTable(
   "companies",
   {
-    id: text("id")
+    id: varchar("id", { length: 128 })
       .primaryKey()
       .$defaultFn(() => createId()),
-    name: text("name").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
-    createdAt: integer("created_at").$defaultFn(() => Date.now()),
-    updatedAt: integer("updated_at").$defaultFn(() => Date.now()),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
   },
   (table) => ({
     nameIdx: index("company_name_idx").on(table.name),

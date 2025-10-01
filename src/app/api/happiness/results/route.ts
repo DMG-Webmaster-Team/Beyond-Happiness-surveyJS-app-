@@ -40,14 +40,12 @@ export async function GET(request: NextRequest) {
       whereConditions.push(like(users.email, `%${userEmail}%`));
     }
     if (startDate) {
-      const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
-      whereConditions.push(gte(happinessResults.createdAt, startTimestamp));
+      const startDateObj = new Date(startDate);
+      whereConditions.push(gte(happinessResults.createdAt, startDateObj));
     }
     if (endDate) {
-      const endTimestamp = Math.floor(
-        new Date(endDate + "T23:59:59").getTime() / 1000
-      );
-      whereConditions.push(lte(happinessResults.createdAt, endTimestamp));
+      const endDateObj = new Date(endDate + "T23:59:59");
+      whereConditions.push(lte(happinessResults.createdAt, endDateObj));
     }
 
     // Build the query
@@ -103,11 +101,17 @@ export async function GET(request: NextRequest) {
     const total = totalResults.length;
     const totalPages = Math.ceil(total / limit);
 
-    // Parse JSON fields
+    // JSON fields are already parsed in MySQL, handle both cases
     const parsedResults = results.map((result) => ({
       ...result,
-      answers: JSON.parse(result.answers),
-      categoryTotals: JSON.parse(result.categoryTotals),
+      answers:
+        typeof result.answers === "string"
+          ? JSON.parse(result.answers)
+          : result.answers,
+      categoryTotals:
+        typeof result.categoryTotals === "string"
+          ? JSON.parse(result.categoryTotals)
+          : result.categoryTotals,
     }));
 
     return NextResponse.json({
@@ -232,7 +236,8 @@ export async function POST(request: NextRequest) {
           }
           const cooldownPeriod = cooldownDays * 24 * 60 * 60; // Convert days to seconds
           const timeSinceLastSubmission =
-            Date.now() / 1000 - lastSubmission.createdAt;
+            Date.now() / 1000 -
+            new Date(lastSubmission.createdAt).getTime() / 1000;
 
           if (timeSinceLastSubmission < cooldownPeriod) {
             const remainingTime = Math.ceil(
@@ -271,7 +276,10 @@ export async function POST(request: NextRequest) {
                     description: "Your character from previous submission",
                     avatarUrl: `/characters/${lastSubmission.code}.png`,
                   },
-              categoryTotals: JSON.parse(lastSubmission.categoryTotals),
+              categoryTotals:
+                typeof lastSubmission.categoryTotals === "string"
+                  ? JSON.parse(lastSubmission.categoryTotals)
+                  : lastSubmission.categoryTotals,
               cooldown: true,
               cooldownRemaining: remainingTime,
               message: `You must wait ${remainingTime} more day(s) before retaking this survey. Here's your previous result:`,
@@ -288,22 +296,20 @@ export async function POST(request: NextRequest) {
     );
 
     // Store result
-    const newResult = await db
-      .insert(happinessResults)
-      .values({
-        id: nanoid(),
-        surveyId,
-        userId: surveyData.anonymous ? null : userId,
-        answers: JSON.stringify(answers),
-        categoryTotals: JSON.stringify(scoreResult.categoryTotals),
-        code: scoreResult.code,
-        characterId: scoreResult.character.id,
-        language: selectedLanguage,
-      })
-      .returning();
+    const resultId = nanoid();
+    await db.insert(happinessResults).values({
+      id: resultId,
+      surveyId,
+      userId: surveyData.anonymous ? null : userId,
+      answers: answers, // MySQL JSON column handles this automatically
+      categoryTotals: scoreResult.categoryTotals, // MySQL JSON column handles this automatically
+      code: scoreResult.code,
+      characterId: scoreResult.character.id,
+      language: selectedLanguage,
+    });
 
     return NextResponse.json({
-      id: newResult[0].id, // Include the database ID for PDF generation
+      id: resultId, // Include the database ID for PDF generation
       ok: true,
       surveyId,
       code: scoreResult.code,

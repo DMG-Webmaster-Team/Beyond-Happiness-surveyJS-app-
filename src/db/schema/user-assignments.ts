@@ -1,25 +1,26 @@
 import {
-  sqliteTable,
-  text,
-  integer,
+  mysqlTable,
+  varchar,
+  timestamp,
   index,
   primaryKey,
-} from "drizzle-orm/sqlite-core";
+} from "drizzle-orm/mysql-core";
+import { sql } from "drizzle-orm";
 import { users } from "./users";
 import { surveys } from "./surveys";
 
-export const userAssignments = sqliteTable(
+export const userAssignments = mysqlTable(
   "user_assignments",
   {
-    userId: text("user_id")
+    userId: varchar("user_id", { length: 255 })
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    surveyId: text("survey_id")
+    surveyId: varchar("survey_id", { length: 255 })
       .notNull()
       .references(() => surveys.id, { onDelete: "cascade" }),
-    assignedAt: integer("assigned_at").$defaultFn(() => Date.now()),
-    dueAt: integer("due_at"),
-    status: text("status").default("pending"),
+    assignedAt: timestamp("assigned_at").default(sql`CURRENT_TIMESTAMP`),
+    dueAt: timestamp("due_at"),
+    status: varchar("status", { length: 50 }).default("pending"),
   },
   (table) => ({
     // Composite primary key for idempotent imports
