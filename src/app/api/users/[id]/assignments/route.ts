@@ -53,7 +53,7 @@ export async function PUT(
       const newAssignments = surveysToAdd.map((surveyId) => ({
         userId: id,
         surveyId,
-        assignedAt: Date.now(),
+        assignedAt: new Date(),
         status: "pending",
       }));
 

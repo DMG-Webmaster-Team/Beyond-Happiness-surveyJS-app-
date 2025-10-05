@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, category, values } = body;
+    const { text, category, values, isActive } = body;
 
     // Validation
     if (!text || !category || !values) {
@@ -97,24 +97,45 @@ export async function POST(request: NextRequest) {
 
     const nextId = lastQuestion.length > 0 ? lastQuestion[0].id + 1 : 1;
 
-    const newQuestion = await db
-      .insert(happinessQuestions)
-      .values({
-        id: nextId,
-        text,
-        category,
-        values: values, // MySQL JSON column handles this automatically
-        isActive: true,
-      })
-      .returning();
+    // Log the data we're trying to insert for debugging
+    console.log("🔍 Attempting to insert question:", {
+      id: nextId,
+      text,
+      category,
+      values,
+      isActive: isActive !== undefined ? isActive : true,
+    });
+
+    // Insert the question (MySQL doesn't support .returning())
+    await db.insert(happinessQuestions).values({
+      id: nextId,
+      text,
+      category,
+      values: values, // MySQL JSON column handles this automatically
+      isActive: isActive !== undefined ? isActive : true,
+    });
+
+    // Fetch the inserted question
+    const insertedQuestion = await db
+      .select()
+      .from(happinessQuestions)
+      .where(eq(happinessQuestions.id, nextId))
+      .limit(1);
+
+    if (insertedQuestion.length === 0) {
+      return NextResponse.json(
+        { error: "Failed to retrieve inserted question" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       question: {
-        ...newQuestion[0],
-        values: Array.isArray(newQuestion[0].values)
-          ? newQuestion[0].values
-          : JSON.parse(newQuestion[0].values),
+        ...insertedQuestion[0],
+        values: Array.isArray(insertedQuestion[0].values)
+          ? insertedQuestion[0].values
+          : JSON.parse(insertedQuestion[0].values),
       },
     });
   } catch (error) {

@@ -351,12 +351,6 @@ export default function SurveyPage() {
               Error Loading Survey
             </h1>
             <p className="text-gray-600 mb-6">{error}</p>
-            <button
-              onClick={() => router.back()}
-              className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              Go Back
-            </button>
           </div>
         </div>
       </div>

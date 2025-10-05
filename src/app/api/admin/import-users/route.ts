@@ -137,10 +137,43 @@ export async function POST(request: NextRequest) {
     }
 
     const file = formData.get("file") as File;
-    const surveyIds = formData.getAll("surveyIds") as string[];
-    const happinessSurveyIds = formData.getAll(
-      "happinessSurveyIds"
-    ) as string[];
+    // Parse survey IDs from form data (handle both array and JSON string formats)
+    const rawSurveyIds = formData.getAll("surveyIds");
+    const rawHappinessSurveyIds = formData.getAll("happinessSurveyIds");
+
+    const surveyIds =
+      rawSurveyIds.length > 0
+        ? rawSurveyIds
+            .flatMap((id) => {
+              try {
+                // If it's a JSON string, parse it
+                return typeof id === "string" && id.startsWith("[")
+                  ? JSON.parse(id)
+                  : [id];
+              } catch {
+                // If parsing fails, treat as regular string
+                return [id];
+              }
+            })
+            .filter((id) => id && id.trim() !== "")
+        : [];
+
+    const happinessSurveyIds =
+      rawHappinessSurveyIds.length > 0
+        ? rawHappinessSurveyIds
+            .flatMap((id) => {
+              try {
+                // If it's a JSON string, parse it
+                return typeof id === "string" && id.startsWith("[")
+                  ? JSON.parse(id)
+                  : [id];
+              } catch {
+                // If parsing fails, treat as regular string
+                return [id];
+              }
+            })
+            .filter((id) => id && id.trim() !== "")
+        : [];
     const companyId = formData.get("companyId") as string;
     const dryRun = formData.get("dryRun") === "1";
 
@@ -1081,7 +1114,7 @@ async function processCompanyImport(validRows: any[], companyId: string) {
         );
         const { nanoid } = await import("nanoid");
 
-        const now = Date.now();
+        const now = new Date();
 
         // Regular survey assignments
         for (const survey of regularSurveys) {
@@ -1094,7 +1127,13 @@ async function processCompanyImport(validRows: any[], companyId: string) {
             });
             stats.insertedAssignments++;
           } catch (error: any) {
-            if (error.message?.includes("UNIQUE constraint failed")) {
+            if (
+              error.message?.includes("UNIQUE constraint failed") ||
+              error.message?.includes("Duplicate entry") ||
+              error.code === "ER_DUP_ENTRY" ||
+              error.cause?.code === "ER_DUP_ENTRY" ||
+              error.cause?.message?.includes("Duplicate entry")
+            ) {
               stats.duplicateAssignments++;
               console.log(
                 `⚠️ User ${user.email} already assigned to survey ${survey.title}`
@@ -1118,7 +1157,13 @@ async function processCompanyImport(validRows: any[], companyId: string) {
             });
             stats.insertedAssignments++;
           } catch (error: any) {
-            if (error.message?.includes("UNIQUE constraint failed")) {
+            if (
+              error.message?.includes("UNIQUE constraint failed") ||
+              error.message?.includes("Duplicate entry") ||
+              error.code === "ER_DUP_ENTRY" ||
+              error.cause?.code === "ER_DUP_ENTRY" ||
+              error.cause?.message?.includes("Duplicate entry")
+            ) {
               stats.duplicateAssignments++;
               console.log(
                 `⚠️ User ${user.email} already assigned to happiness survey ${survey.title}`
@@ -1304,7 +1349,7 @@ async function processMixedImport(
         );
         const { nanoid } = await import("nanoid");
 
-        const now = Date.now();
+        const now = new Date();
 
         // Regular survey assignments
         for (const surveyId of finalRegularSurveyIds) {
@@ -1317,7 +1362,13 @@ async function processMixedImport(
             });
             stats.insertedAssignments++;
           } catch (error: any) {
-            if (error.message?.includes("UNIQUE constraint failed")) {
+            if (
+              error.message?.includes("UNIQUE constraint failed") ||
+              error.message?.includes("Duplicate entry") ||
+              error.code === "ER_DUP_ENTRY" ||
+              error.cause?.code === "ER_DUP_ENTRY" ||
+              error.cause?.message?.includes("Duplicate entry")
+            ) {
               stats.duplicateAssignments++;
               console.log(
                 `⚠️ User ${user.email} already assigned to regular survey ${surveyId}`
@@ -1341,7 +1392,13 @@ async function processMixedImport(
             });
             stats.insertedAssignments++;
           } catch (error: any) {
-            if (error.message?.includes("UNIQUE constraint failed")) {
+            if (
+              error.message?.includes("UNIQUE constraint failed") ||
+              error.message?.includes("Duplicate entry") ||
+              error.code === "ER_DUP_ENTRY" ||
+              error.cause?.code === "ER_DUP_ENTRY" ||
+              error.cause?.message?.includes("Duplicate entry")
+            ) {
               stats.duplicateAssignments++;
               console.log(
                 `⚠️ User ${user.email} already assigned to happiness survey ${surveyId}`

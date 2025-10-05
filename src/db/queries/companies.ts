@@ -58,13 +58,20 @@ export async function updateCompany(
 
   const result = await getCompanyById(id);
 
-  return result[0];
+  return result;
 }
 
 export async function deleteCompany(id: string): Promise<boolean> {
-  const result = await db.delete(companies).where(eq(companies.id, id));
+  // Check if company exists first
+  const existingCompany = await getCompanyById(id);
+  if (!existingCompany) {
+    return false;
+  }
 
-  return result.changes > 0;
+  // Delete the company
+  await db.delete(companies).where(eq(companies.id, id));
+
+  return true;
 }
 
 export async function getCompaniesCount(): Promise<number> {

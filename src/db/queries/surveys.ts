@@ -32,7 +32,21 @@ export const updateSurveySchema = z
 // Query functions
 export async function getSurveyById(id: string): Promise<Survey | undefined> {
   const result = await db
-    .select()
+    .select({
+      id: surveys.id,
+      title: surveys.title,
+      description: surveys.description,
+      definition: surveys.definition,
+      canTakeMultiple: surveys.canTakeMultiple,
+      isAnonymous: surveys.isAnonymous,
+      companyId: surveys.companyId,
+      companyName: surveys.companyName,
+      metadata: surveys.metadata,
+      isActive: surveys.isActive,
+      isPublished: surveys.isPublished,
+      createdBy: surveys.createdBy,
+      updatedAt: surveys.updatedAt,
+    })
     .from(surveys)
     .where(eq(surveys.id, id))
     .limit(1);
@@ -191,27 +205,54 @@ export async function updateSurvey(
 
   console.log("Data to update:", dataToUpdate);
 
-  const result = await db
-    .update(surveys)
-    .set(dataToUpdate)
-    .where(eq(surveys.id, id));
-  return result[0];
+  await db.update(surveys).set(dataToUpdate).where(eq(surveys.id, id));
+
+  // Fetch and return the updated survey
+  const updatedSurvey = await getSurveyById(id);
+  return updatedSurvey;
 }
 
 export async function updateSurveyTitle(
   id: string,
   title: string
 ): Promise<Survey | undefined> {
-  const result = await db
-    .update(surveys)
-    .set({ title })
-    .where(eq(surveys.id, id));
-  return result[0];
+  await db.update(surveys).set({ title }).where(eq(surveys.id, id));
+
+  // Fetch and return the updated survey
+  const updatedSurvey = await getSurveyById(id);
+  return updatedSurvey;
 }
 
 export async function deleteSurvey(id: string): Promise<boolean> {
-  const result = await db.delete(surveys).where(eq(surveys.id, id));
-  return result.changes > 0;
+  try {
+    // Check if survey exists first
+    const existingSurvey = await getSurveyById(id);
+    if (!existingSurvey) {
+      return false;
+    }
+
+    // Delete related records first to avoid foreign key constraint errors
+    const { surveyCompanyAssignments } = await import(
+      "../schema/survey-company-assignments"
+    );
+    const { userAssignments } = await import("../schema/user-assignments");
+
+    // Delete survey-company assignments
+    await db
+      .delete(surveyCompanyAssignments)
+      .where(eq(surveyCompanyAssignments.surveyId, id));
+
+    // Delete user assignments
+    await db.delete(userAssignments).where(eq(userAssignments.surveyId, id));
+
+    // Now delete the survey itself
+    await db.delete(surveys).where(eq(surveys.id, id));
+
+    return true;
+  } catch (error) {
+    console.error("Error deleting survey:", error);
+    throw error;
+  }
 }
 
 export async function listSurveys(companyId?: string): Promise<Survey[]> {

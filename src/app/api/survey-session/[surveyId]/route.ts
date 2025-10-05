@@ -144,7 +144,12 @@ export async function GET(
     // For authenticated users, check their submission history
     if (userData) {
       const userResults = await db
-        .select()
+        .select({
+          id: results.id,
+          surveyId: results.surveyId,
+          userId: results.userId,
+          submittedAt: results.submittedAt,
+        })
         .from(results)
         .where(
           and(eq(results.userId, userData.id), eq(results.surveyId, surveyId))

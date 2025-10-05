@@ -45,7 +45,10 @@ export async function PATCH(
     }
 
     // Validate input (only validate provided fields)
-    const updateData = userSchema.partial().parse(body);
+    const validatedData = userSchema.partial().parse(body);
+
+    // Create updateData with potential companyName field
+    const updateData: any = { ...validatedData };
 
     // Check if company is being changed
     const isCompanyChanged =
@@ -161,7 +164,7 @@ export async function PATCH(
           const { createUserAssignment, createHappinessAssignment } =
             await import("../../../../db/queries/users");
 
-          const now = Date.now();
+          const now = new Date();
 
           // Create regular survey assignments
           for (const surveyId of companySurveyIds) {

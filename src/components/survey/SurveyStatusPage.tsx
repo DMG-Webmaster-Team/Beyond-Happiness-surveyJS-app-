@@ -40,21 +40,7 @@ export default function SurveyStatusPage({
     switch (type) {
       case "not-assigned":
         return {
-          icon: (
-            <div className="w-16 h-16 mx-auto mb-6">
-              <svg
-                className="w-full h-full text-red-500"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M13.477 14.89A6 6 0 715.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-          ),
+          icon: "⛔️",
           title: "Survey Not Assigned",
           message: message || "You are not assigned to this survey.",
           color: "text-red-600",

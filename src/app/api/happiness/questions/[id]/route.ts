@@ -45,20 +45,27 @@ export async function PUT(
     }
 
     // Build update object
-    const updateData: any = {
-      updatedAt: Date.now(),
-    };
+    const updateData: any = {};
+
+    // Note: updatedAt is handled automatically by the database schema with onUpdateNow()
 
     if (text !== undefined) updateData.text = text;
     if (category !== undefined) updateData.category = category;
     if (values !== undefined) updateData.values = values; // MySQL JSON column handles this
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const updatedQuestion = await db
+    // Update the question (MySQL doesn't support .returning())
+    await db
       .update(happinessQuestions)
       .set(updateData)
+      .where(eq(happinessQuestions.id, questionId));
+
+    // Fetch the updated question
+    const updatedQuestion = await db
+      .select()
+      .from(happinessQuestions)
       .where(eq(happinessQuestions.id, questionId))
-      .returning();
+      .limit(1);
 
     if (updatedQuestion.length === 0) {
       return NextResponse.json(

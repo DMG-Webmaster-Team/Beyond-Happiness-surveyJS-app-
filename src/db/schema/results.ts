@@ -25,10 +25,8 @@ export const results = mysqlTable(
     }),
     data: json("data").notNull(), // Survey response data as JSON
     submittedAt: timestamp("submitted_at").default(sql`CURRENT_TIMESTAMP`),
-    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at")
-      .default(sql`CURRENT_TIMESTAMP`)
-      .onUpdateNow(),
+    // createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`), // Commented out - column doesn't exist in MySQL
+    // updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).onUpdateNow(), // Commented out - column doesn't exist in MySQL
   },
   (table) => ({
     surveyIdIdx: index("result_survey_id_idx").on(table.surveyId),

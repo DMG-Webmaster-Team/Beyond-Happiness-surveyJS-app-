@@ -69,7 +69,7 @@ export async function storeOTP(identifier: string, otp: string) {
       .update(users)
       .set({
         otp: otp,
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       })
       .where(where);
 
@@ -121,7 +121,7 @@ export async function clearOTP(identifier: string) {
       .update(users)
       .set({
         otp: null,
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       })
       .where(where);
 
@@ -177,7 +177,7 @@ const sendOTPEmail = async (
       process.env.NEXTAUTH_URL ||
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:4004");
+        : "http://localhost:3003");
 
     console.log(`🔗 Using base URL for Mailgun API: ${baseUrl}`);
     console.log(`🔧 Environment check:`, {

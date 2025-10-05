@@ -144,7 +144,7 @@ async function autoAssignSurveysToCompanyUsers(
   console.log(`👥 Found ${companyUsers.length} users in company`);
 
   const userIds = companyUsers.map((u: any) => u.id);
-  const now = Date.now();
+  const now = new Date();
 
   // Remove existing assignments for these users for the surveys we're updating
   if (surveyIds.length > 0) {
@@ -301,7 +301,7 @@ async function syncUsersWithCompanySurveys(
     }
 
     // Add new assignments
-    const now = Date.now();
+    const now = new Date();
 
     // Regular survey assignments
     if (surveyIds.length > 0) {
@@ -460,58 +460,63 @@ export async function PUT(
       console.log(`👥 Found ${companyUsers.length} users in company`);
 
       const userIds = companyUsers.map((u: any) => u.id);
-      const now = Date.now();
+      const now = new Date();
 
-      // Get all surveys that were previously assigned to this company BEFORE updating
+      // Get all surveys currently assigned to this company
       const { surveyCompanyAssignments, happinessSurveyCompanyAssignments } =
         await import("../../../../db/schema/survey-company-assignments");
 
-      const previousRegularSurveys = await db
+      const currentRegularSurveys = await db
         .select({ surveyId: surveyCompanyAssignments.surveyId })
         .from(surveyCompanyAssignments)
         .where(eq(surveyCompanyAssignments.companyId, id));
 
-      const previousHappinessSurveys = await db
+      const currentHappinessSurveys = await db
         .select({ surveyId: happinessSurveyCompanyAssignments.surveyId })
         .from(happinessSurveyCompanyAssignments)
         .where(eq(happinessSurveyCompanyAssignments.companyId, id));
 
-      const allPreviousRegularSurveyIds = previousRegularSurveys.map(
+      const currentRegularSurveyIds = currentRegularSurveys.map(
         (s) => s.surveyId
       );
-      const allPreviousHappinessSurveyIds = previousHappinessSurveys.map(
+      const currentHappinessSurveyIds = currentHappinessSurveys.map(
         (s) => s.surveyId
       );
 
-      // Remove ALL existing assignments for these users from company surveys
-      if (allPreviousRegularSurveyIds.length > 0) {
+      // Combine current and new survey IDs to get all surveys we need to clean up
+      const allRegularSurveyIds = [
+        ...new Set([...currentRegularSurveyIds, ...surveyIds]),
+      ];
+      const allHappinessSurveyIds = [
+        ...new Set([...currentHappinessSurveyIds, ...happinessSurveyIds]),
+      ];
+
+      // Remove existing assignments for these specific surveys only
+      if (allRegularSurveyIds.length > 0) {
         await db
           .delete(userAssignments)
           .where(
             and(
               inArray(userAssignments.userId, userIds),
-              inArray(userAssignments.surveyId, allPreviousRegularSurveyIds)
+              inArray(userAssignments.surveyId, allRegularSurveyIds)
             )
           );
         console.log(
-          `🧹 Removed ${allPreviousRegularSurveyIds.length} previous regular survey assignments`
+          `🧹 Removed regular survey assignments for ${allRegularSurveyIds.length} surveys`
         );
       }
 
-      if (allPreviousHappinessSurveyIds.length > 0) {
+      if (allHappinessSurveyIds.length > 0) {
         await db
           .delete(happinessAssignments)
           .where(
             and(
               inArray(happinessAssignments.userId, userIds),
-              inArray(
-                happinessAssignments.surveyId,
-                allPreviousHappinessSurveyIds
-              )
+              inArray(happinessAssignments.surveyId, allHappinessSurveyIds)
             )
           );
         console.log(
-          `🧹 Removed ${allPreviousHappinessSurveyIds.length} previous happiness survey assignments`
+          `🧹 Removed happiness survey assignments for ${allHappinessSurveyIds.length} surveys`
         );
       }
 

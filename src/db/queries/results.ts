@@ -41,6 +41,7 @@ export async function createResult(resultData: any): Promise<Result> {
 
   const resultId = dataToInsert.id || require("nanoid").nanoid();
   await db.insert(results).values({ ...dataToInsert, id: resultId });
+
   return { ...dataToInsert, id: resultId };
 }
 
