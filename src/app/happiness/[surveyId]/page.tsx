@@ -174,14 +174,14 @@ export default function HappinessSurveyPage({
             console.log("🔍 Access forbidden - redirecting to home");
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/home");
+            router.push("/user/login");
             return;
           } else {
             // Generic error - redirect to home
             console.log("🔍 Generic error - redirecting to home");
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/home");
+            router.push("/user/login");
             return;
           }
         }
@@ -229,7 +229,7 @@ export default function HappinessSurveyPage({
           // On network error, redirect to home
           setHasRedirected(true);
           setIsRedirecting(true);
-          router.push("/user/home");
+          router.push("/user/login");
         }
       } finally {
         if (isMounted) {
@@ -508,7 +508,7 @@ export default function HappinessSurveyPage({
             There was an error loading the survey questions.
           </p>
           <button
-            onClick={() => router.push("/user/home")}
+            onClick={() => router.push("/user/login")}
             className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
           >
             Go Home
@@ -587,7 +587,7 @@ export default function HappinessSurveyPage({
             This survey doesn&apos;t have any active questions yet.
           </p>
           <button
-            onClick={() => router.push("/user/home")}
+            onClick={() => router.push("/user/login")}
             className="bg-blue-400 hover:bg-blue-600 text-white px-6 py-2 rounded-md"
           >
             Go Home

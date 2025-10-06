@@ -95,18 +95,25 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (existingAssignment.length === 0) {
-        const assignment = await db
-          .insert(happinessAssignments)
-          .values({
-            id: nanoid(),
-            surveyId,
-            userId,
-            assignedBy: assignedBy || "admin",
-            notes,
-          })
-          .returning();
+        const assignmentId = nanoid();
+        await db.insert(happinessAssignments).values({
+          id: assignmentId,
+          surveyId,
+          userId,
+          assignedBy: assignedBy || "admin",
+          notes,
+        });
 
-        newAssignments.push(assignment[0]);
+        // Fetch the created assignment
+        const createdAssignment = await db
+          .select()
+          .from(happinessAssignments)
+          .where(eq(happinessAssignments.id, assignmentId))
+          .limit(1);
+
+        if (createdAssignment.length > 0) {
+          newAssignments.push(createdAssignment[0]);
+        }
       }
     }
 

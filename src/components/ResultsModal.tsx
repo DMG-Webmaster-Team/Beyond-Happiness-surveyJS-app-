@@ -1,5 +1,6 @@
 "use client";
 
+import { User } from "lucide-react";
 import { useState, useCallback, useEffect } from "react";
 import useSWR from "swr";
 
@@ -73,10 +74,20 @@ export default function ResultsModal({
   // Get display name for a user
   const getDisplayName = useCallback(
     (userId: string, result?: any) => {
-      // Use backend-provided user data if available, fallback to fetched data
+      // Use backend-provided user data if available
       if (result?.userName || result?.userEmail) {
         return result.userName || result.userEmail;
       }
+
+      // Check anonymousInfo data
+      if (result?.data) {
+        const anonymousName = result.data["anonymousInfo.name"];
+        const anonymousEmail = result.data["anonymousInfo.email"];
+        if (anonymousName) return anonymousName;
+        if (anonymousEmail) return anonymousEmail;
+      }
+
+      // Fallback to fetched user data
       const user = userMap.get(userId);
       return user?.name || user?.email || "Anonymous User";
     },
@@ -162,7 +173,9 @@ export default function ResultsModal({
             ✕
           </button>
           <h2 className="text-xl font-semibold pr-8">Survey Results</h2>
-          <p className="text-sm opacity-90 mt-1">{responseData?.surveyName}</p>
+          <h3 className="text-sm opacity-90 mt-1">
+            {responseData?.surveyName}
+          </h3>
         </div>
 
         <div className="flex h-[calc(90vh-7rem)]">
@@ -262,7 +275,10 @@ export default function ResultsModal({
                     <div className="flex">
                       <span className="w-24 text-gray-600">Email:</span>
                       <span>
-                        {userMap.get(selectedResult.userId)?.email || "N/A"}
+                        {selectedResult.userEmail ||
+                          userMap.get(selectedResult.userId)?.email ||
+                          selectedResult.data["anonymousInfo.email"] ||
+                          "N/A"}
                       </span>
                     </div>
 
@@ -275,18 +291,71 @@ export default function ResultsModal({
                   </div>
                 </div>
 
-                {/* Answers */}
+                {/* User Information Section */}
+                {(() => {
+                  const userInfoFields = Object.entries(
+                    selectedResult.data
+                  ).filter(([key]) => key.startsWith("anonymousInfo."));
+
+                  if (userInfoFields.length > 0) {
+                    return (
+                      <div className="mb-6">
+                        <h4 className="font-medium mb-3">User Information</h4>
+                        {}
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-2 text-sm">
+                          {userInfoFields.map(([key, value]) => {
+                            const fieldName = key.replace("anonymousInfo.", "");
+                            const displayName =
+                              fieldName === "name"
+                                ? "Name"
+                                : fieldName === "email"
+                                ? "Email"
+                                : fieldName === "phone"
+                                ? "Phone"
+                                : fieldName === "gender"
+                                ? "Gender"
+                                : fieldName === "ageRange"
+                                ? "Age Range"
+                                : fieldName.charAt(0).toUpperCase() +
+                                  fieldName.slice(1);
+
+                            return (
+                              <div key={key} className="flex">
+                                <span className="w-24 text-gray-600">
+                                  {displayName}:
+                                </span>
+                                <span className="font-medium">
+                                  {formatAnswer(value)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Survey Answers */}
                 <div>
                   <h4 className="font-medium mb-3">Answers</h4>
                   <div className="space-y-3">
-                    {Object.entries(selectedResult.data).map(([key, value]) => (
-                      <div key={key} className="bg-white p-3 rounded-lg border">
-                        <div className="text-sm text-gray-600 mb-1">
-                          {responseData?.questionMap[key]?.title || key}
+                    {Object.entries(selectedResult.data)
+                      .filter(([key]) => !key.startsWith("anonymousInfo."))
+                      .map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="bg-white p-3 rounded-lg border"
+                        >
+                          <div className="text-sm text-gray-600 mb-1">
+                            {responseData?.questionMap[key]?.title || key}
+                          </div>
+                          <div className="font-medium">
+                            {formatAnswer(value)}
+                          </div>
                         </div>
-                        <div className="font-medium">{formatAnswer(value)}</div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               </div>
@@ -298,13 +367,6 @@ export default function ResultsModal({
           </div>
         </div>
       </div>
-
-      {/* Copy Toast */}
-      {showCopyToast && (
-        <div className="fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg">
-          Result JSON copied to clipboard
-        </div>
-      )}
     </div>
   );
 }

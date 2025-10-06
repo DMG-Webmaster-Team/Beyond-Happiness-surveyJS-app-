@@ -12,17 +12,24 @@ export async function DELETE(
     const assignmentId = params.id;
 
     // Delete the assignment
-    const deletedAssignment = await db
-      .delete(happinessAssignments)
+    // Check if assignment exists first
+    const existingAssignment = await db
+      .select()
+      .from(happinessAssignments)
       .where(eq(happinessAssignments.id, assignmentId))
-      .returning();
+      .limit(1);
 
-    if (deletedAssignment.length === 0) {
+    if (existingAssignment.length === 0) {
       return NextResponse.json(
         { error: "Assignment not found" },
         { status: 404 }
       );
     }
+
+    // Delete the assignment
+    await db
+      .delete(happinessAssignments)
+      .where(eq(happinessAssignments.id, assignmentId));
 
     return NextResponse.json({
       success: true,

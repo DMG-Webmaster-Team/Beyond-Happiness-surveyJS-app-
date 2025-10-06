@@ -847,30 +847,23 @@ async function processImport(
                 notes: "Imported via CSV",
               });
 
-              const happinessAssignmentResult = await db
-                .insert(happinessAssignments)
-                .values({
-                  id: nanoid(),
-                  surveyId: surveyId,
-                  userId: userResult.user.id,
-                  assignedBy: "admin",
-                  notes: "Imported via CSV",
-                })
-                .returning();
+              const assignmentId = nanoid();
+              await db.insert(happinessAssignments).values({
+                id: assignmentId,
+                surveyId: surveyId,
+                userId: userResult.user.id,
+                assignedBy: "admin",
+                notes: "Imported via CSV",
+              });
 
-              if (happinessAssignmentResult.length > 0) {
-                stats.insertedAssignments++;
-                console.log(`✅ Happiness assignment created successfully:`, {
-                  assignmentId: happinessAssignmentResult[0].id,
-                  userId: userResult.user.id,
-                  surveyId,
-                  email: userResult.user.email,
-                });
-              } else {
-                console.warn(
-                  `⚠️ Happiness assignment creation returned empty result`
-                );
-              }
+              // Assignment created successfully
+              stats.insertedAssignments++;
+              console.log(`✅ Happiness assignment created successfully:`, {
+                assignmentId: assignmentId,
+                userId: userResult.user.id,
+                surveyId,
+                email: userResult.user.email,
+              });
             } catch (assignmentError: any) {
               console.error(`❌ Happiness assignment creation failed:`, {
                 error: assignmentError.message,

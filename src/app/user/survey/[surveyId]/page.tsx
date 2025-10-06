@@ -225,6 +225,9 @@ export default function SurveyPage() {
       model.showLoadingButtonIn = "navigation";
       model.showPreviewBeforeComplete = "showAllQuestions";
 
+      // Remove progress bar from all regular surveys
+      model.showProgressBar = "off";
+
       // Check if this is a multi-language survey and apply UI customizations
       const isMultiLanguageSurvey =
         model.getVariable("isMultiLanguageSurvey") === true ||

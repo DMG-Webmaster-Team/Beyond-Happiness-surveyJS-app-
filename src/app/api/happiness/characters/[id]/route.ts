@@ -22,7 +22,7 @@ export async function PUT(
 
     // Build update object (only allow description and avatarUrl changes)
     const updateData: any = {
-      updatedAt: Date.now(),
+      updatedAt: new Date(),
     };
 
     if (description !== undefined) updateData.description = description;
@@ -36,11 +36,17 @@ export async function PUT(
       );
     }
 
-    const updatedCharacter = await db
+    await db
       .update(happinessCharacters)
       .set(updateData)
+      .where(eq(happinessCharacters.id, characterId));
+
+    // Fetch the updated character
+    const updatedCharacter = await db
+      .select()
+      .from(happinessCharacters)
       .where(eq(happinessCharacters.id, characterId))
-      .returning();
+      .limit(1);
 
     if (updatedCharacter.length === 0) {
       return NextResponse.json(

@@ -50,7 +50,11 @@ export async function GET(
 
     if (userSession) {
       try {
-        const sessionData = JSON.parse(userSession.value);
+        // Handle both string and object values
+        const sessionData =
+          typeof userSession.value === "string"
+            ? JSON.parse(userSession.value)
+            : userSession.value;
 
         // Validate session data structure
         if (sessionData && sessionData.id && sessionData.loginTime) {
@@ -189,13 +193,13 @@ export async function GET(
     if (cooldownDays > 0) {
       const lastSubmission = recentResults[0];
       if (lastSubmission.createdAt) {
-        const cooldownPeriod = cooldownDays * 24 * 60 * 60; // Convert days to seconds
-        const timeSinceLastSubmission =
-          Date.now() / 1000 - lastSubmission.createdAt;
+        const cooldownPeriod = cooldownDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
+        const lastSubmissionTime = new Date(lastSubmission.createdAt).getTime();
+        const timeSinceLastSubmission = Date.now() - lastSubmissionTime;
 
         if (timeSinceLastSubmission < cooldownPeriod) {
           const remainingTime = Math.ceil(
-            (cooldownPeriod - timeSinceLastSubmission) / (24 * 60 * 60)
+            (cooldownPeriod - timeSinceLastSubmission) / (24 * 60 * 60 * 1000)
           );
 
           // Fetch the actual character data from the database
@@ -231,7 +235,10 @@ export async function GET(
                     avatarUrl: character[0].avatarUrl,
                   }
                 : null,
-              categoryTotals: JSON.parse(lastSubmission.categoryTotals),
+              categoryTotals:
+                typeof lastSubmission.categoryTotals === "string"
+                  ? JSON.parse(lastSubmission.categoryTotals)
+                  : lastSubmission.categoryTotals,
             },
             message: `You must wait ${remainingTime} more day(s) before retaking this survey`,
             survey: surveyData,
@@ -276,7 +283,10 @@ export async function GET(
                 avatarUrl: character[0].avatarUrl,
               }
             : null,
-          categoryTotals: JSON.parse(lastSubmission.categoryTotals),
+          categoryTotals:
+            typeof lastSubmission.categoryTotals === "string"
+              ? JSON.parse(lastSubmission.categoryTotals)
+              : lastSubmission.categoryTotals,
         },
         message: "You can retake this survey",
         survey: surveyData,

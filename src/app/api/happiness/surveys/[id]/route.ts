@@ -77,7 +77,7 @@ export async function PUT(
 
     // Build update object
     const updateData: any = {
-      updatedAt: Date.now(),
+      updatedAt: new Date(),
     };
 
     if (title !== undefined) updateData.title = title.trim();
@@ -100,11 +100,17 @@ export async function PUT(
     // Update isActive field if provided
     if (isActive !== undefined) updateData.isActive = isActive;
 
-    const updatedSurvey = await db
+    await db
       .update(happinessSurveys)
       .set(updateData)
+      .where(eq(happinessSurveys.id, surveyId));
+
+    // Fetch the updated survey
+    const updatedSurvey = await db
+      .select()
+      .from(happinessSurveys)
       .where(eq(happinessSurveys.id, surveyId))
-      .returning();
+      .limit(1);
 
     if (updatedSurvey.length === 0) {
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
@@ -143,14 +149,20 @@ export async function DELETE(
     console.log(`🗑️ Soft deleting happiness survey: ${surveyId}`);
 
     // Soft delete by setting isPublished = false
-    const updatedSurvey = await db
+    await db
       .update(happinessSurveys)
       .set({
         isPublished: false,
-        updatedAt: Date.now(),
+        updatedAt: new Date(),
       })
+      .where(eq(happinessSurveys.id, surveyId));
+
+    // Fetch the updated survey to verify deletion
+    const updatedSurvey = await db
+      .select()
+      .from(happinessSurveys)
       .where(eq(happinessSurveys.id, surveyId))
-      .returning();
+      .limit(1);
 
     if (updatedSurvey.length === 0) {
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });

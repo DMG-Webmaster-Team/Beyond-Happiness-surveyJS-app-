@@ -236,6 +236,10 @@ export async function deleteSurvey(id: string): Promise<boolean> {
       "../schema/survey-company-assignments"
     );
     const { userAssignments } = await import("../schema/user-assignments");
+    const { results } = await import("../schema/results");
+
+    // Delete survey results first (most dependent)
+    await db.delete(results).where(eq(results.surveyId, id));
 
     // Delete survey-company assignments
     await db

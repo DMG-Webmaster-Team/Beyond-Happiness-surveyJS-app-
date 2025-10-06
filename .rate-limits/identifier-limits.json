@@ -1,1 +1,6 @@
-{}
+{
+  "testflow2@example.com": {
+    "count": 1,
+    "lastReset": 1759665929876
+  }
+}

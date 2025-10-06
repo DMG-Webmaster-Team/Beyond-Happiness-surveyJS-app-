@@ -234,14 +234,15 @@ export async function POST(request: NextRequest) {
               { status: 400 }
             );
           }
-          const cooldownPeriod = cooldownDays * 24 * 60 * 60; // Convert days to seconds
-          const timeSinceLastSubmission =
-            Date.now() / 1000 -
-            new Date(lastSubmission.createdAt).getTime() / 1000;
+          const cooldownPeriod = cooldownDays * 24 * 60 * 60 * 1000; // Convert days to milliseconds
+          const lastSubmissionTime = new Date(
+            lastSubmission.createdAt
+          ).getTime();
+          const timeSinceLastSubmission = Date.now() - lastSubmissionTime;
 
           if (timeSinceLastSubmission < cooldownPeriod) {
             const remainingTime = Math.ceil(
-              (cooldownPeriod - timeSinceLastSubmission) / (24 * 60 * 60)
+              (cooldownPeriod - timeSinceLastSubmission) / (24 * 60 * 60 * 1000)
             );
 
             // Fetch the actual character data from the database

@@ -1,4 +1,4 @@
-import { eq, like, desc, and, inArray } from "drizzle-orm";
+import { eq, like, desc, and, or, inArray } from "drizzle-orm";
 import { db } from "../client";
 import {
   users,
@@ -79,8 +79,11 @@ export async function updateUser(
     updatedAt: new Date(),
   };
 
-  const result = await db.update(users).set(updateData).where(eq(users.id, id));
-  return result[0];
+  await db.update(users).set(updateData).where(eq(users.id, id));
+
+  // Fetch and return the updated user
+  const updatedUser = await getUserById(id);
+  return updatedUser;
 }
 
 // Upsert user (create if not exists, update if exists)
@@ -128,13 +131,18 @@ export async function listUsers(params: {
 
   // Build where conditions
   const conditions = [];
+
+  // Search query should match email OR name, not both
   if (query) {
-    conditions.push(like(users.email, `%${query}%`));
-    conditions.push(like(users.name, `%${query}%`));
+    conditions.push(
+      or(like(users.email, `%${query}%`), like(users.name, `%${query}%`))
+    );
   }
+
   if (status) {
     conditions.push(eq(users.status, status));
   }
+
   if (companyId) {
     conditions.push(eq(users.companyId, companyId));
   }

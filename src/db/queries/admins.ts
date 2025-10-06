@@ -49,14 +49,19 @@ export async function validateAdminCredentials(
   email: string,
   password: string
 ): Promise<Admin | null> {
-  const validatedData = loginAdminSchema.parse({ email, password });
-  const admin = await getAdminByEmail(validatedData.email);
+  try {
+    const validatedData = loginAdminSchema.parse({ email, password });
+    const admin = await getAdminByEmail(validatedData.email);
 
-  if (admin && admin.password === validatedData.password) {
-    return admin;
+    if (admin && admin.password === validatedData.password) {
+      return admin;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error validating admin credentials:", error);
+    throw error; // Re-throw to be handled by the API route
   }
-
-  return null;
 }
 
 export async function listAdmins(): Promise<Admin[]> {

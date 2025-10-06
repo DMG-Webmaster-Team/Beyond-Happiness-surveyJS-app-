@@ -316,28 +316,12 @@ export default function AdminDashboard() {
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-2">
-                              <h3 className="text-lg font-medium text-gray-900 truncate">
+                              <h3 className="text-lg pr-5 font-medium text-gray-900 truncate">
                                 {survey.title}
                               </h3>
-                              <div className="flex gap-2">
-                                {survey.isAnonymous ? (
-                                  <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                                    Anonymous
-                                  </span>
-                                ) : (
-                                  " "
-                                )}
-                                <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                  {survey.canTakeMultiple
-                                    ? "Multiple"
-                                    : "One-time"}
-                                </span>
-                              </div>
                             </div>
-                            <p className="mt-1 text-sm text-gray-600">
-                              {survey.description}
-                            </p>
-                            <div className="mt-2 flex items-center text-sm text-gray-500">
+
+                            <div className="mt-2 flex justify-between items-center text-sm text-gray-500">
                               <span>
                                 Created:{" "}
                                 {survey.createdAt &&
@@ -349,9 +333,23 @@ export default function AdminDashboard() {
                                       survey.createdAt
                                     ).toLocaleDateString()}
                               </span>
+                              <div className="flex flex-col mr-5 gap-2">
+                                {survey.isAnonymous ? (
+                                  <span className="px-1 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                    Anonymous
+                                  </span>
+                                ) : (
+                                  " "
+                                )}
+                                <span className="px-1 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                  {survey.canTakeMultiple
+                                    ? "Multiple"
+                                    : "One-time"}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex space-x-2">
+                          <div className="flex flex-col-5 space-x-2">
                             <motion.div
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}

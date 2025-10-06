@@ -100,7 +100,9 @@ const addCustomLanguageFlow = (creator: any) => {
     // Page 1: Language Selection
     const languageSelectionPage = new Survey.PageModel("languageSelectionPage");
 
-    const languageQuestion = new Survey.QuestionDropdownModel("languageChoice");
+    const languageQuestion = new Survey.QuestionRadiogroupModel(
+      "languageChoice"
+    );
     languageQuestion.title = "Select Language / اختر اللغة";
     languageQuestion.isRequired = true;
     languageQuestion.choices = [
