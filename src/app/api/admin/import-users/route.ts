@@ -17,6 +17,9 @@ import { userAssignments } from "../../../../db/schema";
 import { inArray, eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // File size limit: 10MB
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 // Row limit: 50,000

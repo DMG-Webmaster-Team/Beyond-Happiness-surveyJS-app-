@@ -8,6 +8,9 @@ import {
   getUserSessions,
 } from "@/db/queries/user-survey-sessions";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // GET - Get active session or user sessions
 export async function GET(request: NextRequest) {
   try {
@@ -147,4 +150,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

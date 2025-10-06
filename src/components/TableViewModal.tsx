@@ -77,13 +77,15 @@ export default function TableViewModal({
             ? JSON.parse(surveyData.json)
             : surveyData.json;
 
-        const questions = surveyDefinition.pages?.[0]?.elements || [];
+        // Process all pages, not just the first one
         const questionMap = new Map();
-
-        questions.forEach((question: any) => {
-          if (question.name && question.title) {
-            questionMap.set(question.name, question.title);
-          }
+        surveyDefinition.pages?.forEach((page: any) => {
+          page.elements?.forEach((question: any) => {
+            if (question.name) {
+              // Use title if available, otherwise fall back to name
+              questionMap.set(question.name, question.title || question.name);
+            }
+          });
         });
 
         // Fetch user information for all results
@@ -119,8 +121,20 @@ export default function TableViewModal({
             const email =
               result.userEmail || userMap.get(result.userId)?.email || "-";
 
+            // Determine if user is anonymous
+            const isAnonymous =
+              (result.data &&
+                typeof result.data === "object" &&
+                Object.keys(result.data).some((key) =>
+                  key.startsWith("anonymousInfo.")
+                )) ||
+              (!result.userName &&
+                !result.userEmail &&
+                !userMap.get(result.userId));
+
             const row: any = {
               "#": index + 1,
+              "User Type": isAnonymous ? "Anonymous" : "Registered",
               User: displayName,
               Email: email,
               Submitted: new Date(result.submittedAt).toLocaleString(),
@@ -156,13 +170,21 @@ export default function TableViewModal({
 
           const columnOrder = [
             "#",
+            "User Type",
             "User",
             "Email",
             "Submitted",
             "Admin ID",
             ...Array.from(allColumns).filter(
               (col) =>
-                !["#", "User", "Email", "Submitted", "Admin ID"].includes(col)
+                ![
+                  "#",
+                  "User Type",
+                  "User",
+                  "Email",
+                  "Submitted",
+                  "Admin ID",
+                ].includes(col)
             ),
           ];
 

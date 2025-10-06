@@ -6,6 +6,9 @@ import { results } from "@/db/schema/results";
 import { userAssignments } from "@/db/schema/user-assignments";
 import { eq, and } from "drizzle-orm";
 
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 interface UserSession {
   id: string;
   email: string;

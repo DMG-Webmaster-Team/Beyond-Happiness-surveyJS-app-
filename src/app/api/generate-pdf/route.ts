@@ -3,6 +3,9 @@ import puppeteer from "puppeteer";
 import { loadImageAsBase64 } from "../../../utils/pdf/loadImageAsBase64";
 import { calculateSubtypeScores } from "@/lib/services/subtype-scoring";
 
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 async function generatePDFHTML(result: any, language: string) {
   const isRTL = language === "ar";
 

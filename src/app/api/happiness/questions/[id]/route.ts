@@ -4,6 +4,9 @@ import { happinessQuestions } from "@/db/schema/happiness";
 import { eq } from "drizzle-orm";
 
 // PUT - Update happiness question
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }

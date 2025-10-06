@@ -6,6 +6,9 @@ import {
 } from "../../../../db/queries/users";
 import { userSchema } from "../../../../lib/validation/import-schemas";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // GET /api/users/[id] - Get user by ID
 export async function GET(
   request: NextRequest,

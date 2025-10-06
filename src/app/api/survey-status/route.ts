@@ -9,6 +9,9 @@ import { users } from "../../../db/schema/users";
 import { eq, and } from "drizzle-orm";
 import { createApiError, ErrorCode } from "../../../utils/errors";
 
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

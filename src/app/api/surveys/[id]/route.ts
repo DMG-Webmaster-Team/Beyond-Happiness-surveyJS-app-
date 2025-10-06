@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // GET - Fetch a specific survey
 export async function GET(
   request: NextRequest,
@@ -102,9 +105,16 @@ export async function GET(
     );
     return responseWithHeaders;
   } catch (error) {
-    console.error("Error fetching survey:", error);
+    console.error("❌ Error fetching survey:", error);
+    console.error(
+      "Full error stack:",
+      error instanceof Error ? error.stack : error
+    );
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: "Failed to fetch survey",
+      },
       { status: 500 }
     );
   }
@@ -159,9 +169,16 @@ export async function PUT(
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error("Error updating survey:", error);
+    console.error("❌ Error updating survey:", error);
+    console.error(
+      "Full error stack:",
+      error instanceof Error ? error.stack : error
+    );
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: "Failed to update survey",
+      },
       { status: 500 }
     );
   }
@@ -185,9 +202,16 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting survey:", error);
+    console.error("❌ Error deleting survey:", error);
+    console.error(
+      "Full error stack:",
+      error instanceof Error ? error.stack : error
+    );
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error: "Internal server error",
+        message: "Failed to delete survey",
+      },
       { status: 500 }
     );
   }

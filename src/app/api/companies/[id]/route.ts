@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateCompanySchema } from "@/db/queries/companies";
 
 // Helper function to validate survey IDs exist in database
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 async function validateSurveyIds(
   tx: any,
   surveyIds: string[],

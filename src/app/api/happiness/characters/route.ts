@@ -4,6 +4,9 @@ import { happinessCharacters } from "@/db/schema/happiness";
 import { desc } from "drizzle-orm";
 
 // GET - List all happiness characters
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET() {
   try {
     const characters = await db

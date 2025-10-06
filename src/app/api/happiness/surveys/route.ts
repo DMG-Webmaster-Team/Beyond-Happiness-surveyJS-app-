@@ -5,6 +5,9 @@ import { desc, eq, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // GET - List happiness surveys with result counts
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET() {
   try {
     const surveys = await db

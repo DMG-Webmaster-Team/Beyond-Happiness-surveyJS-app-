@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // GET - Fetch surveys for a specific admin
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

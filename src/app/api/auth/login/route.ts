@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 export async function POST(request: NextRequest) {
   try {
     const { email, password } = await request.json();

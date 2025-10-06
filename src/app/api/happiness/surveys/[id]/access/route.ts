@@ -8,6 +8,9 @@ import {
 } from "@/db/schema/happiness";
 import { eq, and, desc } from "drizzle-orm";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

@@ -6,6 +6,9 @@ import { eq, and, desc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 // GET - List happiness survey assignments
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

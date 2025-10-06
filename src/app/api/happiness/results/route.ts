@@ -13,6 +13,9 @@ import {
   HappinessAnswer,
 } from "@/lib/services/happiness-scoring";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // GET - List happiness results with filters (admin view)
 export async function GET(request: NextRequest) {
   try {

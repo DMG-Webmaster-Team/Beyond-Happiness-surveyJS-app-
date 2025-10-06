@@ -3,6 +3,9 @@ import { db } from "../../../../db/client";
 import { users, userAssignments, surveys } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
 
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   try {
     const userSession = request.cookies.get("user_session");

@@ -16,6 +16,9 @@ import {
 import { eq, and } from "drizzle-orm";
 import { verifyOTP } from "../../../../lib/services/otp-service";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

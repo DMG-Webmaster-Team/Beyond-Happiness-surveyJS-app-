@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { ErrorCode, createApiError } from "@/utils/errors";
 
 // GET - Fetch results for a specific survey
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const surveyId = searchParams.get("surveyId");

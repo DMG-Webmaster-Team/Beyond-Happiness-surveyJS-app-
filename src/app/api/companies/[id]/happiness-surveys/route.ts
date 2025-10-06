@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // GET - Get happiness surveys assigned to a company
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }

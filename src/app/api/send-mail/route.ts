@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 interface MailgunRequest {
   to: string;
   subject: string;

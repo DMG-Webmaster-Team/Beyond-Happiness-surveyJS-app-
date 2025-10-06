@@ -4,6 +4,9 @@ import {
   createUser,
   getUserByEmail,
 } from "../../../db/queries/users";
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
 import { userSchema } from "../../../lib/validation/import-schemas";
 import {
   ErrorCode,

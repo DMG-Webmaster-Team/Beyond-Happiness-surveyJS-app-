@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 import LogoutConfirmModal from "./LogoutConfirmModal";
 import { handleLogoutWithSurveyPreservation } from "../../lib/auth/logout-utils";
 
-export default function UserNavbar() {
+interface UserNavbarProps {
+  hideLogout?: boolean; // Hide logout button for anonymous surveys
+}
+
+export default function UserNavbar({ hideLogout = false }: UserNavbarProps) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
@@ -90,31 +94,35 @@ export default function UserNavbar() {
               />
             </div>
             <div className="flex items-center">
-              {isCheckingSession ? (
-                <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
-                  Loading...
-                </div>
-              ) : isLoggedIn ? (
-                <button
-                  onClick={handleLogoutClick}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 mr-2"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Logout
-                </button>
-              ) : null}
+              {!hideLogout && (
+                <>
+                  {isCheckingSession ? (
+                    <div className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400 mr-2"></div>
+                      Loading...
+                    </div>
+                  ) : isLoggedIn ? (
+                    <button
+                      onClick={handleLogoutClick}
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-400 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Logout
+                    </button>
+                  ) : null}
+                </>
+              )}
             </div>
           </div>
         </div>

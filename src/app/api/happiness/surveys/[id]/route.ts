@@ -7,6 +7,9 @@ import {
 } from "@/db/schema/happiness";
 import { eq, count } from "drizzle-orm";
 
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = "nodejs";
+
 // GET - Get single happiness survey
 export async function GET(
   request: NextRequest,

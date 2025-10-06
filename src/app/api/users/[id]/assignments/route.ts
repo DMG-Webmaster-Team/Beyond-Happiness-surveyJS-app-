@@ -3,6 +3,9 @@ import { db } from "../../../../../db/client";
 import { userAssignments } from "../../../../../db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }

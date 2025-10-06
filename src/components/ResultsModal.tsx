@@ -267,6 +267,19 @@ export default function ResultsModal({
                   <h4 className="font-medium mb-3">Submission Info</h4>
                   <div className="space-y-2 text-sm">
                     <div className="flex">
+                      <span className="w-24 text-gray-600">User Type:</span>
+                      <span>
+                        {Object.keys(selectedResult.data).some((key) =>
+                          key.startsWith("anonymousInfo.")
+                        ) ||
+                        (!selectedResult.userName &&
+                          !selectedResult.userEmail &&
+                          !userMap.get(selectedResult.userId))
+                          ? "Anonymous"
+                          : "Registered"}
+                      </span>
+                    </div>
+                    <div className="flex">
                       <span className="w-24 text-gray-600">User:</span>
                       <span>
                         {getDisplayName(selectedResult.userId, selectedResult)}

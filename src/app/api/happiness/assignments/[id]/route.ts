@@ -4,6 +4,9 @@ import { happinessAssignments } from "@/db/schema/happiness";
 import { eq } from "drizzle-orm";
 
 // DELETE - Remove happiness survey assignment
+
+// Force Node.js runtime (disable Edge runtime)
+export const runtime = 'nodejs';
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
