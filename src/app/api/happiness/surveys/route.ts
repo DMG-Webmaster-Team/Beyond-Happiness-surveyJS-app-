@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       : "login";
 
     const surveyId = nanoid();
-    
+
     // Build insert values - handle missing accessMode column gracefully
     const insertValues: any = {
       id: surveyId,
@@ -93,14 +93,14 @@ export async function POST(request: NextRequest) {
       isActive: true, // Default to active
       isPublished: true, // Default to published
     };
-    
+
     // Try to add accessMode if column exists (after migration)
     try {
       insertValues.accessMode = finalAccessMode;
     } catch (e) {
       console.log("accessMode column not yet available, using anonymous field");
     }
-    
+
     await db.insert(happinessSurveys).values(insertValues);
 
     return NextResponse.json({

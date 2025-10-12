@@ -61,6 +61,7 @@ export async function PUT(
     const {
       title,
       anonymous,
+      accessMode,
       retakeCooldownDays,
       companyId,
       companyName,
@@ -84,15 +85,39 @@ export async function PUT(
     };
 
     if (title !== undefined) updateData.title = title.trim();
-    if (anonymous !== undefined) {
+    
+    // Handle accessMode (new approach)
+    if (accessMode !== undefined) {
+      const validAccessModes = ["login", "anonymous", "collect_info"];
+      if (validAccessModes.includes(accessMode)) {
+        try {
+          updateData.accessMode = accessMode;
+          // Update anonymous field based on accessMode
+          updateData.anonymous = accessMode === "anonymous" || accessMode === "collect_info";
+          // Force cooldown to 0 for anonymous and collect_info modes
+          if (accessMode === "anonymous" || accessMode === "collect_info") {
+            updateData.retakeCooldownDays = 0;
+          }
+        } catch (e) {
+          console.log("accessMode column not yet available, using anonymous field");
+          updateData.anonymous = accessMode === "anonymous" || accessMode === "collect_info";
+          if (accessMode === "anonymous" || accessMode === "collect_info") {
+            updateData.retakeCooldownDays = 0;
+          }
+        }
+      }
+    } else if (anonymous !== undefined) {
+      // Fallback for old API calls that only send anonymous field
       updateData.anonymous = anonymous;
       // Force cooldown to 0 when survey becomes anonymous
       if (anonymous) {
         updateData.retakeCooldownDays = 0;
       }
     }
-    // Only allow cooldown changes if the survey is not being set to anonymous
-    if (retakeCooldownDays !== undefined && anonymous !== true) {
+    
+    // Only allow cooldown changes if the survey is in login mode
+    const finalAccessMode = accessMode || (anonymous ? "anonymous" : "login");
+    if (retakeCooldownDays !== undefined && finalAccessMode === "login") {
       updateData.retakeCooldownDays = retakeCooldownDays;
     }
 

@@ -209,7 +209,8 @@ export async function POST(request: NextRequest) {
 
     const surveyData = survey[0];
     // Fallback for missing accessMode column (before migration)
-    const accessMode = surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
+    const accessMode =
+      surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
 
     // Check authentication requirements based on access mode
     if (accessMode === "login" && !userId) {
@@ -313,13 +314,13 @@ export async function POST(request: NextRequest) {
 
     // Store result
     const resultId = nanoid();
-    
+
     // Prepare collected user data for collect_info mode
     let finalCollectedUserData = null;
     if (accessMode === "collect_info" && collectedUserData) {
       finalCollectedUserData = collectedUserData;
     }
-    
+
     // Build insert values
     const insertValues: any = {
       id: resultId,
@@ -334,7 +335,7 @@ export async function POST(request: NextRequest) {
       characterId: scoreResult.character.id,
       language: selectedLanguage,
     };
-    
+
     // Only add collectedUserData if column exists (after migration)
     if (finalCollectedUserData !== null) {
       try {
@@ -343,7 +344,7 @@ export async function POST(request: NextRequest) {
         console.log("collectedUserData column not yet available, skipping");
       }
     }
-    
+
     await db.insert(happinessResults).values(insertValues);
 
     return NextResponse.json({

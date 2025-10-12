@@ -31,7 +31,8 @@ export async function GET(
 
     const surveyData = survey[0];
     // Fallback for missing accessMode column (before migration)
-    const accessMode = surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
+    const accessMode =
+      surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
 
     // For anonymous and collect_info modes, always allow access (subject to cooldown if configured)
     if (accessMode === "anonymous" || accessMode === "collect_info") {
@@ -44,7 +45,10 @@ export async function GET(
         cooldown: false,
         cooldownRemaining: 0,
         hasPreviousResult: false,
-        message: accessMode === "collect_info" ? "Access granted - user data will be collected" : "Access granted to anonymous survey",
+        message:
+          accessMode === "collect_info"
+            ? "Access granted - user data will be collected"
+            : "Access granted to anonymous survey",
         survey: {
           ...surveyData,
           accessMode,

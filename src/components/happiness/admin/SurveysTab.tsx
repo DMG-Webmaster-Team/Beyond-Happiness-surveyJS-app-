@@ -10,6 +10,7 @@ interface HappinessSurvey {
   id: string;
   title: string;
   anonymous: boolean;
+  accessMode?: "login" | "anonymous" | "collect_info";
   retakeCooldownDays?: number;
   companyId?: string;
   companyName?: string;
@@ -167,9 +168,31 @@ export default function SurveysTab() {
                     {survey.title}
                   </h3>
                   <div className="flex gap-2">
-                    {survey.anonymous && (
+                    {/* Access Mode Badge */}
+                    {survey.accessMode === "login" && (
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        🔒 Login Required
+                      </span>
+                    )}
+                    {survey.accessMode === "anonymous" && (
                       <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                        Anonymous
+                        🌐 Anonymous
+                      </span>
+                    )}
+                    {survey.accessMode === "collect_info" && (
+                      <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                        📋 Collect Info
+                      </span>
+                    )}
+                    {/* Fallback for surveys without accessMode field */}
+                    {!survey.accessMode && survey.anonymous && (
+                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                        🌐 Anonymous
+                      </span>
+                    )}
+                    {!survey.accessMode && !survey.anonymous && (
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                        🔒 Login Required
                       </span>
                     )}
 
@@ -282,8 +305,16 @@ interface SurveyModalProps {
 }
 
 function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
+  // Determine initial accessMode from survey data
+  const getInitialAccessMode = () => {
+    if (survey?.accessMode) return survey.accessMode;
+    if (survey?.anonymous) return "anonymous";
+    return "login";
+  };
+  
   const [formData, setFormData] = useState({
     title: survey?.title || "",
+    accessMode: getInitialAccessMode(),
     anonymous: survey?.anonymous || false,
     retakeCooldownDays: survey?.retakeCooldownDays || 0,
     companyId: survey?.companyId || "",
@@ -320,7 +351,8 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
 
     onSave({
       title: formData.title.trim(),
-      anonymous: formData.anonymous,
+      accessMode: formData.accessMode,
+      anonymous: formData.accessMode === "anonymous" || formData.accessMode === "collect_info",
       retakeCooldownDays: formData.retakeCooldownDays,
       companyId: formData.companyId || null,
       companyName: selectedCompany?.name || null,
@@ -398,29 +430,80 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
           )}
 
           <div className="space-y-3">
-            <div className="flex items-center">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Access Mode *
+            </label>
+            
+            {/* Login Mode */}
+            <div className="flex items-start">
               <input
-                type="checkbox"
-                id="anonymous"
-                checked={formData.anonymous}
+                type="radio"
+                id="mode-login"
+                name="accessMode"
+                value="login"
+                checked={formData.accessMode === "login"}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    anonymous: e.target.checked,
-                    // Reset cooldown to 0 when anonymous is enabled
-                    retakeCooldownDays: e.target.checked
-                      ? 0
-                      : formData.retakeCooldownDays,
+                    accessMode: "login",
                   })
                 }
-                className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
+                className="mt-1 border-gray-300 text-blue-400 focus:ring-blue-400"
               />
-              <label htmlFor="anonymous" className="ml-2 text-sm text-gray-700">
-                <strong>Anonymous Survey</strong>
-                <div className="text-xs text-gray-500">
-                  When enabled, anyone with the link can take this survey
-                  without logging in. Assignment checks and one-time limits are
-                  ignored.
+              <label htmlFor="mode-login" className="ml-2 text-sm text-gray-700 flex-1">
+                <strong>Login Required</strong>
+                <div className="text-xs text-gray-500 mt-1">
+                  Users must log in and be assigned to this survey. Standard authentication and assignment checks apply.
+                </div>
+              </label>
+            </div>
+            
+            {/* Anonymous Mode */}
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="mode-anonymous"
+                name="accessMode"
+                value="anonymous"
+                checked={formData.accessMode === "anonymous"}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    accessMode: "anonymous",
+                    retakeCooldownDays: 0, // Reset cooldown for anonymous
+                  })
+                }
+                className="mt-1 border-gray-300 text-blue-400 focus:ring-blue-400"
+              />
+              <label htmlFor="mode-anonymous" className="ml-2 text-sm text-gray-700 flex-1">
+                <strong>Anonymous (No Data Collection)</strong>
+                <div className="text-xs text-gray-500 mt-1">
+                  Anyone with the link can take this survey without logging in. No user data is collected. Assignment checks and cooldowns are ignored.
+                </div>
+              </label>
+            </div>
+            
+            {/* Collect Info Mode */}
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="mode-collect-info"
+                name="accessMode"
+                value="collect_info"
+                checked={formData.accessMode === "collect_info"}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    accessMode: "collect_info",
+                    retakeCooldownDays: 0, // Reset cooldown for collect_info
+                  })
+                }
+                className="mt-1 border-gray-300 text-blue-400 focus:ring-blue-400"
+              />
+              <label htmlFor="mode-collect-info" className="ml-2 text-sm text-gray-700 flex-1">
+                <strong>Collect User Information</strong>
+                <div className="text-xs text-gray-500 mt-1">
+                  Anyone with the link can take this survey without logging in. Users can optionally share their contact details (name, email, phone, gender, age). Assignment checks and cooldowns are ignored.
                 </div>
               </label>
             </div>
@@ -434,24 +517,24 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
               type="number"
               min="0"
               max="365"
-              value={formData.anonymous ? 0 : formData.retakeCooldownDays}
+              value={formData.accessMode === "login" ? formData.retakeCooldownDays : 0}
               onChange={(e) =>
                 setFormData({
                   ...formData,
                   retakeCooldownDays: parseInt(e.target.value) || 0,
                 })
               }
-              disabled={formData.anonymous}
+              disabled={formData.accessMode !== "login"}
               className={`w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                formData.anonymous
+                formData.accessMode !== "login"
                   ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                   : ""
               }`}
               placeholder="0"
             />
             <p className="text-xs text-gray-500 mt-1">
-              {formData.anonymous
-                ? "Cooldown is disabled for anonymous surveys"
+              {formData.accessMode !== "login"
+                ? "Cooldown is only available for login-required surveys"
                 : "Number of days users must wait before retaking the survey (0 = no cooldown)"}
             </p>
           </div>
