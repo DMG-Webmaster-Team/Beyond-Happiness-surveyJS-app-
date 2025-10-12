@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
     const surveyId = searchParams.get("surveyId");
     const userId = searchParams.get("userId");
     const userEmail = searchParams.get("userEmail");
+    const companyId = searchParams.get("companyId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const page = parseInt(searchParams.get("page") || "1");
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
     }
     if (userEmail) {
       whereConditions.push(like(users.email, `%${userEmail}%`));
+    }
+    if (companyId) {
+      whereConditions.push(eq(happinessSurveys.companyId, companyId));
     }
     if (startDate) {
       const startDateObj = new Date(startDate);
@@ -66,6 +70,8 @@ export async function GET(request: NextRequest) {
         createdAt: happinessResults.createdAt,
         surveyTitle: happinessSurveys.title,
         characterName: happinessCharacters.name,
+        companyId: happinessSurveys.companyId,
+        companyName: happinessSurveys.companyName,
       })
       .from(happinessResults)
       .leftJoin(
@@ -94,7 +100,11 @@ export async function GET(request: NextRequest) {
     const countQuery = db
       .select({ count: happinessResults.id })
       .from(happinessResults)
-      .leftJoin(users, eq(happinessResults.userId, users.id));
+      .leftJoin(users, eq(happinessResults.userId, users.id))
+      .leftJoin(
+        happinessSurveys,
+        eq(happinessResults.surveyId, happinessSurveys.id)
+      );
 
     const totalResults =
       whereConditions.length > 0

@@ -8,6 +8,14 @@ import { motion } from "motion/react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
+// Helper function for date formatting
+const formatDate = (timestamp: number) => {
+  // Check if timestamp is in seconds (less than year 2000) or milliseconds
+  const date =
+    timestamp < 10000000000 ? new Date(timestamp * 1000) : new Date(timestamp);
+  return date.toLocaleString();
+};
+
 interface HappinessResult {
   id: string;
   surveyId: string;
@@ -27,12 +35,15 @@ interface HappinessResult {
   createdAt: number;
   surveyTitle: string;
   characterName: string;
+  companyId: string | null;
+  companyName: string | null;
 }
 
 export default function ResultsTab() {
   const [filters, setFilters] = useState({
     surveyId: "",
     userEmail: "",
+    companyId: "",
     startDate: "",
     endDate: "",
   });
@@ -59,14 +70,20 @@ export default function ResultsTab() {
       // Build query params for fetching ALL results (no pagination)
       const exportQueryParams = new URLSearchParams();
       if (filters.surveyId) exportQueryParams.set("surveyId", filters.surveyId);
-      if (filters.userEmail) exportQueryParams.set("userEmail", filters.userEmail);
-      if (filters.startDate) exportQueryParams.set("startDate", filters.startDate);
+      if (filters.userEmail)
+        exportQueryParams.set("userEmail", filters.userEmail);
+      if (filters.companyId)
+        exportQueryParams.set("companyId", filters.companyId);
+      if (filters.startDate)
+        exportQueryParams.set("startDate", filters.startDate);
       if (filters.endDate) exportQueryParams.set("endDate", filters.endDate);
       exportQueryParams.set("limit", "10000"); // Set a high limit to get all results
       exportQueryParams.set("page", "1");
 
       // Fetch all results for export
-      const response = await fetch(`/api/happiness/results?${exportQueryParams.toString()}`);
+      const response = await fetch(
+        `/api/happiness/results?${exportQueryParams.toString()}`
+      );
       const allData = await response.json();
 
       if (!allData?.results || allData.results.length === 0) {
@@ -74,72 +91,76 @@ export default function ResultsTab() {
         return;
       }
 
-    // Prepare Excel data
-    const excelData = [
-      // Headers
-      [
-        "Result ID",
-        "Survey ID",
-        "Survey Title",
-        "User Email",
-        "User Name",
-        "Character Code (5-bit)",
-        "Character Name",
-        "Meaning Score",
-        "Delight Score",
-        "Freedom Score",
-        "Engagement Score",
-        "Vitality Score",
-        "Total Score",
-        "Submission Date",
-        "Export Date",
-      ],
-      // Data rows
-      ...allData.results.map((result: HappinessResult) => [
-        result.id,
-        result.surveyId,
-        result.surveyTitle,
-        result.userEmail || "Anonymous",
-        result.userName || "N/A",
-        result.code, // This is the 5-bit character code
-        result.characterName,
-        result.categoryTotals.Meaning,
-        result.categoryTotals.Delight,
-        result.categoryTotals.Freedom,
-        result.categoryTotals.Engagement,
-        result.categoryTotals.Vitality,
-        Object.values(result.categoryTotals).reduce(
-          (sum, score) => sum + score,
-          0
-        ),
-        new Date(result.createdAt).toLocaleDateString(),
-        new Date().toLocaleDateString(),
-      ]),
-    ];
+      // Prepare Excel data
+      const excelData = [
+        // Headers
+        [
+          "Result ID",
+          "Survey ID",
+          "Survey Title",
+          "Company ID",
+          "Company Name",
+          "User Email",
+          "User Name",
+          "Character Code (5-bit)",
+          "Character Name",
+          "Meaning Score",
+          "Delight Score",
+          "Freedom Score",
+          "Engagement Score",
+          "Vitality Score",
+          "Total Score",
+          "Submission Date",
+          "Export Date",
+        ],
+        // Data rows
+        ...allData.results.map((result: HappinessResult) => [
+          result.id,
+          result.surveyId,
+          result.surveyTitle,
+          result.companyId || "N/A",
+          result.companyName || "N/A",
+          result.userEmail || "Anonymous",
+          result.userName || "N/A",
+          result.code, // This is the 5-bit character code
+          result.characterName,
+          result.categoryTotals.Meaning,
+          result.categoryTotals.Delight,
+          result.categoryTotals.Freedom,
+          result.categoryTotals.Engagement,
+          result.categoryTotals.Vitality,
+          Object.values(result.categoryTotals).reduce(
+            (sum, score) => sum + score,
+            0
+          ),
+          formatDate(result.createdAt),
+          new Date().toLocaleDateString(),
+        ]),
+      ];
 
-    // Create workbook and worksheet
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(excelData);
 
-    // Auto-size columns
-    const colWidths = excelData[0].map((_: any, colIndex: number) => {
-      const maxLength = Math.max(
-        ...excelData.map((row) => String(row[colIndex] || "").length)
-      );
-      return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
-    });
-    ws["!cols"] = colWidths;
+      // Auto-size columns
+      const colWidths = excelData[0].map((_: any, colIndex: number) => {
+        const maxLength = Math.max(
+          ...excelData.map((row) => String(row[colIndex] || "").length)
+        );
+        return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
+      });
+      ws["!cols"] = colWidths;
 
-    // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, ws, "Happiness Survey Results");
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, "Happiness Survey Results");
 
-    // Generate filename with current date
-    const filename = `happiness_survey_results_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
+      // Generate filename with current date
+      const filename = `happiness_survey_results_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
 
-    // Save file
-    XLSX.writeFile(wb, filename);
+      // Save file
+      XLSX.writeFile(wb, filename);
     } catch (error) {
       console.error("Error exporting Excel:", error);
       alert("Failed to export Excel file. Please try again.");
@@ -152,6 +173,7 @@ export default function ResultsTab() {
   const queryParams = new URLSearchParams();
   if (filters.surveyId) queryParams.set("surveyId", filters.surveyId);
   if (filters.userEmail) queryParams.set("userEmail", filters.userEmail);
+  if (filters.companyId) queryParams.set("companyId", filters.companyId);
   if (filters.startDate) queryParams.set("startDate", filters.startDate);
   if (filters.endDate) queryParams.set("endDate", filters.endDate);
   queryParams.set("page", page.toString());
@@ -170,9 +192,8 @@ export default function ResultsTab() {
   // Also fetch surveys for filter dropdown
   const { data: surveysData } = useSWR("/api/happiness/surveys", fetcher);
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString();
-  };
+  // Fetch companies for filter dropdown
+  const { data: companiesData } = useSWR("/api/companies", fetcher);
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -218,6 +239,7 @@ export default function ResultsTab() {
 
   const results = data?.results || [];
   const surveys = surveysData?.surveys || [];
+  const companies = companiesData?.items || [];
 
   return (
     <div className="p-6">
@@ -251,7 +273,7 @@ export default function ResultsTab() {
               d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
             />
           </svg>
-{isExporting ? "Exporting..." : "Export Excel"}
+          {isExporting ? "Exporting..." : "Export Excel"}
         </button>
       </div>
 
@@ -266,6 +288,7 @@ export default function ResultsTab() {
                 setFilters({
                   surveyId: "",
                   userEmail: "",
+                  companyId: "",
                   startDate: "",
                   endDate: "",
                 });
@@ -279,7 +302,7 @@ export default function ResultsTab() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Survey
@@ -324,6 +347,27 @@ export default function ResultsTab() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Company
+            </label>
+            <select
+              value={filters.companyId}
+              onChange={(e) => {
+                setFilters({ ...filters, companyId: e.target.value });
+                setPage(1);
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+            >
+              <option value="">All Companies</option>
+              {companies.map((company: any) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Start Date
             </label>
             <input
@@ -356,6 +400,7 @@ export default function ResultsTab() {
         {/* Active Filters Display */}
         {(filters.surveyId ||
           filters.userEmail ||
+          filters.companyId ||
           filters.startDate ||
           filters.endDate) && (
           <div className="mt-4 pt-4 border-t border-gray-200">
@@ -384,6 +429,22 @@ export default function ResultsTab() {
                     onClick={() => {
                       setFilters({ ...filters, userEmail: "" });
                       setUserEmailInput("");
+                      setPage(1);
+                    }}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {filters.companyId && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Company:{" "}
+                  {companies.find((c: any) => c.id === filters.companyId)
+                    ?.name || filters.companyId}
+                  <button
+                    onClick={() => {
+                      setFilters({ ...filters, companyId: "" });
                       setPage(1);
                     }}
                     className="ml-1 text-blue-600 hover:text-blue-800"
@@ -435,13 +496,13 @@ export default function ResultsTab() {
                   User / Survey
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Company
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Character
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Category Scores
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Code
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -460,6 +521,18 @@ export default function ResultsTab() {
                         {result.userName || result.userEmail || "Anonymous"}
                       </div>
                       <div className="text-gray-500">{result.surveyTitle}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm">
+                      <div className="font-medium text-gray-900">
+                        {result.companyName || "N/A"}
+                      </div>
+                      {result.companyId && (
+                        <div className="text-gray-500 text-xs">
+                          ID: {result.companyId}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -482,11 +555,6 @@ export default function ResultsTab() {
                         )
                       )}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                      {result.code}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {formatDate(result.createdAt)}
@@ -670,7 +738,7 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
                 </div>
                 <div>
                   <span className="font-medium">Submitted:</span>{" "}
-                  {new Date(result.createdAt * 1000).toLocaleString()}
+                  {formatDate(result.createdAt)}
                 </div>
                 <div>
                   <span className="font-medium">Survey ID:</span>{" "}

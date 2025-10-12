@@ -189,6 +189,17 @@ export default function HappinessSurveyPage({
         const data = await response.json();
         console.log("🔍 CROSS-TAB TEST - Access check response:", data);
 
+        // ✅ SECURITY FIX: Check if user is assigned and has access
+        if (data.assigned === false || data.canAccess === false) {
+          console.log("❌ Access denied:", data.message);
+          setHasRedirected(true);
+          setIsRedirecting(true);
+          // Show error message and redirect to login
+          alert(data.message || "You are not assigned to this survey");
+          router.push("/user/login");
+          return;
+        }
+
         // Cache the successful response
         try {
           localStorage.setItem(

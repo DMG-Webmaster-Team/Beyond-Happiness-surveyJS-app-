@@ -6,9 +6,8 @@ import { results } from "@/db/schema/results";
 import { userAssignments } from "@/db/schema/user-assignments";
 import { eq, and } from "drizzle-orm";
 
-
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 interface UserSession {
   id: string;
   email: string;
@@ -183,9 +182,10 @@ export async function GET(
       );
     }
 
-    // 4. Check for survey assignment (if user is authenticated)
+    // 4. Check for survey assignment (if user is authenticated and survey is not anonymous)
+    // ✅ SECURITY FIX: Block access if user is not assigned to non-anonymous survey
     let assignmentData = null;
-    if (userData) {
+    if (userData && !surveyData.isAnonymous) {
       const [assignment] = await db
         .select()
         .from(userAssignments)
@@ -204,6 +204,23 @@ export async function GET(
             ? new Date((assignment as any).dueAt)
             : null,
         };
+      } else {
+        // ✅ SECURITY FIX: User is authenticated but not assigned to this non-anonymous survey
+        console.log("❌ User not assigned to survey:", {
+          userId: userData.id,
+          surveyId,
+          userEmail: userData.email,
+        });
+        return NextResponse.json(
+          {
+            error: "You are not assigned to this survey",
+            requiresAuth: false, // User is authenticated but not authorized
+            assigned: false,
+            message:
+              "You are not assigned to this survey. Please contact your administrator.",
+          },
+          { status: 403 } // 403 Forbidden - authenticated but not authorized
+        );
       }
     }
 
