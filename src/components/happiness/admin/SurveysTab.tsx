@@ -311,7 +311,7 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
     if (survey?.anonymous) return "anonymous";
     return "login";
   };
-  
+
   const [formData, setFormData] = useState({
     title: survey?.title || "",
     accessMode: getInitialAccessMode(),
@@ -352,7 +352,9 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
     onSave({
       title: formData.title.trim(),
       accessMode: formData.accessMode,
-      anonymous: formData.accessMode === "anonymous" || formData.accessMode === "collect_info",
+      anonymous:
+        formData.accessMode === "anonymous" ||
+        formData.accessMode === "collect_info",
       retakeCooldownDays: formData.retakeCooldownDays,
       companyId: formData.companyId || null,
       companyName: selectedCompany?.name || null,
@@ -433,7 +435,7 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Access Mode *
             </label>
-            
+
             {/* Login Mode */}
             <div className="flex items-start">
               <input
@@ -450,14 +452,18 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
                 }
                 className="mt-1 border-gray-300 text-blue-400 focus:ring-blue-400"
               />
-              <label htmlFor="mode-login" className="ml-2 text-sm text-gray-700 flex-1">
+              <label
+                htmlFor="mode-login"
+                className="ml-2 text-sm text-gray-700 flex-1"
+              >
                 <strong>Login Required</strong>
                 <div className="text-xs text-gray-500 mt-1">
-                  Users must log in and be assigned to this survey. Standard authentication and assignment checks apply.
+                  Users must log in and be assigned to this survey. Standard
+                  authentication and assignment checks apply.
                 </div>
               </label>
             </div>
-            
+
             {/* Anonymous Mode */}
             <div className="flex items-start">
               <input
@@ -475,14 +481,19 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
                 }
                 className="mt-1 border-gray-300 text-blue-400 focus:ring-blue-400"
               />
-              <label htmlFor="mode-anonymous" className="ml-2 text-sm text-gray-700 flex-1">
+              <label
+                htmlFor="mode-anonymous"
+                className="ml-2 text-sm text-gray-700 flex-1"
+              >
                 <strong>Anonymous (No Data Collection)</strong>
                 <div className="text-xs text-gray-500 mt-1">
-                  Anyone with the link can take this survey without logging in. No user data is collected. Assignment checks and cooldowns are ignored.
+                  Anyone with the link can take this survey without logging in.
+                  No user data is collected. Assignment checks and cooldowns are
+                  ignored.
                 </div>
               </label>
             </div>
-            
+
             {/* Collect Info Mode */}
             <div className="flex items-start">
               <input
@@ -500,10 +511,16 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
                 }
                 className="mt-1 border-gray-300 text-blue-400 focus:ring-blue-400"
               />
-              <label htmlFor="mode-collect-info" className="ml-2 text-sm text-gray-700 flex-1">
+              <label
+                htmlFor="mode-collect-info"
+                className="ml-2 text-sm text-gray-700 flex-1"
+              >
                 <strong>Collect User Information</strong>
                 <div className="text-xs text-gray-500 mt-1">
-                  Anyone with the link can take this survey without logging in. Users can optionally share their contact details (name, email, phone, gender, age). Assignment checks and cooldowns are ignored.
+                  Anyone with the link can take this survey without logging in.
+                  Users <strong>must provide</strong> their contact details (name, email,
+                  phone, gender, age) to access the survey. Assignment checks and cooldowns are
+                  ignored.
                 </div>
               </label>
             </div>
@@ -517,7 +534,11 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
               type="number"
               min="0"
               max="365"
-              value={formData.accessMode === "login" ? formData.retakeCooldownDays : 0}
+              value={
+                formData.accessMode === "login"
+                  ? formData.retakeCooldownDays
+                  : 0
+              }
               onChange={(e) =>
                 setFormData({
                   ...formData,
