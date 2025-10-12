@@ -15,6 +15,7 @@ export async function GET() {
         id: happinessSurveys.id,
         title: happinessSurveys.title,
         anonymous: happinessSurveys.anonymous,
+        accessMode: happinessSurveys.accessMode,
         retakeCooldownDays: happinessSurveys.retakeCooldownDays,
         companyId: happinessSurveys.companyId,
         companyName: happinessSurveys.companyName,
@@ -59,7 +60,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, anonymous, retakeCooldownDays, companyId, companyName } =
+    const { title, anonymous, accessMode, retakeCooldownDays, companyId, companyName } =
       body;
 
     // Validation
@@ -70,13 +71,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate accessMode
+    const validAccessModes = ["login", "anonymous", "collect_info"];
+    const finalAccessMode = validAccessModes.includes(accessMode) ? accessMode : "login";
+
     const surveyId = nanoid();
     await db.insert(happinessSurveys).values({
       id: surveyId,
       title: title.trim(),
-      anonymous: anonymous || false,
-      // Force cooldown to 0 for anonymous surveys
-      retakeCooldownDays: anonymous ? 0 : retakeCooldownDays || 0,
+      anonymous: anonymous || finalAccessMode === "anonymous" || finalAccessMode === "collect_info",
+      accessMode: finalAccessMode,
+      // Force cooldown to 0 for anonymous and collect_info surveys
+      retakeCooldownDays: (finalAccessMode === "anonymous" || finalAccessMode === "collect_info") ? 0 : retakeCooldownDays || 0,
       companyId: companyId || null,
       companyName: companyName || null,
       isActive: true, // Default to active
@@ -88,8 +94,9 @@ export async function POST(request: NextRequest) {
       survey: {
         id: surveyId,
         title: title.trim(),
-        anonymous: anonymous || false,
-        retakeCooldownDays: anonymous ? 0 : retakeCooldownDays || 0,
+        anonymous: finalAccessMode === "anonymous" || finalAccessMode === "collect_info",
+        accessMode: finalAccessMode,
+        retakeCooldownDays: (finalAccessMode === "anonymous" || finalAccessMode === "collect_info") ? 0 : retakeCooldownDays || 0,
         companyId: companyId || null,
         companyName: companyName || null,
         isActive: true,

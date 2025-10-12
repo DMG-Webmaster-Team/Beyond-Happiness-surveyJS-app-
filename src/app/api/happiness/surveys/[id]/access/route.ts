@@ -30,11 +30,12 @@ export async function GET(
     }
 
     const surveyData = survey[0];
+    const accessMode = surveyData.accessMode || "login"; // Default to login if not set
 
-    // For anonymous surveys, always allow access (subject to cooldown if configured)
-    if (surveyData.anonymous) {
-      // For anonymous surveys, we could still enforce cooldown based on IP or other identifier
-      // But for now, we'll allow unlimited access to anonymous surveys
+    // For anonymous and collect_info modes, always allow access (subject to cooldown if configured)
+    if (accessMode === "anonymous" || accessMode === "collect_info") {
+      // For anonymous and collect_info surveys, we could still enforce cooldown based on IP or other identifier
+      // But for now, we'll allow unlimited access
       return NextResponse.json({
         assigned: true,
         requiresAuth: false,
@@ -42,8 +43,12 @@ export async function GET(
         cooldown: false,
         cooldownRemaining: 0,
         hasPreviousResult: false,
-        message: "Access granted to anonymous survey",
-        survey: surveyData,
+        message: accessMode === "collect_info" ? "Access granted - user data will be collected" : "Access granted to anonymous survey",
+        survey: {
+          ...surveyData,
+          accessMode,
+        },
+        accessMode,
       });
     }
 
@@ -107,7 +112,11 @@ export async function GET(
         cooldownRemaining: 0,
         hasPreviousResult: false,
         message: "Authentication required for this survey",
-        survey: surveyData,
+        survey: {
+          ...surveyData,
+          accessMode,
+        },
+        accessMode,
       });
     }
 
@@ -154,7 +163,11 @@ export async function GET(
         cooldownRemaining: 0,
         hasPreviousResult: false,
         message: "You are not assigned to this survey",
-        survey: surveyData,
+        survey: {
+          ...surveyData,
+          accessMode,
+        },
+        accessMode,
       });
     }
 
@@ -187,7 +200,11 @@ export async function GET(
         cooldownRemaining: 0,
         hasPreviousResult: false,
         message: "Access granted",
-        survey: surveyData,
+        survey: {
+          ...surveyData,
+          accessMode,
+        },
+        accessMode,
       });
     }
 
@@ -244,7 +261,11 @@ export async function GET(
                   : lastSubmission.categoryTotals,
             },
             message: `You must wait ${remainingTime} more day(s) before retaking this survey`,
-            survey: surveyData,
+            survey: {
+              ...surveyData,
+              accessMode,
+            },
+            accessMode,
           });
         }
       }
@@ -292,7 +313,11 @@ export async function GET(
               : lastSubmission.categoryTotals,
         },
         message: "You can retake this survey",
-        survey: surveyData,
+        survey: {
+          ...surveyData,
+          accessMode,
+        },
+        accessMode,
       });
     }
 
@@ -304,7 +329,11 @@ export async function GET(
       cooldownRemaining: 0,
       hasPreviousResult: false,
       message: "Access granted",
-      survey: surveyData,
+      survey: {
+        ...surveyData,
+        accessMode,
+      },
+      accessMode,
     });
   } catch (error) {
     console.error("Error checking survey access:", error);

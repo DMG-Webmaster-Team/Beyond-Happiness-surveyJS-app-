@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   index,
+  mysqlEnum,
 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
 
@@ -54,6 +55,7 @@ export const happinessSurveys = mysqlTable("happiness_surveys", {
   id: varchar("id", { length: 128 }).primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   anonymous: boolean("anonymous").default(false),
+  accessMode: mysqlEnum("access_mode", ["login", "anonymous", "collect_info"]).default("login"), // Access mode for survey
   retakeCooldownDays: int("retake_cooldown_days").default(0), // Days before user can retake
   companyId: varchar("company_id", { length: 128 }), // Company assignment
   companyName: varchar("company_name", { length: 255 }), // Company name for easier queries
@@ -80,6 +82,7 @@ export const happinessResults = mysqlTable(
     characterId: int("character_id")
       .notNull()
       .references(() => happinessCharacters.id),
+    collectedUserData: json("collected_user_data"), // JSON object with name, email, phone, gender, age for collect_info mode
     language: varchar("language", { length: 10 }).default("en"), // "en" or "ar"
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
     submittedAt: timestamp("submitted_at").default(sql`CURRENT_TIMESTAMP`),

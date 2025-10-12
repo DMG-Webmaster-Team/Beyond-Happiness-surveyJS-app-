@@ -45,6 +45,7 @@ export default function HappinessSurveyPage({
   const router = useRouter();
   const [selectedLanguage, setSelectedLanguage] = useState<string>("en");
   const [showLanguageSelection, setShowLanguageSelection] = useState(true);
+  const [showUserInfoCollection, setShowUserInfoCollection] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<SurveyAnswer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,6 +53,16 @@ export default function HappinessSurveyPage({
   // Removed accessError state - using redirects to standard error pages instead
   const [hasRedirected, setHasRedirected] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  
+  // User data collection for collect_info mode
+  const [collectedUserData, setCollectedUserData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    gender: "",
+    ageRange: "",
+  });
+  const [shareContactDetails, setShareContactDetails] = useState(false);
 
   // Guard against double submission
   const submissionCompletedRef = useRef(false);
@@ -259,8 +270,7 @@ export default function HappinessSurveyPage({
   // Handle language selection
   const handleLanguageSelect = (language: string) => {
     setSelectedLanguage(language);
-    setShowLanguageSelection(false);
-
+    
     // Apply RTL/LTR direction
     if (language === "ar") {
       document.body.dir = "rtl";
@@ -268,6 +278,16 @@ export default function HappinessSurveyPage({
     } else {
       document.body.dir = "ltr";
       document.documentElement.dir = "ltr";
+    }
+    
+    // Check if we need to show user info collection
+    const accessMode = accessData?.accessMode || accessData?.survey?.accessMode;
+    if (accessMode === "collect_info") {
+      setShowLanguageSelection(false);
+      setShowUserInfoCollection(true);
+    } else {
+      setShowLanguageSelection(false);
+      setShowUserInfoCollection(false);
     }
   };
 
@@ -389,17 +409,26 @@ export default function HappinessSurveyPage({
         timestamp: new Date().toISOString(),
       });
 
+      // Prepare submission data
+      const accessMode = accessData?.accessMode || accessData?.survey?.accessMode;
+      const submissionData: any = {
+        surveyId: params.surveyId,
+        answers,
+        language: selectedLanguage,
+      };
+      
+      // Include collected user data for collect_info mode
+      if (accessMode === "collect_info" && shareContactDetails) {
+        submissionData.collectedUserData = collectedUserData;
+      }
+      
       const response = await fetch(`/api/happiness/results`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({
-          surveyId: params.surveyId,
-          answers,
-          language: selectedLanguage,
-        }),
+        body: JSON.stringify(submissionData),
       });
 
       if (!response.ok) {
@@ -579,6 +608,161 @@ export default function HappinessSurveyPage({
                     </p>
                   </div>
                 </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show user info collection for collect_info mode
+  if (showUserInfoCollection) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Navbar */}
+        <AnonymousNavbar />
+
+        {/* Header */}
+        <div className="bg-white shadow-sm">
+          <div className="max-w-4xl text-center mx-auto px-4 py-6">
+            <h1 className="text-2xl font-bold text-blue-600">
+              {selectedLanguage === "ar" ? "معلومات المشارك" : "Participant Information"}
+            </h1>
+            <p className="text-blue-500 mt-2">
+              {selectedLanguage === "ar"
+                ? "يمكنك مشاركة معلوماتك الشخصية (اختياري)"
+                : "You can share your personal information (optional)"}
+            </p>
+          </div>
+        </div>
+
+        {/* User Info Form */}
+        <div className="max-w-2xl mx-auto px-4 py-8">
+          <div className="bg-white rounded-lg shadow-sm p-8">
+            {/* Checkbox for sharing details */}
+            <div className="mb-6">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={shareContactDetails}
+                  onChange={(e) => setShareContactDetails(e.target.checked)}
+                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="ml-3 text-gray-700">
+                  {selectedLanguage === "ar"
+                    ? "أود مشاركة معلومات الاتصال الخاصة بي"
+                    : "I would like to share my contact details"}
+                </span>
+              </label>
+            </div>
+
+            {/* Form fields - only show if checkbox is checked */}
+            {shareContactDetails && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {selectedLanguage === "ar" ? "الاسم الكامل" : "Full Name"}
+                  </label>
+                  <input
+                    type="text"
+                    value={collectedUserData.name}
+                    onChange={(e) =>
+                      setCollectedUserData({ ...collectedUserData, name: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    placeholder={selectedLanguage === "ar" ? "أدخل اسمك الكامل" : "Enter your full name"}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {selectedLanguage === "ar" ? "البريد الإلكتروني" : "Email"}
+                  </label>
+                  <input
+                    type="email"
+                    value={collectedUserData.email}
+                    onChange={(e) =>
+                      setCollectedUserData({ ...collectedUserData, email: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    placeholder={selectedLanguage === "ar" ? "example@email.com" : "example@email.com"}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {selectedLanguage === "ar" ? "رقم الهاتف" : "Phone Number"}
+                  </label>
+                  <input
+                    type="tel"
+                    value={collectedUserData.phone}
+                    onChange={(e) =>
+                      setCollectedUserData({ ...collectedUserData, phone: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    placeholder={selectedLanguage === "ar" ? "+20 123 456 7890" : "+20 123 456 7890"}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {selectedLanguage === "ar" ? "الجنس" : "Gender"}
+                  </label>
+                  <select
+                    value={collectedUserData.gender}
+                    onChange={(e) =>
+                      setCollectedUserData({ ...collectedUserData, gender: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <option value="">
+                      {selectedLanguage === "ar" ? "اختر الجنس" : "Select Gender"}
+                    </option>
+                    <option value="male">
+                      {selectedLanguage === "ar" ? "ذكر" : "Male"}
+                    </option>
+                    <option value="female">
+                      {selectedLanguage === "ar" ? "أنثى" : "Female"}
+                    </option>
+                    <option value="other">
+                      {selectedLanguage === "ar" ? "آخر" : "Other"}
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {selectedLanguage === "ar" ? "الفئة العمرية" : "Age Range"}
+                  </label>
+                  <select
+                    value={collectedUserData.ageRange}
+                    onChange={(e) =>
+                      setCollectedUserData({ ...collectedUserData, ageRange: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  >
+                    <option value="">
+                      {selectedLanguage === "ar" ? "اختر الفئة العمرية" : "Select Age Range"}
+                    </option>
+                    <option value="18-24">18-24</option>
+                    <option value="25-34">25-34</option>
+                    <option value="35-44">35-44</option>
+                    <option value="45-54">45-54</option>
+                    <option value="55-64">55-64</option>
+                    <option value="65+">65+</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Continue Button */}
+            <div className="mt-6">
+              <button
+                onClick={() => setShowUserInfoCollection(false)}
+                className="w-full px-6 py-3 bg-blue-400 hover:bg-blue-600 text-white rounded-md font-medium transition-colors"
+              >
+                {selectedLanguage === "ar" ? "متابعة إلى الاستطلاع" : "Continue to Survey"}
               </button>
             </div>
           </div>

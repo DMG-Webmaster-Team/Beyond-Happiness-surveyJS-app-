@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { surveyId, answers, language } = body;
+    const { surveyId, answers, language, collectedUserData } = body;
 
     // Validation
     if (!surveyId || !answers || !Array.isArray(answers)) {
@@ -208,17 +208,18 @@ export async function POST(request: NextRequest) {
     }
 
     const surveyData = survey[0];
+    const accessMode = surveyData.accessMode || "login";
 
-    // Check authentication requirements
-    if (!surveyData.anonymous && !userId) {
+    // Check authentication requirements based on access mode
+    if (accessMode === "login" && !userId) {
       return NextResponse.json(
         { error: "User authentication required for this survey" },
         { status: 401 }
       );
     }
 
-    // Check for duplicate submissions and cooldown (non-anonymous surveys)
-    if (!surveyData.anonymous && userId) {
+    // Check for duplicate submissions and cooldown (login mode only)
+    if (accessMode === "login" && userId) {
       const existingResults = await db
         .select({
           id: happinessResults.id,
@@ -311,14 +312,23 @@ export async function POST(request: NextRequest) {
 
     // Store result
     const resultId = nanoid();
+    const accessMode = surveyData.accessMode || "login";
+    
+    // Prepare collected user data for collect_info mode
+    let finalCollectedUserData = null;
+    if (accessMode === "collect_info" && collectedUserData) {
+      finalCollectedUserData = collectedUserData;
+    }
+    
     await db.insert(happinessResults).values({
       id: resultId,
       surveyId,
-      userId: surveyData.anonymous ? null : userId,
+      userId: (accessMode === "anonymous" || accessMode === "collect_info") ? null : userId,
       answers: answers, // MySQL JSON column handles this automatically
       categoryTotals: scoreResult.categoryTotals, // MySQL JSON column handles this automatically
       code: scoreResult.code,
       characterId: scoreResult.character.id,
+      collectedUserData: finalCollectedUserData, // Store collected user data for collect_info mode
       language: selectedLanguage,
     });
 
