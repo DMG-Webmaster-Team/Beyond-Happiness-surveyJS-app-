@@ -30,7 +30,8 @@ export async function GET(
     }
 
     const surveyData = survey[0];
-    const accessMode = surveyData.accessMode || "login"; // Default to login if not set
+    // Fallback for missing accessMode column (before migration)
+    const accessMode = surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
 
     // For anonymous and collect_info modes, always allow access (subject to cooldown if configured)
     if (accessMode === "anonymous" || accessMode === "collect_info") {

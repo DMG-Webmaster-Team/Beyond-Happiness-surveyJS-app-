@@ -53,7 +53,7 @@ export default function HappinessSurveyPage({
   // Removed accessError state - using redirects to standard error pages instead
   const [hasRedirected, setHasRedirected] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  
+
   // User data collection for collect_info mode
   const [collectedUserData, setCollectedUserData] = useState({
     name: "",
@@ -270,7 +270,7 @@ export default function HappinessSurveyPage({
   // Handle language selection
   const handleLanguageSelect = (language: string) => {
     setSelectedLanguage(language);
-    
+
     // Apply RTL/LTR direction
     if (language === "ar") {
       document.body.dir = "rtl";
@@ -279,7 +279,7 @@ export default function HappinessSurveyPage({
       document.body.dir = "ltr";
       document.documentElement.dir = "ltr";
     }
-    
+
     // Check if we need to show user info collection
     const accessMode = accessData?.accessMode || accessData?.survey?.accessMode;
     if (accessMode === "collect_info") {
@@ -410,18 +410,19 @@ export default function HappinessSurveyPage({
       });
 
       // Prepare submission data
-      const accessMode = accessData?.accessMode || accessData?.survey?.accessMode;
+      const accessMode =
+        accessData?.accessMode || accessData?.survey?.accessMode;
       const submissionData: any = {
         surveyId: params.surveyId,
         answers,
         language: selectedLanguage,
       };
-      
+
       // Include collected user data for collect_info mode
       if (accessMode === "collect_info" && shareContactDetails) {
         submissionData.collectedUserData = collectedUserData;
       }
-      
+
       const response = await fetch(`/api/happiness/results`, {
         method: "POST",
         headers: {
@@ -627,7 +628,9 @@ export default function HappinessSurveyPage({
         <div className="bg-white shadow-sm">
           <div className="max-w-4xl text-center mx-auto px-4 py-6">
             <h1 className="text-2xl font-bold text-blue-600">
-              {selectedLanguage === "ar" ? "معلومات المشارك" : "Participant Information"}
+              {selectedLanguage === "ar"
+                ? "معلومات المشارك"
+                : "Participant Information"}
             </h1>
             <p className="text-blue-500 mt-2">
               {selectedLanguage === "ar"
@@ -668,10 +671,17 @@ export default function HappinessSurveyPage({
                     type="text"
                     value={collectedUserData.name}
                     onChange={(e) =>
-                      setCollectedUserData({ ...collectedUserData, name: e.target.value })
+                      setCollectedUserData({
+                        ...collectedUserData,
+                        name: e.target.value,
+                      })
                     }
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder={selectedLanguage === "ar" ? "أدخل اسمك الكامل" : "Enter your full name"}
+                    placeholder={
+                      selectedLanguage === "ar"
+                        ? "أدخل اسمك الكامل"
+                        : "Enter your full name"
+                    }
                   />
                 </div>
 
@@ -683,10 +693,17 @@ export default function HappinessSurveyPage({
                     type="email"
                     value={collectedUserData.email}
                     onChange={(e) =>
-                      setCollectedUserData({ ...collectedUserData, email: e.target.value })
+                      setCollectedUserData({
+                        ...collectedUserData,
+                        email: e.target.value,
+                      })
                     }
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder={selectedLanguage === "ar" ? "example@email.com" : "example@email.com"}
+                    placeholder={
+                      selectedLanguage === "ar"
+                        ? "example@email.com"
+                        : "example@email.com"
+                    }
                   />
                 </div>
 
@@ -698,10 +715,17 @@ export default function HappinessSurveyPage({
                     type="tel"
                     value={collectedUserData.phone}
                     onChange={(e) =>
-                      setCollectedUserData({ ...collectedUserData, phone: e.target.value })
+                      setCollectedUserData({
+                        ...collectedUserData,
+                        phone: e.target.value,
+                      })
                     }
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder={selectedLanguage === "ar" ? "+20 123 456 7890" : "+20 123 456 7890"}
+                    placeholder={
+                      selectedLanguage === "ar"
+                        ? "+20 123 456 7890"
+                        : "+20 123 456 7890"
+                    }
                   />
                 </div>
 
@@ -712,12 +736,17 @@ export default function HappinessSurveyPage({
                   <select
                     value={collectedUserData.gender}
                     onChange={(e) =>
-                      setCollectedUserData({ ...collectedUserData, gender: e.target.value })
+                      setCollectedUserData({
+                        ...collectedUserData,
+                        gender: e.target.value,
+                      })
                     }
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="">
-                      {selectedLanguage === "ar" ? "اختر الجنس" : "Select Gender"}
+                      {selectedLanguage === "ar"
+                        ? "اختر الجنس"
+                        : "Select Gender"}
                     </option>
                     <option value="male">
                       {selectedLanguage === "ar" ? "ذكر" : "Male"}
@@ -738,12 +767,17 @@ export default function HappinessSurveyPage({
                   <select
                     value={collectedUserData.ageRange}
                     onChange={(e) =>
-                      setCollectedUserData({ ...collectedUserData, ageRange: e.target.value })
+                      setCollectedUserData({
+                        ...collectedUserData,
+                        ageRange: e.target.value,
+                      })
                     }
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   >
                     <option value="">
-                      {selectedLanguage === "ar" ? "اختر الفئة العمرية" : "Select Age Range"}
+                      {selectedLanguage === "ar"
+                        ? "اختر الفئة العمرية"
+                        : "Select Age Range"}
                     </option>
                     <option value="18-24">18-24</option>
                     <option value="25-34">25-34</option>
@@ -762,7 +796,9 @@ export default function HappinessSurveyPage({
                 onClick={() => setShowUserInfoCollection(false)}
                 className="w-full px-6 py-3 bg-blue-400 hover:bg-blue-600 text-white rounded-md font-medium transition-colors"
               >
-                {selectedLanguage === "ar" ? "متابعة إلى الاستطلاع" : "Continue to Survey"}
+                {selectedLanguage === "ar"
+                  ? "متابعة إلى الاستطلاع"
+                  : "Continue to Survey"}
               </button>
             </div>
           </div>

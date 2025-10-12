@@ -208,7 +208,8 @@ export async function POST(request: NextRequest) {
     }
 
     const surveyData = survey[0];
-    const accessMode = surveyData.accessMode || "login";
+    // Fallback for missing accessMode column (before migration)
+    const accessMode = surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
 
     // Check authentication requirements based on access mode
     if (accessMode === "login" && !userId) {
@@ -312,7 +313,6 @@ export async function POST(request: NextRequest) {
 
     // Store result
     const resultId = nanoid();
-    const accessMode = surveyData.accessMode || "login";
     
     // Prepare collected user data for collect_info mode
     let finalCollectedUserData = null;
@@ -320,17 +320,31 @@ export async function POST(request: NextRequest) {
       finalCollectedUserData = collectedUserData;
     }
     
-    await db.insert(happinessResults).values({
+    // Build insert values
+    const insertValues: any = {
       id: resultId,
       surveyId,
-      userId: (accessMode === "anonymous" || accessMode === "collect_info") ? null : userId,
+      userId:
+        accessMode === "anonymous" || accessMode === "collect_info"
+          ? null
+          : userId,
       answers: answers, // MySQL JSON column handles this automatically
       categoryTotals: scoreResult.categoryTotals, // MySQL JSON column handles this automatically
       code: scoreResult.code,
       characterId: scoreResult.character.id,
-      collectedUserData: finalCollectedUserData, // Store collected user data for collect_info mode
       language: selectedLanguage,
-    });
+    };
+    
+    // Only add collectedUserData if column exists (after migration)
+    if (finalCollectedUserData !== null) {
+      try {
+        insertValues.collectedUserData = finalCollectedUserData;
+      } catch (e) {
+        console.log("collectedUserData column not yet available, skipping");
+      }
+    }
+    
+    await db.insert(happinessResults).values(insertValues);
 
     return NextResponse.json({
       id: resultId, // Include the database ID for PDF generation
