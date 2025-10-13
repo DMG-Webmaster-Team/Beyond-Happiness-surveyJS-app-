@@ -1,13 +1,14 @@
-# 1. Builder Image (use Debian-based, not Alpine!)
+# 1. Builder Image
 FROM node:20 AS builder
 
 WORKDIR /app
 
-# Copy package.json and package-lock.json (if exists)
+# Copy package files
 COPY package*.json ./
 
-# Install all dependencies including dev (e.g. next, eslint)
-RUN npm install
+# Use npm ci instead of npm install for faster, more reliable builds
+# Add flags to handle potential issues
+RUN npm ci --legacy-peer-deps --prefer-offline --no-audit
 
 # Copy the rest of the project
 COPY . .
@@ -20,14 +21,16 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Only copy necessary files for running the built app
+ENV NODE_ENV=production
+
+# Copy necessary files
 COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/node_modules ./node_modules
 
-# Expose the port used by Next.js
+# Expose the port
 EXPOSE 3000
 
-# Run in production mode
+# Start the app
 CMD ["npm", "start"]
