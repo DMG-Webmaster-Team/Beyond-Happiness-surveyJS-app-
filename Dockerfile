@@ -1,36 +1,38 @@
-# 1. Builder Image
+# 1. Builder stage
 FROM node:20 AS builder
 
 WORKDIR /app
 
-# Environment variables to skip Chromium download during build
+# Speed up Puppeteer install, skip Chromium download
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Install dependencies for native modules
+# System dependencies for building native Node modules
 RUN apt-get update && apt-get install -y \
     python3 \
     make \
     g++ \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files
+# Copy only dependency files first
 COPY package*.json ./
 
-# Install with flags to handle large packages
-RUN npm install --legacy-peer-deps --prefer-offline --maxsockets 1 --network-timeout 600000
+# Install deps (with fallback flags)
+RUN npm install --legacy-peer-deps --prefer-offline --network-timeout=600000
 
-# Copy source code
+# Copy the rest of the app
 COPY . .
 
-# Build the app
+# Build Next.js app
 RUN npm run build
 
-# 2. Production Image (also using Debian, not Alpine)
+---
+
+# 2. Runtime stage
 FROM node:20-slim AS runner
 
 WORKDIR /app
 
-# Install Chromium for Puppeteer (Debian packages)
+# Install Chromium and dependencies for Puppeteer (Debian-based)
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
@@ -44,9 +46,9 @@ RUN apt-get update && apt-get install -y \
     libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# Set Puppeteer config
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=production
 
 # Copy built app from builder
