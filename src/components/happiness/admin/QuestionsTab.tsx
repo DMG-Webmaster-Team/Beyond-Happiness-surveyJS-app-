@@ -331,7 +331,7 @@ function QuestionModal({
     category: question?.category || "Meaning",
     categoryValues: question?.categoryValues || [200, 400, 600, 800, 1000],
     essentialId: question?.essentialId || "",
-    essentialValues: question?.essentialValues || [0, 6.25, 12.5, 18.75, 25],
+    essentialValues: question?.essentialValues || [0, 3.75, 12.5, 18.75, 25],
     isActive: question?.isActive ?? true,
   });
 
@@ -475,7 +475,7 @@ function QuestionModal({
                   essentialId: selectedEssentialId || "",
                   // Reset essential values when essential changes
                   essentialValues: selectedEssentialId
-                    ? [0, 6.25, 12.5, 18.75, 25]
+                    ? [0, 3.75, 12.5, 18.75, 25]
                     : [],
                 });
               }}

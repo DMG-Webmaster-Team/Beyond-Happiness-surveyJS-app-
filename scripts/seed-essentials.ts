@@ -6,34 +6,34 @@ import { v4 as uuidv4 } from "uuid";
 // Each category = 100 points total, 4 essentials × 25 points each
 const essentialsData = [
   // Meaning Category (100 points total)
-  { truth: "Meaning" as const, name: "Higher Purpose" },      // 25 points max
-  { truth: "Meaning" as const, name: "Values" },             // 25 points max
-  { truth: "Meaning" as const, name: "Growth" },             // 25 points max
-  { truth: "Meaning" as const, name: "Appreciation" },        // 25 points max
+  { truth: "Meaning" as const, name: "Higher Purpose" }, // 25 points max
+  { truth: "Meaning" as const, name: "Values" }, // 25 points max
+  { truth: "Meaning" as const, name: "Growth" }, // 25 points max
+  { truth: "Meaning" as const, name: "Appreciation" }, // 25 points max
 
   // Delight Category (100 points total)
-  { truth: "Delight" as const, name: "Creativity" },          // 25 points max
-  { truth: "Delight" as const, name: "Playfulness" },         // 25 points max
-  { truth: "Delight" as const, name: "Enthusiasm" },         // 25 points max
-  { truth: "Delight" as const, name: "Surprise" },           // 25 points max
+  { truth: "Delight" as const, name: "Creativity" }, // 25 points max
+  { truth: "Delight" as const, name: "Playfulness" }, // 25 points max
+  { truth: "Delight" as const, name: "Enthusiasm" }, // 25 points max
+  { truth: "Delight" as const, name: "Surprise" }, // 25 points max
 
   // Freedom Category (100 points total)
-  { truth: "Freedom" as const, name: "Safety" },             // 25 points max
-  { truth: "Freedom" as const, name: "Emergency Prep" },     // 25 points max
-  { truth: "Freedom" as const, name: "Personalization" },   // 25 points max
-  { truth: "Freedom" as const, name: "Flexibility" },        // 25 points max
+  { truth: "Freedom" as const, name: "Safety" }, // 25 points max
+  { truth: "Freedom" as const, name: "Emergency Prep" }, // 25 points max
+  { truth: "Freedom" as const, name: "Personalization" }, // 25 points max
+  { truth: "Freedom" as const, name: "Flexibility" }, // 25 points max
 
   // Engagement Category (100 points total)
-  { truth: "Engagement" as const, name: "Cooperation" },     // 25 points max
-  { truth: "Engagement" as const, name: "Inclusivity" },    // 25 points max
-  { truth: "Engagement" as const, name: "Connectedness" },  // 25 points max
-  { truth: "Engagement" as const, name: "Socialization" },   // 25 points max
+  { truth: "Engagement" as const, name: "Cooperation" }, // 25 points max
+  { truth: "Engagement" as const, name: "Inclusivity" }, // 25 points max
+  { truth: "Engagement" as const, name: "Connectedness" }, // 25 points max
+  { truth: "Engagement" as const, name: "Socialization" }, // 25 points max
 
   // Vitality Category (100 points total)
-  { truth: "Vitality" as const, name: "Movement" },         // 25 points max
-  { truth: "Vitality" as const, name: "Rejuvenation" },     // 25 points max
-  { truth: "Vitality" as const, name: "Comfort" },         // 25 points max
-  { truth: "Vitality" as const, name: "Mindfulness" },      // 25 points max
+  { truth: "Vitality" as const, name: "Movement" }, // 25 points max
+  { truth: "Vitality" as const, name: "Rejuvenation" }, // 25 points max
+  { truth: "Vitality" as const, name: "Comfort" }, // 25 points max
+  { truth: "Vitality" as const, name: "Mindfulness" }, // 25 points max
 ];
 
 async function seedEssentials() {
