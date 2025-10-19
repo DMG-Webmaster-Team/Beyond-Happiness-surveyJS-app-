@@ -438,6 +438,29 @@ function QuestionModal({
               ))}
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Category Values (5 numbers for category scoring) *
+            </label>
+            <div className="grid grid-cols-5 gap-2">
+              {formData.categoryValues.map((value, index) => (
+                <input
+                  key={index}
+                  type="number"
+                  value={value}
+                   onChange={(e) => {
+                     const newValues = [...formData.categoryValues];
+                     newValues[index] = parseFloat(e.target.value) || 0;
+                     setFormData({ ...formData, categoryValues: newValues });
+                   }}
+                  className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              ))}
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -453,7 +476,7 @@ function QuestionModal({
                   // Reset essential values when essential changes
                   essentialValues: selectedEssentialId
                     ? [100, 300, 500, 700, 900]
-                    : undefined,
+                    : [],
                 });
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -478,29 +501,6 @@ function QuestionModal({
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category Values (5 numbers for category scoring) *
-            </label>
-            <div className="grid grid-cols-5 gap-2">
-              {formData.categoryValues.map((value, index) => (
-                <input
-                  key={index}
-                  type="number"
-                  value={value}
-                  onChange={(e) => {
-                    const newValues = [...formData.categoryValues];
-                    newValues[index] = parseInt(e.target.value) || 0;
-                    setFormData({ ...formData, categoryValues: newValues });
-                  }}
-                  className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  min="0"
-                  required
-                />
-              ))}
-            </div>
-          </div>
-
           {formData.essentialId && formData.essentialId !== "" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -512,13 +512,14 @@ function QuestionModal({
                     key={index}
                     type="number"
                     value={value}
-                    onChange={(e) => {
-                      const newValues = [...formData.essentialValues];
-                      newValues[index] = parseInt(e.target.value) || 0;
-                      setFormData({ ...formData, essentialValues: newValues });
-                    }}
+                     onChange={(e) => {
+                       const newValues = [...formData.essentialValues];
+                       newValues[index] = parseFloat(e.target.value) || 0;
+                       setFormData({ ...formData, essentialValues: newValues });
+                     }}
                     className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                     min="0"
+                    step="0.01"
                     required
                   />
                 ))}
