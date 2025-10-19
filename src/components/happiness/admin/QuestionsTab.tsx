@@ -250,7 +250,12 @@ export default function QuestionsTab() {
                 </div>
                 <p className="text-gray-900 mb-2">{question.text}</p>
                 <div className="text-sm text-gray-600">
-                  Values: [{question.values.join(", ")}]
+                  Category Values: [{question.categoryValues?.join(", ") || "Not set"}]
+                  {question.essentialValues && (
+                    <div className="mt-1">
+                      Essential Values: [{question.essentialValues.join(", ")}]
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 ml-4">
