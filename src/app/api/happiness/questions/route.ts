@@ -22,17 +22,33 @@ export async function GET(request: NextRequest) {
       .orderBy(asc(happinessQuestions.id));
 
     // Values are already parsed as JSON in MySQL, no need to parse again
-    let parsedQuestions = questions.map((q) => ({
-      ...q,
-      categoryValues: Array.isArray(q.categoryValues)
-        ? q.categoryValues
-        : JSON.parse(q.categoryValues),
-      essentialValues: q.essentialValues
-        ? Array.isArray(q.essentialValues)
-          ? q.essentialValues
-          : JSON.parse(q.essentialValues)
-        : null,
-    }));
+    let parsedQuestions = questions.map((q) => {
+      // Handle migration from old 'values' field to new 'categoryValues' field
+      let categoryValues;
+      if (q.categoryValues) {
+        categoryValues = Array.isArray(q.categoryValues)
+          ? q.categoryValues
+          : JSON.parse(q.categoryValues);
+      } else if ((q as any).values) {
+        // Fallback to old 'values' field during migration
+        categoryValues = Array.isArray((q as any).values)
+          ? (q as any).values
+          : JSON.parse((q as any).values);
+      } else {
+        // Default values if neither exists
+        categoryValues = [200, 400, 600, 800, 1000];
+      }
+
+      return {
+        ...q,
+        categoryValues,
+        essentialValues: q.essentialValues
+          ? Array.isArray(q.essentialValues)
+            ? q.essentialValues
+            : JSON.parse(q.essentialValues)
+          : null,
+      };
+    });
 
     // Apply client-side filtering since Drizzle ORM filtering can be complex
     if (category && category !== "all") {

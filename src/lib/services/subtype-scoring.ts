@@ -68,9 +68,19 @@ export async function calculateSubtypeScores(
       const category =
         question.category as keyof typeof categoryQuestionMapping;
       // Handle both JSON string and already parsed array (MySQL auto-parses JSON)
-      const values = Array.isArray(question.values)
-        ? question.values
-        : (JSON.parse(question.values) as number[]);
+      // Support migration from old 'values' field to new 'categoryValues' field
+      let values;
+      if (question.categoryValues) {
+        values = Array.isArray(question.categoryValues)
+          ? question.categoryValues
+          : (JSON.parse(question.categoryValues) as number[]);
+      } else if ((question as any).values) {
+        values = Array.isArray((question as any).values)
+          ? (question as any).values
+          : (JSON.parse((question as any).values) as number[]);
+      } else {
+        values = [200, 400, 600, 800, 1000]; // Default values
+      }
       const scoreIndex = answer.valueIndex - 1;
 
       if (scoreIndex >= 0 && scoreIndex < values.length) {

@@ -1,5 +1,9 @@
 import { db } from "@/db";
-import { happinessQuestions, happinessCharacters, essentials } from "@/db/schema/happiness";
+import {
+  happinessQuestions,
+  happinessCharacters,
+  essentials,
+} from "@/db/schema/happiness";
 import { eq, inArray } from "drizzle-orm";
 
 export interface HappinessAnswer {
@@ -156,15 +160,27 @@ export async function computeHappinessScore(
       }
 
       // Parse category values array (handle both JSON string and already parsed array)
-      const categoryValues = Array.isArray(question.categoryValues)
-        ? question.categoryValues
-        : (JSON.parse(question.categoryValues as string) as number[]);
+      let categoryValues;
+      if (question.categoryValues) {
+        categoryValues = Array.isArray(question.categoryValues)
+          ? question.categoryValues
+          : (JSON.parse(question.categoryValues as string) as number[]);
+      } else if ((question as any).values) {
+        // Fallback to old 'values' field during migration
+        categoryValues = Array.isArray((question as any).values)
+          ? (question as any).values
+          : (JSON.parse((question as any).values as string) as number[]);
+      } else {
+        // Default values if neither exists
+        categoryValues = [200, 400, 600, 800, 1000];
+      }
 
       // Get score for this answer (valueIndex is 1-based, array is 0-based)
       const scoreIndex = answer.valueIndex - 1;
       if (scoreIndex >= 0 && scoreIndex < categoryValues.length) {
         const categoryScore = categoryValues[scoreIndex];
-        categoryTotals[question.category as keyof CategoryTotals] += categoryScore;
+        categoryTotals[question.category as keyof CategoryTotals] +=
+          categoryScore;
 
         // If question has an essential, also calculate essential score
         if (question.essentialId && question.essentialValues) {
@@ -175,7 +191,8 @@ export async function computeHappinessScore(
           if (scoreIndex >= 0 && scoreIndex < essentialValues.length) {
             const essentialScore = essentialValues[scoreIndex];
             const essentialKey = `essential_${question.essentialId}`;
-            essentialTotals[essentialKey] = (essentialTotals[essentialKey] || 0) + essentialScore;
+            essentialTotals[essentialKey] =
+              (essentialTotals[essentialKey] || 0) + essentialScore;
           }
         }
       } else {
