@@ -4,6 +4,24 @@ import { useState, useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { useDebounce } from "@/hooks/useDebounce";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -35,9 +53,18 @@ export default function QuestionsTab() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<number | null>(null);
+  const [dragOrder, setDragOrder] = useState<number[]>([]);
 
   // Debounce search term to avoid too many API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const { data, error, isLoading, mutate } = useSWR(
     `/api/happiness/questions?search=${debouncedSearchTerm}&category=${categoryFilter}&isActive=${activeFilter}`,
@@ -113,11 +140,39 @@ export default function QuestionsTab() {
     setQuestionToDelete(null);
   };
 
-  // Sort questions by ID (ascending order)
+  // Sort questions by drag order or ID (ascending order)
   const sortedQuestions = useMemo(() => {
     const questions = data?.questions || [];
-    return [...questions].sort((a, b) => a.id - b.id);
-  }, [data?.questions]);
+    if (dragOrder.length === 0) {
+      return [...questions].sort((a, b) => a.id - b.id);
+    }
+    
+    // Sort by drag order
+    const orderedQuestions = [...questions].sort((a, b) => {
+      const aIndex = dragOrder.indexOf(a.id);
+      const bIndex = dragOrder.indexOf(b.id);
+      
+      if (aIndex === -1 && bIndex === -1) return a.id - b.id;
+      if (aIndex === -1) return 1;
+      if (bIndex === -1) return -1;
+      return aIndex - bIndex;
+    });
+    
+    return orderedQuestions;
+  }, [data?.questions, dragOrder]);
+
+  // Handle drag end
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+    
+    if (active.id !== over.id) {
+      const oldIndex = sortedQuestions.findIndex(q => q.id === active.id);
+      const newIndex = sortedQuestions.findIndex(q => q.id === over.id);
+      
+      const newOrder = arrayMove(sortedQuestions, oldIndex, newIndex);
+      setDragOrder(newOrder.map(q => q.id));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -209,82 +264,28 @@ export default function QuestionsTab() {
         </select>
       </div>
 
-      {/* Questions List - Now sorted by ID */}
-      <div className="space-y-3">
-        {sortedQuestions.map((question: HappinessQuestion) => (
-          <div
-            key={question.id}
-            className={`border rounded-lg p-4 ${
-              question.isActive ? "bg-white" : "bg-gray-50 border-gray-200"
-            }`}
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                    #{question.id}
-                  </span>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      question.category === "Meaning"
-                        ? "bg-purple-100 text-purple-800"
-                        : question.category === "Delight"
-                        ? "bg-yellow-100 text-yellow-800"
-                        : question.category === "Freedom"
-                        ? "bg-green-100 text-green-800"
-                        : question.category === "Engagement"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {question.category}
-                  </span>
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      question.isActive
-                        ? "bg-green-100 text-green-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
-                  >
-                    {question.isActive ? "Active" : "Inactive"}
-                  </span>
-                  {question.essentialName && (
-                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                      {question.essentialName}
-                    </span>
-                  )}
-                </div>
-                <p className="text-gray-900 mb-2">{question.text}</p>
-                <div className="text-sm text-gray-600">
-                  Category Values: [
-                  {question.categoryValues?.join(", ") || "Not set"}]
-                  {question.essentialValues && (
-                    <div className="mt-1">
-                      Essential Values: [{question.essentialValues.join(", ")}]
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex gap-2 ml-4">
-                <button
-                  onClick={() => setEditingQuestion(question)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-200 rounded hover:bg-blue-50"
-                >
-                  Edit
-                </button>
-                {!question.isActive && (
-                  <button
-                    onClick={() => handleDeleteQuestion(question.id)}
-                    className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Questions List - Drag and Drop Enabled */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={sortedQuestions.map(q => q.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-3">
+            {sortedQuestions.map((question: HappinessQuestion) => (
+              <SortableQuestionItem
+                key={question.id}
+                question={question}
+                onEdit={() => setEditingQuestion(question)}
+                onDelete={() => handleDeleteQuestion(question.id)}
+              />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
 
       {sortedQuestions.length === 0 && (
         <div className="text-center py-8 text-gray-500">
@@ -343,20 +344,51 @@ function QuestionModal({
 
   const [essentials, setEssentials] = useState<Essential[]>([]);
   const [loadingEssentials, setLoadingEssentials] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Calculate real-time scoring preview
+  const calculatePreview = () => {
+    if (!formData.categoryValues || !formData.essentialValues) return null;
+    
+    const categoryMax = Math.max(...formData.categoryValues);
+    const essentialMax = Math.max(...formData.essentialValues);
+    
+    return {
+      category: {
+        max: categoryMax,
+        values: formData.categoryValues,
+        total: formData.categoryValues.reduce((sum, val) => sum + val, 0)
+      },
+      essential: formData.essentialId ? {
+        max: essentialMax,
+        values: formData.essentialValues,
+        total: formData.essentialValues.reduce((sum, val) => sum + val, 0)
+      } : null
+    };
+  };
+
+  const preview = calculatePreview();
 
   // Update form data when question prop changes (for editing)
   useEffect(() => {
     if (question) {
       console.log("🔄 Updating form data for question:", question);
-      console.log("📊 Question essentialId:", question.essentialId, "type:", typeof question.essentialId);
+      console.log(
+        "📊 Question essentialId:",
+        question.essentialId,
+        "type:",
+        typeof question.essentialId
+      );
       console.log("📊 Question essentialValues:", question.essentialValues);
       console.log("📊 Question categoryValues:", question.categoryValues);
-      
+
       setFormData({
         text: question.text || "",
         category: question.category || "Meaning",
         categoryValues: question.categoryValues || [200, 400, 600, 800, 1000],
-        essentialId: question.essentialId ? question.essentialId.toString() : "",
+        essentialId: question.essentialId
+          ? question.essentialId.toString()
+          : "",
         essentialValues: question.essentialValues || [0, 3.75, 12.5, 18.75, 25],
         isActive: question.isActive ?? true,
       });
@@ -434,9 +466,18 @@ function QuestionModal({
       <div className="fixed inset-0 bg-black/70 z-40" onClick={onCancel} />
       <div className="relative z-50 w-full max-w-2xl bg-white rounded-lg shadow-lg">
         <div className="p-4 border-b bg-blue-400 text-white">
-          <h3 className="text-lg font-semibold text-black">
-            {question ? "Edit Question" : "Add New Question"}
-          </h3>
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-black">
+              {question ? "Edit Question" : "Add New Question"}
+            </h3>
+            <button
+              type="button"
+              onClick={() => setShowPreview(!showPreview)}
+              className="px-3 py-1 bg-white text-blue-600 rounded-md text-sm font-medium hover:bg-gray-100"
+            >
+              {showPreview ? "Hide Preview" : "Show Preview"}
+            </button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -594,6 +635,176 @@ function QuestionModal({
             </button>
           </div>
         </form>
+
+        {/* Real-time Preview Panel */}
+        {showPreview && preview && (
+          <div className="border-t bg-gray-50 p-4">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">📊 Scoring Preview</h4>
+            <div className="space-y-3">
+              {/* Category Scoring Preview */}
+              <div className="bg-white p-3 rounded-md border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-600">Category Scoring</span>
+                  <span className="text-xs text-gray-500">Max: {preview.category.max}</span>
+                </div>
+                <div className="flex gap-1 mb-2">
+                  {preview.category.values.map((value, index) => (
+                    <div
+                      key={index}
+                      className="flex-1 bg-blue-100 text-center py-1 rounded text-xs font-medium"
+                      style={{
+                        backgroundColor: `rgba(59, 130, 246, ${value / preview.category.max})`
+                      }}
+                    >
+                      {value}
+                    </div>
+                  ))}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Total possible: {preview.category.total} points
+                </div>
+              </div>
+
+              {/* Essential Scoring Preview */}
+              {preview.essential && (
+                <div className="bg-white p-3 rounded-md border">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-600">Essential Scoring</span>
+                    <span className="text-xs text-gray-500">Max: {preview.essential.max}</span>
+                  </div>
+                  <div className="flex gap-1 mb-2">
+                    {preview.essential.values.map((value, index) => (
+                      <div
+                        key={index}
+                        className="flex-1 bg-green-100 text-center py-1 rounded text-xs font-medium"
+                        style={{
+                          backgroundColor: `rgba(34, 197, 94, ${value / preview.essential.max})`
+                        }}
+                      >
+                        {value}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Total possible: {preview.essential.total} points
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Sortable Question Item Component
+function SortableQuestionItem({ 
+  question, 
+  onEdit, 
+  onDelete 
+}: { 
+  question: HappinessQuestion; 
+  onEdit: () => void; 
+  onDelete: () => void; 
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: question.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`border rounded-lg p-4 ${
+        question.isActive ? "bg-white" : "bg-gray-50 border-gray-200"
+      } ${isDragging ? "shadow-lg" : ""}`}
+    >
+      <div className="flex justify-between items-start">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 mb-2">
+            {/* Drag Handle */}
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab hover:cursor-grabbing p-1 text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+              </svg>
+            </div>
+            
+            <span className="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+              #{question.id}
+            </span>
+            <span
+              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                question.category === "Meaning"
+                  ? "bg-purple-100 text-purple-800"
+                  : question.category === "Delight"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : question.category === "Freedom"
+                  ? "bg-green-100 text-green-800"
+                  : question.category === "Engagement"
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {question.category}
+            </span>
+            <span
+              className={`px-2 py-1 text-xs font-medium rounded-full ${
+                question.isActive
+                  ? "bg-green-100 text-green-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {question.isActive ? "Active" : "Inactive"}
+            </span>
+            {question.essentialName && (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                {question.essentialName}
+              </span>
+            )}
+          </div>
+          <p className="text-gray-900 mb-2">{question.text}</p>
+          <div className="text-sm text-gray-600">
+            Category Values: [
+            {question.categoryValues?.join(", ") || "Not set"}]
+            {question.essentialValues && (
+              <div className="mt-1">
+                Essential Values: [{question.essentialValues.join(", ")}]
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-2 ml-4">
+          <button
+            onClick={onEdit}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium px-3 py-1 border border-blue-200 rounded hover:bg-blue-50"
+          >
+            Edit
+          </button>
+          {!question.isActive && (
+            <button
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-800 text-sm font-medium px-3 py-1 border border-red-200 rounded hover:bg-red-50"
+            >
+              Delete
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
