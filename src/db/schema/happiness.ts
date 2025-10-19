@@ -105,6 +105,7 @@ export const happinessResults = mysqlTable(
     userId: varchar("user_id", { length: 128 }), // nullable for anonymous surveys
     answers: json("answers").notNull(), // JSON array of {questionId, valueIndex, questionText?, answerText?}
     categoryTotals: json("category_totals").notNull(), // JSON object {Meaning: number, ...}
+    essentialTotals: json("essential_totals"), // JSON object {essential_1: number, essential_2: number, ...}
     code: varchar("code", { length: 10 }).notNull(), // 5-bit string like "01111"
     characterId: int("character_id")
       .notNull()

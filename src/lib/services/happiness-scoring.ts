@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { happinessQuestions, happinessCharacters } from "@/db/schema/happiness";
+import { happinessQuestions, happinessCharacters, essentials } from "@/db/schema/happiness";
 import { eq, inArray } from "drizzle-orm";
 
 export interface HappinessAnswer {
@@ -17,6 +17,7 @@ export interface CategoryTotals {
 
 export interface HappinessScore {
   categoryTotals: CategoryTotals;
+  essentialTotals: Record<string, number>;
   code: string;
   character: {
     id: number;
@@ -116,10 +117,19 @@ export async function computeHappinessScore(
     // Get all question IDs from answers
     const questionIds = answers.map((a) => a.questionId);
 
-    // Fetch questions in one batch query
+    // Fetch questions with essentials in one batch query
     const questions = await db
-      .select()
+      .select({
+        id: happinessQuestions.id,
+        text: happinessQuestions.text,
+        category: happinessQuestions.category,
+        categoryValues: happinessQuestions.categoryValues,
+        essentialId: happinessQuestions.essentialId,
+        essentialValues: happinessQuestions.essentialValues,
+        isActive: happinessQuestions.isActive,
+      })
       .from(happinessQuestions)
+      .leftJoin(essentials, eq(happinessQuestions.essentialId, essentials.id))
       .where(inArray(happinessQuestions.id, questionIds));
 
     // Create a map for quick question lookup
@@ -134,6 +144,9 @@ export async function computeHappinessScore(
       Vitality: 0,
     };
 
+    // Initialize essential totals
+    const essentialTotals: Record<string, number> = {};
+
     // Process each answer
     for (const answer of answers) {
       const question = questionMap.get(answer.questionId);
@@ -142,16 +155,29 @@ export async function computeHappinessScore(
         continue;
       }
 
-      // Parse values array (handle both JSON string and already parsed array)
-      const values = Array.isArray(question.values)
-        ? question.values
-        : (JSON.parse(question.values) as number[]);
+      // Parse category values array (handle both JSON string and already parsed array)
+      const categoryValues = Array.isArray(question.categoryValues)
+        ? question.categoryValues
+        : (JSON.parse(question.categoryValues as string) as number[]);
 
       // Get score for this answer (valueIndex is 1-based, array is 0-based)
       const scoreIndex = answer.valueIndex - 1;
-      if (scoreIndex >= 0 && scoreIndex < values.length) {
-        const score = values[scoreIndex];
-        categoryTotals[question.category as keyof CategoryTotals] += score;
+      if (scoreIndex >= 0 && scoreIndex < categoryValues.length) {
+        const categoryScore = categoryValues[scoreIndex];
+        categoryTotals[question.category as keyof CategoryTotals] += categoryScore;
+
+        // If question has an essential, also calculate essential score
+        if (question.essentialId && question.essentialValues) {
+          const essentialValues = Array.isArray(question.essentialValues)
+            ? question.essentialValues
+            : (JSON.parse(question.essentialValues as string) as number[]);
+
+          if (scoreIndex >= 0 && scoreIndex < essentialValues.length) {
+            const essentialScore = essentialValues[scoreIndex];
+            const essentialKey = `essential_${question.essentialId}`;
+            essentialTotals[essentialKey] = (essentialTotals[essentialKey] || 0) + essentialScore;
+          }
+        }
       } else {
         console.warn(
           `Invalid valueIndex ${answer.valueIndex} for question ${answer.questionId}`
@@ -173,6 +199,7 @@ export async function computeHappinessScore(
 
     return {
       categoryTotals,
+      essentialTotals,
       code,
       character,
     };

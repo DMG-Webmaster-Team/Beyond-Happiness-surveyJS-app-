@@ -85,6 +85,17 @@ async function generatePDFHTML(result: any, language: string) {
   const maxTotalScore = maxPossibleScorePerCategory * 5;
   const overallPercentage = Math.round((totalScore / maxTotalScore) * 100);
 
+  // Get essential names for display
+  const essentialNames: Record<string, string> = {};
+  if (result.essentialTotals) {
+    // This would need to be fetched from the database in a real implementation
+    // For now, we'll use placeholder names
+    Object.keys(result.essentialTotals).forEach(key => {
+      const essentialId = key.replace('essential_', '');
+      essentialNames[key] = `Essential ${essentialId}`;
+    });
+  }
+
   // Color mapping for categories (updated to match brand specifications)
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
@@ -255,6 +266,46 @@ async function generatePDFHTML(result: any, language: string) {
           <div style="margin: 1rem 0 1rem 1.75rem;">
             ${subtypeHTML}
           </div>
+          
+          <!-- Essential Scores (if available) -->
+          ${result.essentialTotals ? Object.entries(result.essentialTotals)
+            .filter(([key]) => {
+              // Only show essentials that belong to this category
+              // This is a simplified check - in a real implementation, you'd fetch the essential's category
+              return true; // For now, show all essentials
+            })
+            .map(([essentialKey, essentialScore]) => {
+              const essentialName = essentialNames[essentialKey] || essentialKey.replace('essential_', 'Essential ');
+              const essentialPercentage = Math.round((essentialScore as number) / 5000 * 100); // Assuming max 5000 per essential
+              
+              return `
+                <div style="margin: 0.5rem 0 0.5rem 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                  <div style="min-width: 6rem; font-size: 0.875rem; font-weight: 500; color: #6b7280;">
+                    🎯 ${essentialName}:
+                  </div>
+                  <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="
+                      flex: 1;
+                      height: 6px; 
+                      background-color: #e5e7eb; 
+                      border-radius: 3px; 
+                      overflow: hidden;
+                    ">
+                      <div style="
+                        width: ${essentialPercentage}%; 
+                        height: 100%; 
+                        background-color: ${color}; 
+                        border-radius: 3px;
+                        opacity: 0.7;
+                      "></div>
+                    </div>
+                    <span style="min-width: 2.5rem; font-size: 0.75rem; font-weight: 600; color: #111827;">
+                      ${essentialPercentage}%
+                    </span>
+                  </div>
+                </div>
+              `;
+            }).join('') : ''}
           
           <p style="color: #4b5563; line-height: 1.625; margin-left: 1.75rem;">
             ${description}

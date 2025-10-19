@@ -331,6 +331,7 @@ export async function POST(request: NextRequest) {
           : userId,
       answers: answers, // MySQL JSON column handles this automatically
       categoryTotals: scoreResult.categoryTotals, // MySQL JSON column handles this automatically
+      essentialTotals: scoreResult.essentialTotals, // MySQL JSON column handles this automatically
       code: scoreResult.code,
       characterId: scoreResult.character.id,
       language: selectedLanguage,
@@ -359,6 +360,7 @@ export async function POST(request: NextRequest) {
         avatarUrl: scoreResult.character.avatarUrl,
       },
       categoryTotals: scoreResult.categoryTotals,
+      essentialTotals: scoreResult.essentialTotals,
     });
   } catch (error) {
     console.error("Error submitting happiness results:", error);

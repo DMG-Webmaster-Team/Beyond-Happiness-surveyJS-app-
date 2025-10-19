@@ -151,6 +151,7 @@ export default function DownloadPDFButton({
             code: result.code,
             character: result.character,
             categoryTotals: result.categoryTotals,
+            essentialTotals: result.essentialTotals,
             answers: getStoredAnswers(), // Include answers for accurate subtype calculation
           },
           lang: language,

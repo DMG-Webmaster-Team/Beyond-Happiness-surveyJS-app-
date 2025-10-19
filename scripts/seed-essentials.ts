@@ -2,37 +2,37 @@ import { db } from "../src/db/client";
 import { essentials } from "../src/db/schema/happiness";
 import { v4 as uuidv4 } from "uuid";
 
-// Essential data - simplified structure
+// Essential data - simplified structure with proper typing
 const essentialsData = [
   // Meaning Category
-  { truth: "Meaning", name: "Higher Purpose" },
-  { truth: "Meaning", name: "Values" },
-  { truth: "Meaning", name: "Growth" },
-  { truth: "Meaning", name: "Appreciation" },
+  { truth: "Meaning" as const, name: "Higher Purpose" },
+  { truth: "Meaning" as const, name: "Values" },
+  { truth: "Meaning" as const, name: "Growth" },
+  { truth: "Meaning" as const, name: "Appreciation" },
 
   // Delight Category
-  { truth: "Delight", name: "Creativity" },
-  { truth: "Delight", name: "Playfulness" },
-  { truth: "Delight", name: "Enthusiasm" },
-  { truth: "Delight", name: "Surprise" },
+  { truth: "Delight" as const, name: "Creativity" },
+  { truth: "Delight" as const, name: "Playfulness" },
+  { truth: "Delight" as const, name: "Enthusiasm" },
+  { truth: "Delight" as const, name: "Surprise" },
 
   // Freedom Category
-  { truth: "Freedom", name: "Safety" },
-  { truth: "Freedom", name: "Personalization" },
-  { truth: "Freedom", name: "Flexibility" },
-  { truth: "Freedom", name: "Choice" },
+  { truth: "Freedom" as const, name: "Safety" },
+  { truth: "Freedom" as const, name: "Personalization" },
+  { truth: "Freedom" as const, name: "Flexibility" },
+  { truth: "Freedom" as const, name: "Choice" },
 
   // Engagement Category
-  { truth: "Engagement", name: "Cooperation" },
-  { truth: "Engagement", name: "Inclusivity" },
-  { truth: "Engagement", name: "Connectedness" },
-  { truth: "Engagement", name: "Socialization" },
+  { truth: "Engagement" as const, name: "Cooperation" },
+  { truth: "Engagement" as const, name: "Inclusivity" },
+  { truth: "Engagement" as const, name: "Connectedness" },
+  { truth: "Engagement" as const, name: "Socialization" },
 
   // Vitality Category
-  { truth: "Vitality", name: "Movement" },
-  { truth: "Vitality", name: "Rejuvenation" },
-  { truth: "Vitality", name: "Comfort" },
-  { truth: "Vitality", name: "Mindfulness" },
+  { truth: "Vitality" as const, name: "Movement" },
+  { truth: "Vitality" as const, name: "Rejuvenation" },
+  { truth: "Vitality" as const, name: "Comfort" },
+  { truth: "Vitality" as const, name: "Mindfulness" },
 ];
 
 async function seedEssentials() {
@@ -104,15 +104,11 @@ async function seedEssentials() {
     await db.insert(essentials).values(essentialsData);
     console.log(`✅ Inserted ${essentialsData.length} essentials`);
 
-    // Log summary by category
-    const categories = Array.from(
-      new Set(essentialsData.map((e) => e.category))
-    );
-    for (const category of categories) {
-      const count = essentialsData.filter(
-        (e) => e.category === category
-      ).length;
-      console.log(`  📁 ${category}: ${count} essentials`);
+    // Log summary by truth
+    const truths = Array.from(new Set(essentialsData.map((e) => e.truth)));
+    for (const truth of truths) {
+      const count = essentialsData.filter((e) => e.truth === truth).length;
+      console.log(`  📁 ${truth}: ${count} essentials`);
     }
 
     console.log("🎉 Essentials seeding completed!");
