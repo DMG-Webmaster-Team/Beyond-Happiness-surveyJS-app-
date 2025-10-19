@@ -797,7 +797,7 @@ export default function HappinessSurveyPage({
                     );
                     return;
                   }
-                  
+
                   // Basic email validation
                   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                   if (!emailRegex.test(collectedUserData.email)) {
@@ -808,7 +808,7 @@ export default function HappinessSurveyPage({
                     );
                     return;
                   }
-                  
+
                   setShowUserInfoCollection(false);
                 }}
                 className="w-full px-6 py-3 bg-blue-400 hover:bg-blue-600 text-white rounded-md font-medium transition-colors"

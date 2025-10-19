@@ -518,9 +518,9 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
                 <strong>Collect User Information</strong>
                 <div className="text-xs text-gray-500 mt-1">
                   Anyone with the link can take this survey without logging in.
-                  Users <strong>must provide</strong> their contact details (name, email,
-                  phone, gender, age) to access the survey. Assignment checks and cooldowns are
-                  ignored.
+                  Users <strong>must provide</strong> their contact details
+                  (name, email, phone, gender, age) to access the survey.
+                  Assignment checks and cooldowns are ignored.
                 </div>
               </label>
             </div>
