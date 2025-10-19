@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 // GET - List happiness questions with filters
 
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -24,9 +24,13 @@ export async function GET(request: NextRequest) {
     // Values are already parsed as JSON in MySQL, no need to parse again
     let parsedQuestions = questions.map((q) => ({
       ...q,
-      categoryValues: Array.isArray(q.categoryValues) ? q.categoryValues : JSON.parse(q.categoryValues),
-      essentialValues: q.essentialValues 
-        ? (Array.isArray(q.essentialValues) ? q.essentialValues : JSON.parse(q.essentialValues))
+      categoryValues: Array.isArray(q.categoryValues)
+        ? q.categoryValues
+        : JSON.parse(q.categoryValues),
+      essentialValues: q.essentialValues
+        ? Array.isArray(q.essentialValues)
+          ? q.essentialValues
+          : JSON.parse(q.essentialValues)
         : null,
     }));
 
@@ -66,7 +70,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, category, categoryValues, essentialId, essentialValues, isActive } = body;
+    const {
+      text,
+      category,
+      categoryValues,
+      essentialId,
+      essentialValues,
+      isActive,
+    } = body;
 
     // Validation
     if (!text || !category || !categoryValues) {
@@ -83,9 +94,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (essentialId && (!Array.isArray(essentialValues) || essentialValues.length !== 5)) {
+    if (
+      essentialId &&
+      (!Array.isArray(essentialValues) || essentialValues.length !== 5)
+    ) {
       return NextResponse.json(
-        { error: "Essential values must be an array of exactly 5 integers when essential is selected" },
+        {
+          error:
+            "Essential values must be an array of exactly 5 integers when essential is selected",
+        },
         { status: 400 }
       );
     }
@@ -153,10 +170,10 @@ export async function POST(request: NextRequest) {
         categoryValues: Array.isArray(insertedQuestion[0].categoryValues)
           ? insertedQuestion[0].categoryValues
           : JSON.parse(insertedQuestion[0].categoryValues),
-        essentialValues: insertedQuestion[0].essentialValues 
-          ? (Array.isArray(insertedQuestion[0].essentialValues)
-              ? insertedQuestion[0].essentialValues
-              : JSON.parse(insertedQuestion[0].essentialValues))
+        essentialValues: insertedQuestion[0].essentialValues
+          ? Array.isArray(insertedQuestion[0].essentialValues)
+            ? insertedQuestion[0].essentialValues
+            : JSON.parse(insertedQuestion[0].essentialValues)
           : null,
       },
     });

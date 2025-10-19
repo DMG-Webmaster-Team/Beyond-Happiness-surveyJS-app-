@@ -17,7 +17,13 @@ export const essentials = mysqlTable(
   "essentials",
   {
     id: int("id").primaryKey().autoincrement(),
-    truth: mysqlEnum("truth", ["Meaning", "Delight", "Freedom", "Engagement", "Vitality"]).notNull(),
+    truth: mysqlEnum("truth", [
+      "Meaning",
+      "Delight",
+      "Freedom",
+      "Engagement",
+      "Vitality",
+    ]).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   },
@@ -72,7 +78,11 @@ export const happinessSurveys = mysqlTable("happiness_surveys", {
   id: varchar("id", { length: 128 }).primaryKey(),
   title: varchar("title", { length: 255 }).notNull(),
   anonymous: boolean("anonymous").default(false),
-  accessMode: mysqlEnum("access_mode", ["login", "anonymous", "collect_info"]).default("login"), // Access mode for survey
+  accessMode: mysqlEnum("access_mode", [
+    "login",
+    "anonymous",
+    "collect_info",
+  ]).default("login"), // Access mode for survey
   retakeCooldownDays: int("retake_cooldown_days").default(0), // Days before user can retake
   companyId: varchar("company_id", { length: 128 }), // Company assignment
   companyName: varchar("company_name", { length: 255 }), // Company name for easier queries

@@ -336,10 +336,12 @@ function QuestionModal({
   useEffect(() => {
     const fetchEssentials = async () => {
       if (!formData.category) return;
-      
+
       setLoadingEssentials(true);
       try {
-        const response = await fetch(`/api/essentials?category=${formData.category}`);
+        const response = await fetch(
+          `/api/essentials?truth=${formData.category}`
+        );
         const data = await response.json();
         if (data.success) {
           setEssentials(data.data);
@@ -356,7 +358,7 @@ function QuestionModal({
 
   // Reset essentialId when category changes
   useEffect(() => {
-    setFormData(prev => ({ ...prev, essentialId: "" }));
+    setFormData((prev) => ({ ...prev, essentialId: "" }));
   }, [formData.category]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -373,7 +375,11 @@ function QuestionModal({
       return;
     }
 
-    if (formData.essentialId && formData.essentialValues && formData.essentialValues.some((v) => isNaN(v) || v < 0)) {
+    if (
+      formData.essentialId &&
+      formData.essentialValues &&
+      formData.essentialValues.some((v) => isNaN(v) || v < 0)
+    ) {
       alert("All essential values must be positive numbers");
       return;
     }
@@ -435,11 +441,13 @@ function QuestionModal({
               value={formData.essentialId}
               onChange={(e) => {
                 const selectedEssentialId = e.target.value;
-                setFormData({ 
-                  ...formData, 
+                setFormData({
+                  ...formData,
                   essentialId: selectedEssentialId || "",
                   // Reset essential values when essential changes
-                  essentialValues: selectedEssentialId ? [100, 300, 500, 700, 900] : undefined
+                  essentialValues: selectedEssentialId
+                    ? [100, 300, 500, 700, 900]
+                    : undefined,
                 });
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -453,7 +461,9 @@ function QuestionModal({
               ))}
             </select>
             {loadingEssentials && (
-              <p className="text-sm text-gray-500 mt-1">Loading essentials...</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Loading essentials...
+              </p>
             )}
             {formData.essentialId && (
               <p className="text-sm text-green-600 mt-1">

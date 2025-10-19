@@ -6,7 +6,7 @@ import { eq } from "drizzle-orm";
 // PUT - Update happiness question
 
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -21,17 +21,30 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { text, category, categoryValues, essentialId, essentialValues, isActive } = body;
+    const {
+      text,
+      category,
+      categoryValues,
+      essentialId,
+      essentialValues,
+      isActive,
+    } = body;
 
     // Validation
-    if (categoryValues && (!Array.isArray(categoryValues) || categoryValues.length !== 5)) {
+    if (
+      categoryValues &&
+      (!Array.isArray(categoryValues) || categoryValues.length !== 5)
+    ) {
       return NextResponse.json(
         { error: "Category values must be an array of exactly 5 integers" },
         { status: 400 }
       );
     }
 
-    if (essentialValues && (!Array.isArray(essentialValues) || essentialValues.length !== 5)) {
+    if (
+      essentialValues &&
+      (!Array.isArray(essentialValues) || essentialValues.length !== 5)
+    ) {
       return NextResponse.json(
         { error: "Essential values must be an array of exactly 5 integers" },
         { status: 400 }
@@ -61,9 +74,11 @@ export async function PUT(
 
     if (text !== undefined) updateData.text = text;
     if (category !== undefined) updateData.category = category;
-    if (categoryValues !== undefined) updateData.categoryValues = categoryValues; // MySQL JSON column handles this
+    if (categoryValues !== undefined)
+      updateData.categoryValues = categoryValues; // MySQL JSON column handles this
     if (essentialId !== undefined) updateData.essentialId = essentialId || null;
-    if (essentialValues !== undefined) updateData.essentialValues = essentialValues || null;
+    if (essentialValues !== undefined)
+      updateData.essentialValues = essentialValues || null;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     // Update the question (MySQL doesn't support .returning())
@@ -93,10 +108,10 @@ export async function PUT(
         categoryValues: Array.isArray(updatedQuestion[0].categoryValues)
           ? updatedQuestion[0].categoryValues
           : JSON.parse(updatedQuestion[0].categoryValues),
-        essentialValues: updatedQuestion[0].essentialValues 
-          ? (Array.isArray(updatedQuestion[0].essentialValues)
-              ? updatedQuestion[0].essentialValues
-              : JSON.parse(updatedQuestion[0].essentialValues))
+        essentialValues: updatedQuestion[0].essentialValues
+          ? Array.isArray(updatedQuestion[0].essentialValues)
+            ? updatedQuestion[0].essentialValues
+            : JSON.parse(updatedQuestion[0].essentialValues)
           : null,
       },
     });

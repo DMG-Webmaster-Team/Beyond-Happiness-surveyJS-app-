@@ -6,20 +6,29 @@ import { eq } from "drizzle-orm";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get("category");
+    const category = searchParams.get("truth");
 
     if (!category) {
       return NextResponse.json(
-        { error: "Category parameter is required" },
+        { error: "Truth parameter is required" },
         { status: 400 }
       );
     }
 
     // Validate category
-    const validCategories = ["Meaning", "Delight", "Freedom", "Engagement", "Vitality"];
+    const validCategories = [
+      "Meaning",
+      "Delight",
+      "Freedom",
+      "Engagement",
+      "Vitality",
+    ];
     if (!validCategories.includes(category)) {
       return NextResponse.json(
-        { error: "Invalid category. Must be one of: " + validCategories.join(", ") },
+        {
+          error:
+            "Invalid truth. Must be one of: " + validCategories.join(", "),
+        },
         { status: 400 }
       );
     }

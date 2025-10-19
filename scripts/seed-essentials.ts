@@ -41,7 +41,7 @@ async function seedEssentials() {
 
     // Drop and recreate table to ensure correct structure
     await db.execute(`DROP TABLE IF EXISTS essentials`);
-    
+
     await db.execute(`
       CREATE TABLE essentials (
         id INT AUTO_INCREMENT PRIMARY KEY,
