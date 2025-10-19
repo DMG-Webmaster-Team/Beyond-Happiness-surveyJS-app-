@@ -344,6 +344,25 @@ function QuestionModal({
   const [essentials, setEssentials] = useState<Essential[]>([]);
   const [loadingEssentials, setLoadingEssentials] = useState(false);
 
+  // Update form data when question prop changes (for editing)
+  useEffect(() => {
+    if (question) {
+      console.log("🔄 Updating form data for question:", question);
+      console.log("📊 Question essentialId:", question.essentialId, "type:", typeof question.essentialId);
+      console.log("📊 Question essentialValues:", question.essentialValues);
+      console.log("📊 Question categoryValues:", question.categoryValues);
+      
+      setFormData({
+        text: question.text || "",
+        category: question.category || "Meaning",
+        categoryValues: question.categoryValues || [200, 400, 600, 800, 1000],
+        essentialId: question.essentialId ? question.essentialId.toString() : "",
+        essentialValues: question.essentialValues || [0, 3.75, 12.5, 18.75, 25],
+        isActive: question.isActive ?? true,
+      });
+    }
+  }, [question]);
+
   // Fetch essentials when category changes
   useEffect(() => {
     const fetchEssentials = async () => {
