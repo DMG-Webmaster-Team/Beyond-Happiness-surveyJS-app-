@@ -11,17 +11,15 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import {
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -146,31 +144,31 @@ export default function QuestionsTab() {
     if (dragOrder.length === 0) {
       return [...questions].sort((a, b) => a.id - b.id);
     }
-    
+
     // Sort by drag order
     const orderedQuestions = [...questions].sort((a, b) => {
       const aIndex = dragOrder.indexOf(a.id);
       const bIndex = dragOrder.indexOf(b.id);
-      
+
       if (aIndex === -1 && bIndex === -1) return a.id - b.id;
       if (aIndex === -1) return 1;
       if (bIndex === -1) return -1;
       return aIndex - bIndex;
     });
-    
+
     return orderedQuestions;
   }, [data?.questions, dragOrder]);
 
   // Handle drag end
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
-    
+
     if (active.id !== over.id) {
-      const oldIndex = sortedQuestions.findIndex(q => q.id === active.id);
-      const newIndex = sortedQuestions.findIndex(q => q.id === over.id);
-      
+      const oldIndex = sortedQuestions.findIndex((q) => q.id === active.id);
+      const newIndex = sortedQuestions.findIndex((q) => q.id === over.id);
+
       const newOrder = arrayMove(sortedQuestions, oldIndex, newIndex);
-      setDragOrder(newOrder.map(q => q.id));
+      setDragOrder(newOrder.map((q) => q.id));
     }
   };
 
@@ -271,7 +269,7 @@ export default function QuestionsTab() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={sortedQuestions.map(q => q.id)}
+          items={sortedQuestions.map((q) => q.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className="space-y-3">
@@ -344,30 +342,6 @@ function QuestionModal({
 
   const [essentials, setEssentials] = useState<Essential[]>([]);
   const [loadingEssentials, setLoadingEssentials] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-
-  // Calculate real-time scoring preview
-  const calculatePreview = () => {
-    if (!formData.categoryValues || !formData.essentialValues) return null;
-    
-    const categoryMax = Math.max(...formData.categoryValues);
-    const essentialMax = Math.max(...formData.essentialValues);
-    
-    return {
-      category: {
-        max: categoryMax,
-        values: formData.categoryValues,
-        total: formData.categoryValues.reduce((sum, val) => sum + val, 0)
-      },
-      essential: formData.essentialId ? {
-        max: essentialMax,
-        values: formData.essentialValues,
-        total: formData.essentialValues.reduce((sum, val) => sum + val, 0)
-      } : null
-    };
-  };
-
-  const preview = calculatePreview();
 
   // Update form data when question prop changes (for editing)
   useEffect(() => {
@@ -391,6 +365,16 @@ function QuestionModal({
           : "",
         essentialValues: question.essentialValues || [0, 3.75, 12.5, 18.75, 25],
         isActive: question.isActive ?? true,
+      });
+    } else {
+      // Reset form when no question (adding new)
+      setFormData({
+        text: "",
+        category: "Meaning",
+        categoryValues: [200, 400, 600, 800, 1000],
+        essentialId: "",
+        essentialValues: [0, 3.75, 12.5, 18.75, 25],
+        isActive: true,
       });
     }
   }, [question]);
@@ -466,21 +450,12 @@ function QuestionModal({
       <div className="fixed inset-0 bg-black/70 z-40" onClick={onCancel} />
       <div className="relative z-50 w-full max-w-2xl bg-white rounded-lg shadow-lg">
         <div className="p-4 border-b bg-blue-400 text-white">
-          <div className="flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-black">
-              {question ? "Edit Question" : "Add New Question"}
-            </h3>
-            <button
-              type="button"
-              onClick={() => setShowPreview(!showPreview)}
-              className="px-3 py-1 bg-white text-blue-600 rounded-md text-sm font-medium hover:bg-gray-100"
-            >
-              {showPreview ? "Hide Preview" : "Show Preview"}
-            </button>
-          </div>
+          <h3 className="text-lg font-semibold text-black">
+            {question ? "Edit Question" : "Add New Question"}
+          </h3>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-6 space-y-4" key={question?.id || 'new'}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Question Text *
@@ -635,78 +610,20 @@ function QuestionModal({
             </button>
           </div>
         </form>
-
-        {/* Real-time Preview Panel */}
-        {showPreview && preview && (
-          <div className="border-t bg-gray-50 p-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">📊 Scoring Preview</h4>
-            <div className="space-y-3">
-              {/* Category Scoring Preview */}
-              <div className="bg-white p-3 rounded-md border">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-gray-600">Category Scoring</span>
-                  <span className="text-xs text-gray-500">Max: {preview.category.max}</span>
-                </div>
-                <div className="flex gap-1 mb-2">
-                  {preview.category.values.map((value, index) => (
-                    <div
-                      key={index}
-                      className="flex-1 bg-blue-100 text-center py-1 rounded text-xs font-medium"
-                      style={{
-                        backgroundColor: `rgba(59, 130, 246, ${value / preview.category.max})`
-                      }}
-                    >
-                      {value}
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-gray-500">
-                  Total possible: {preview.category.total} points
-                </div>
-              </div>
-
-              {/* Essential Scoring Preview */}
-              {preview.essential && (
-                <div className="bg-white p-3 rounded-md border">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium text-gray-600">Essential Scoring</span>
-                    <span className="text-xs text-gray-500">Max: {preview.essential.max}</span>
-                  </div>
-                  <div className="flex gap-1 mb-2">
-                    {preview.essential.values.map((value, index) => (
-                      <div
-                        key={index}
-                        className="flex-1 bg-green-100 text-center py-1 rounded text-xs font-medium"
-                        style={{
-                          backgroundColor: `rgba(34, 197, 94, ${value / preview.essential.max})`
-                        }}
-                      >
-                        {value}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Total possible: {preview.essential.total} points
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
 // Sortable Question Item Component
-function SortableQuestionItem({ 
-  question, 
-  onEdit, 
-  onDelete 
-}: { 
-  question: HappinessQuestion; 
-  onEdit: () => void; 
-  onDelete: () => void; 
+function SortableQuestionItem({
+  question,
+  onEdit,
+  onDelete,
+}: {
+  question: HappinessQuestion;
+  onEdit: () => void;
+  onDelete: () => void;
 }) {
   const {
     attributes,
@@ -744,7 +661,7 @@ function SortableQuestionItem({
                 <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
               </svg>
             </div>
-            
+
             <span className="text-lg font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
               #{question.id}
             </span>
@@ -780,8 +697,8 @@ function SortableQuestionItem({
           </div>
           <p className="text-gray-900 mb-2">{question.text}</p>
           <div className="text-sm text-gray-600">
-            Category Values: [
-            {question.categoryValues?.join(", ") || "Not set"}]
+            Category Values: [{question.categoryValues?.join(", ") || "Not set"}
+            ]
             {question.essentialValues && (
               <div className="mt-1">
                 Essential Values: [{question.essentialValues.join(", ")}]
