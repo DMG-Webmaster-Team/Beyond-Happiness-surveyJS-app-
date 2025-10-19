@@ -250,7 +250,8 @@ export default function QuestionsTab() {
                 </div>
                 <p className="text-gray-900 mb-2">{question.text}</p>
                 <div className="text-sm text-gray-600">
-                  Category Values: [{question.categoryValues?.join(", ") || "Not set"}]
+                  Category Values: [
+                  {question.categoryValues?.join(", ") || "Not set"}]
                   {question.essentialValues && (
                     <div className="mt-1">
                       Essential Values: [{question.essentialValues.join(", ")}]
@@ -470,7 +471,7 @@ function QuestionModal({
                 Loading essentials...
               </p>
             )}
-            {formData.essentialId && (
+            {formData.essentialId && formData.essentialId !== "" && (
               <p className="text-sm text-green-600 mt-1">
                 ✓ Values will be auto-populated from selected Essential
               </p>
@@ -500,7 +501,7 @@ function QuestionModal({
             </div>
           </div>
 
-          {formData.essentialId && (
+          {formData.essentialId && formData.essentialId !== "" && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Essential Values (5 numbers for essential scoring) *
