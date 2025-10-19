@@ -11,24 +11,18 @@ interface HappinessQuestion {
   id: number;
   text: string;
   category: string;
-  values: number[];
-  essentialId?: string;
+  categoryValues: number[];
+  essentialId?: number;
+  essentialValues?: number[];
   isActive: boolean;
   createdAt: number;
   updatedAt: number;
 }
 
 interface Essential {
-  id: string;
-  title: string;
-  merit?: string;
-  intent?: string;
-  maxScore: number;
-  value1: number;
-  value2: number;
-  value3: number;
-  value4: number;
-  value5: number;
+  id: number;
+  name: string;
+  truth: string;
 }
 
 export default function QuestionsTab() {
@@ -329,8 +323,9 @@ function QuestionModal({
   const [formData, setFormData] = useState({
     text: question?.text || "",
     category: question?.category || "Meaning",
-    values: question?.values || [200, 400, 600, 800, 1000],
+    categoryValues: question?.categoryValues || [200, 400, 600, 800, 1000],
     essentialId: question?.essentialId || "",
+    essentialValues: question?.essentialValues || [100, 300, 500, 700, 900],
     isActive: question?.isActive ?? true,
   });
 
@@ -373,8 +368,13 @@ function QuestionModal({
       return;
     }
 
-    if (formData.values.some((v) => isNaN(v) || v < 0)) {
-      alert("All values must be positive numbers");
+    if (formData.categoryValues.some((v) => isNaN(v) || v < 0)) {
+      alert("All category values must be positive numbers");
+      return;
+    }
+
+    if (formData.essentialId && formData.essentialValues && formData.essentialValues.some((v) => isNaN(v) || v < 0)) {
+      alert("All essential values must be positive numbers");
       return;
     }
 
@@ -435,19 +435,11 @@ function QuestionModal({
               value={formData.essentialId}
               onChange={(e) => {
                 const selectedEssentialId = e.target.value;
-                const selectedEssential = essentials.find(e => e.id === selectedEssentialId);
-                
                 setFormData({ 
                   ...formData, 
-                  essentialId: selectedEssentialId,
-                  // Auto-populate values from selected essential
-                  values: selectedEssential ? [
-                    selectedEssential.value1,
-                    selectedEssential.value2,
-                    selectedEssential.value3,
-                    selectedEssential.value4,
-                    selectedEssential.value5
-                  ] : formData.values
+                  essentialId: selectedEssentialId || "",
+                  // Reset essential values when essential changes
+                  essentialValues: selectedEssentialId ? [100, 300, 500, 700, 900] : undefined
                 });
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -456,7 +448,7 @@ function QuestionModal({
               <option value="">Select an Essential (optional)</option>
               {essentials.map((essential) => (
                 <option key={essential.id} value={essential.id}>
-                  {essential.title}{essential.merit ? `: ${essential.merit}` : ""}
+                  {essential.name}
                 </option>
               ))}
             </select>
@@ -472,18 +464,18 @@ function QuestionModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Values (5 numbers for scoring) *
+              Category Values (5 numbers for category scoring) *
             </label>
             <div className="grid grid-cols-5 gap-2">
-              {formData.values.map((value, index) => (
+              {formData.categoryValues.map((value, index) => (
                 <input
                   key={index}
                   type="number"
                   value={value}
                   onChange={(e) => {
-                    const newValues = [...formData.values];
+                    const newValues = [...formData.categoryValues];
                     newValues[index] = parseInt(e.target.value) || 0;
-                    setFormData({ ...formData, values: newValues });
+                    setFormData({ ...formData, categoryValues: newValues });
                   }}
                   className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                   min="0"
@@ -492,6 +484,31 @@ function QuestionModal({
               ))}
             </div>
           </div>
+
+          {formData.essentialId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Essential Values (5 numbers for essential scoring) *
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {formData.essentialValues.map((value, index) => (
+                  <input
+                    key={index}
+                    type="number"
+                    value={value}
+                    onChange={(e) => {
+                      const newValues = [...formData.essentialValues];
+                      newValues[index] = parseInt(e.target.value) || 0;
+                      setFormData({ ...formData, essentialValues: newValues });
+                    }}
+                    className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    min="0"
+                    required
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center">
             <input

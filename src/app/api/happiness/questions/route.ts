@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
     // Values are already parsed as JSON in MySQL, no need to parse again
     let parsedQuestions = questions.map((q) => ({
       ...q,
-      values: Array.isArray(q.values) ? q.values : JSON.parse(q.values),
+      categoryValues: Array.isArray(q.categoryValues) ? q.categoryValues : JSON.parse(q.categoryValues),
+      essentialValues: q.essentialValues 
+        ? (Array.isArray(q.essentialValues) ? q.essentialValues : JSON.parse(q.essentialValues))
+        : null,
     }));
 
     // Apply client-side filtering since Drizzle ORM filtering can be complex
@@ -63,19 +66,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, category, values, essentialId, isActive } = body;
+    const { text, category, categoryValues, essentialId, essentialValues, isActive } = body;
 
     // Validation
-    if (!text || !category || !values) {
+    if (!text || !category || !categoryValues) {
       return NextResponse.json(
-        { error: "Missing required fields: text, category, values" },
+        { error: "Missing required fields: text, category, categoryValues" },
         { status: 400 }
       );
     }
 
-    if (!Array.isArray(values) || values.length !== 5) {
+    if (!Array.isArray(categoryValues) || categoryValues.length !== 5) {
       return NextResponse.json(
-        { error: "Values must be an array of exactly 5 integers" },
+        { error: "Category values must be an array of exactly 5 integers" },
+        { status: 400 }
+      );
+    }
+
+    if (essentialId && (!Array.isArray(essentialValues) || essentialValues.length !== 5)) {
+      return NextResponse.json(
+        { error: "Essential values must be an array of exactly 5 integers when essential is selected" },
         { status: 400 }
       );
     }
@@ -105,8 +115,9 @@ export async function POST(request: NextRequest) {
       id: nextId,
       text,
       category,
-      values,
+      categoryValues,
       essentialId,
+      essentialValues,
       isActive: isActive !== undefined ? isActive : true,
     });
 
@@ -115,8 +126,9 @@ export async function POST(request: NextRequest) {
       id: nextId,
       text,
       category,
-      values: values, // MySQL JSON column handles this automatically
+      categoryValues: categoryValues, // MySQL JSON column handles this automatically
       essentialId: essentialId || null,
+      essentialValues: essentialValues || null,
       isActive: isActive !== undefined ? isActive : true,
     });
 
@@ -138,9 +150,14 @@ export async function POST(request: NextRequest) {
       success: true,
       question: {
         ...insertedQuestion[0],
-        values: Array.isArray(insertedQuestion[0].values)
-          ? insertedQuestion[0].values
-          : JSON.parse(insertedQuestion[0].values),
+        categoryValues: Array.isArray(insertedQuestion[0].categoryValues)
+          ? insertedQuestion[0].categoryValues
+          : JSON.parse(insertedQuestion[0].categoryValues),
+        essentialValues: insertedQuestion[0].essentialValues 
+          ? (Array.isArray(insertedQuestion[0].essentialValues)
+              ? insertedQuestion[0].essentialValues
+              : JSON.parse(insertedQuestion[0].essentialValues))
+          : null,
       },
     });
   } catch (error) {

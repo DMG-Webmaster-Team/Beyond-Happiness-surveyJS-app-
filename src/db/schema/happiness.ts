@@ -16,24 +16,13 @@ import { sql } from "drizzle-orm";
 export const essentials = mysqlTable(
   "essentials",
   {
-    id: char("id", { length: 36 }).primaryKey(), // UUID
-    category: varchar("category", { length: 50 }).notNull(), // Meaning, Delight, Freedom, Engagement, Vitality
-    title: varchar("title", { length: 100 }).notNull(), // Essential title (e.g. "Higher Purpose")
-    merit: text("merit"), // Optional: e.g. "Committing to the community"
-    intent: text("intent"), // Optional explanation
-    maxScore: int("max_score").notNull(), // e.g. 25
-    value1: int("value_1").notNull(), // baseline score for choice 1 (e.g. 0)
-    value2: int("value_2").notNull(), // e.g. 150
-    value3: int("value_3").notNull(),
-    value4: int("value_4").notNull(),
-    value5: int("value_5").notNull(),
+    id: int("id").primaryKey().autoincrement(),
+    truth: mysqlEnum("truth", ["Meaning", "Delight", "Freedom", "Engagement", "Vitality"]).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-    updatedAt: timestamp("updated_at")
-      .default(sql`CURRENT_TIMESTAMP`)
-      .onUpdateNow(),
   },
   (table) => ({
-    categoryIdx: index("essentials_category_idx").on(table.category),
+    truthIdx: index("essentials_truth_idx").on(table.truth),
   })
 );
 
@@ -44,8 +33,9 @@ export const happinessQuestions = mysqlTable(
     id: int("id").primaryKey().autoincrement(),
     text: text("text").notNull(),
     category: varchar("category", { length: 100 }).notNull(),
-    values: json("values").notNull(), // JSON array of [int, int, int, int, int]
-    essentialId: char("essential_id", { length: 36 }).references(() => essentials.id), // Reference to essentials table
+    categoryValues: json("category_values").notNull(), // JSON array of [int, int, int, int, int] for category scoring
+    essentialId: int("essential_id").references(() => essentials.id), // Reference to essentials table
+    essentialValues: json("essential_values"), // JSON array of [int, int, int, int, int] for essential scoring (optional)
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at")

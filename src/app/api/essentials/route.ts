@@ -24,23 +24,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch essentials by category
+    // Fetch essentials by truth (category)
     const categoryEssentials = await db
       .select({
         id: essentials.id,
-        title: essentials.title,
-        merit: essentials.merit,
-        intent: essentials.intent,
-        maxScore: essentials.maxScore,
-        value1: essentials.value1,
-        value2: essentials.value2,
-        value3: essentials.value3,
-        value4: essentials.value4,
-        value5: essentials.value5,
+        name: essentials.name,
+        truth: essentials.truth,
       })
       .from(essentials)
-      .where(eq(essentials.category, category))
-      .orderBy(essentials.title);
+      .where(eq(essentials.truth, category))
+      .orderBy(essentials.name);
 
     return NextResponse.json({
       success: true,
