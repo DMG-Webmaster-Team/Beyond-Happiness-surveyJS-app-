@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { happinessQuestions } from "@/db/schema/happiness";
+import { happinessQuestions, essentials } from "@/db/schema/happiness";
 import { eq, like, desc, asc } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
@@ -31,11 +31,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch all questions first - sorted by ID ascending (1, 2, 3, ...)
+    // Fetch all questions with essential names - sorted by ID ascending (1, 2, 3, ...)
     console.log("📊 Fetching questions from database...");
     const questions = await db
-      .select()
+      .select({
+        id: happinessQuestions.id,
+        text: happinessQuestions.text,
+        category: happinessQuestions.category,
+        categoryValues: happinessQuestions.categoryValues,
+        essentialId: happinessQuestions.essentialId,
+        essentialValues: happinessQuestions.essentialValues,
+        isActive: happinessQuestions.isActive,
+        createdAt: happinessQuestions.createdAt,
+        updatedAt: happinessQuestions.updatedAt,
+        essentialName: essentials.name,
+      })
       .from(happinessQuestions)
+      .leftJoin(essentials, eq(happinessQuestions.essentialId, essentials.id))
       .orderBy(asc(happinessQuestions.id));
 
     console.log(`📋 Fetched ${questions.length} questions from database`);

@@ -14,6 +14,7 @@ interface HappinessQuestion {
   categoryValues: number[];
   essentialId?: number;
   essentialValues?: number[];
+  essentialName?: string;
   isActive: boolean;
   createdAt: number;
   updatedAt: number;
@@ -247,6 +248,11 @@ export default function QuestionsTab() {
                   >
                     {question.isActive ? "Active" : "Inactive"}
                   </span>
+                  {question.essentialName && (
+                    <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                      {question.essentialName}
+                    </span>
+                  )}
                 </div>
                 <p className="text-gray-900 mb-2">{question.text}</p>
                 <div className="text-sm text-gray-600">
@@ -390,7 +396,18 @@ function QuestionModal({
       return;
     }
 
-    onSave(formData);
+    // Map formData to API expected format
+    const apiPayload = {
+      text: formData.text,
+      category: formData.category,
+      categoryValues: formData.categoryValues,
+      essentialId: formData.essentialId || null,
+      essentialValues: formData.essentialValues || null,
+      isActive: formData.isActive,
+    };
+
+    console.log("📤 Sending payload to API:", apiPayload);
+    onSave(apiPayload);
   };
 
   return (
