@@ -159,6 +159,45 @@ export default function QuestionsTab() {
     return orderedQuestions;
   }, [data?.questions, dragOrder]);
 
+  // Calculate stats grouped by Truth → Essentials
+  const truthStats = useMemo(() => {
+    const questions = data?.questions || [];
+    const grouped: Record<string, Record<string, { count: number; totalScore: number; essentialName: string }>> = {};
+
+    questions.forEach((q) => {
+      if (!grouped[q.category]) {
+        grouped[q.category] = {};
+      }
+
+      const essentialKey = q.essentialId ? `essential_${q.essentialId}` : 'no_essential';
+      const essentialName = q.essentialName || 'No Essential';
+
+      if (!grouped[q.category][essentialKey]) {
+        grouped[q.category][essentialKey] = {
+          count: 0,
+          totalScore: 0,
+          essentialName: essentialName
+        };
+      }
+
+      grouped[q.category][essentialKey].count += 1;
+      // Add the maximum essential value (last value in array, typically 25)
+      if (q.essentialValues && Array.isArray(q.essentialValues)) {
+        grouped[q.category][essentialKey].totalScore += q.essentialValues[q.essentialValues.length - 1] || 0;
+      }
+    });
+
+    // Convert to array format for rendering
+    return Object.entries(grouped).map(([category, essentials]) => ({
+      name: category,
+      essentials: Object.entries(essentials).map(([key, data]) => ({
+        name: data.essentialName,
+        count: data.count,
+        totalScore: data.totalScore
+      }))
+    }));
+  }, [data?.questions]);
+
   // Handle drag end
   const handleDragEnd = (event: any) => {
     const { active, over } = event;
@@ -261,6 +300,35 @@ export default function QuestionsTab() {
           <option value="false">Inactive Only</option>
         </select>
       </div>
+
+      {/* Dashboard Stats - Truth & Essential Overview */}
+      {truthStats.length > 0 && (
+        <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">📊 Question Distribution by Category & Essential</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {truthStats.map((truth) => (
+              <div key={truth.name} className="bg-white p-4 rounded-lg shadow-sm border">
+                <h4 className="font-bold text-base mb-3 text-gray-800 border-b pb-2">
+                  {truth.name}
+                </h4>
+                <ul className="space-y-2">
+                  {truth.essentials.map((ess, idx) => (
+                    <li key={idx} className="text-sm flex items-start">
+                      <span className="text-green-500 mr-2">✓</span>
+                      <div className="flex-1">
+                        <span className="font-medium text-gray-700">{ess.name}</span>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {ess.count} question{ess.count !== 1 ? 's' : ''} • Max Score: {ess.totalScore}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Questions List - Drag and Drop Enabled */}
       <DndContext
@@ -379,7 +447,7 @@ function QuestionModal({
     }
   }, [question]);
 
-  // Fetch essentials when category changes
+  // Fetch essentials when category changes or modal opens
   useEffect(() => {
     const fetchEssentials = async () => {
       if (!formData.category) return;
@@ -392,6 +460,7 @@ function QuestionModal({
         const data = await response.json();
         if (data.success) {
           setEssentials(data.data);
+          console.log("✅ Fetched essentials for category:", formData.category, data.data);
         }
       } catch (error) {
         console.error("Error fetching essentials:", error);
@@ -403,10 +472,13 @@ function QuestionModal({
     fetchEssentials();
   }, [formData.category]);
 
-  // Reset essentialId when category changes
+  // Reset essentialId when category changes (but not on initial load for edit)
   useEffect(() => {
-    setFormData((prev) => ({ ...prev, essentialId: "" }));
-  }, [formData.category]);
+    // Only reset if we're not loading a question for editing
+    if (!question) {
+      setFormData((prev) => ({ ...prev, essentialId: "", essentialValues: [0, 3.75, 12.5, 18.75, 25] }));
+    }
+  }, [formData.category, question]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -455,7 +527,11 @@ function QuestionModal({
           </h3>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4" key={question?.id || 'new'}>
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 space-y-4"
+          key={question?.id || "new"}
+        >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Question Text *
