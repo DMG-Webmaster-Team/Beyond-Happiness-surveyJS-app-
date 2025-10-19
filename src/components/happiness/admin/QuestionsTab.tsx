@@ -331,7 +331,7 @@ function QuestionModal({
     category: question?.category || "Meaning",
     categoryValues: question?.categoryValues || [200, 400, 600, 800, 1000],
     essentialId: question?.essentialId || "",
-    essentialValues: question?.essentialValues || [100, 300, 500, 700, 900],
+    essentialValues: question?.essentialValues || [0, 6.25, 12.5, 18.75, 25],
     isActive: question?.isActive ?? true,
   });
 
@@ -448,11 +448,11 @@ function QuestionModal({
                   key={index}
                   type="number"
                   value={value}
-                   onChange={(e) => {
-                     const newValues = [...formData.categoryValues];
-                     newValues[index] = parseFloat(e.target.value) || 0;
-                     setFormData({ ...formData, categoryValues: newValues });
-                   }}
+                  onChange={(e) => {
+                    const newValues = [...formData.categoryValues];
+                    newValues[index] = parseFloat(e.target.value) || 0;
+                    setFormData({ ...formData, categoryValues: newValues });
+                  }}
                   className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                   min="0"
                   step="0.01"
@@ -475,7 +475,7 @@ function QuestionModal({
                   essentialId: selectedEssentialId || "",
                   // Reset essential values when essential changes
                   essentialValues: selectedEssentialId
-                    ? [100, 300, 500, 700, 900]
+                    ? [0, 6.25, 12.5, 18.75, 25]
                     : [],
                 });
               }}
@@ -512,11 +512,11 @@ function QuestionModal({
                     key={index}
                     type="number"
                     value={value}
-                     onChange={(e) => {
-                       const newValues = [...formData.essentialValues];
-                       newValues[index] = parseFloat(e.target.value) || 0;
-                       setFormData({ ...formData, essentialValues: newValues });
-                     }}
+                    onChange={(e) => {
+                      const newValues = [...formData.essentialValues];
+                      newValues[index] = parseFloat(e.target.value) || 0;
+                      setFormData({ ...formData, essentialValues: newValues });
+                    }}
                     className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                     min="0"
                     step="0.01"
