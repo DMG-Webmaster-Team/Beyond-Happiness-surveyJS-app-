@@ -8,8 +8,34 @@ import {
   timestamp,
   index,
   mysqlEnum,
+  char,
 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
+
+// Essentials Table
+export const essentials = mysqlTable(
+  "essentials",
+  {
+    id: char("id", { length: 36 }).primaryKey(), // UUID
+    category: varchar("category", { length: 50 }).notNull(), // Meaning, Delight, Freedom, Engagement, Vitality
+    title: varchar("title", { length: 100 }).notNull(), // Essential title (e.g. "Higher Purpose")
+    merit: text("merit"), // Optional: e.g. "Committing to the community"
+    intent: text("intent"), // Optional explanation
+    maxScore: int("max_score").notNull(), // e.g. 25
+    value1: int("value_1").notNull(), // baseline score for choice 1 (e.g. 0)
+    value2: int("value_2").notNull(), // e.g. 150
+    value3: int("value_3").notNull(),
+    value4: int("value_4").notNull(),
+    value5: int("value_5").notNull(),
+    createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: timestamp("updated_at")
+      .default(sql`CURRENT_TIMESTAMP`)
+      .onUpdateNow(),
+  },
+  (table) => ({
+    categoryIdx: index("essentials_category_idx").on(table.category),
+  })
+);
 
 // Happiness Questions Table
 export const happinessQuestions = mysqlTable(
@@ -19,6 +45,7 @@ export const happinessQuestions = mysqlTable(
     text: text("text").notNull(),
     category: varchar("category", { length: 100 }).notNull(),
     values: json("values").notNull(), // JSON array of [int, int, int, int, int]
+    essentialId: char("essential_id", { length: 36 }).references(() => essentials.id), // Reference to essentials table
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
     updatedAt: timestamp("updated_at")
@@ -123,12 +150,14 @@ export const happinessAssignments = mysqlTable(
   })
 );
 
+export type Essential = typeof essentials.$inferSelect;
 export type HappinessQuestion = typeof happinessQuestions.$inferSelect;
 export type HappinessCharacter = typeof happinessCharacters.$inferSelect;
 export type HappinessSurvey = typeof happinessSurveys.$inferSelect;
 export type HappinessResult = typeof happinessResults.$inferSelect;
 export type HappinessAssignment = typeof happinessAssignments.$inferSelect;
 
+export type NewEssential = typeof essentials.$inferInsert;
 export type NewHappinessQuestion = typeof happinessQuestions.$inferInsert;
 export type NewHappinessCharacter = typeof happinessCharacters.$inferInsert;
 export type NewHappinessSurvey = typeof happinessSurveys.$inferInsert;

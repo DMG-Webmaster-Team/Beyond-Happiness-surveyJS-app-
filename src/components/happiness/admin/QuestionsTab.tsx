@@ -12,9 +12,23 @@ interface HappinessQuestion {
   text: string;
   category: string;
   values: number[];
+  essentialId?: string;
   isActive: boolean;
   createdAt: number;
   updatedAt: number;
+}
+
+interface Essential {
+  id: string;
+  title: string;
+  merit?: string;
+  intent?: string;
+  maxScore: number;
+  value1: number;
+  value2: number;
+  value3: number;
+  value4: number;
+  value5: number;
 }
 
 export default function QuestionsTab() {
@@ -316,8 +330,39 @@ function QuestionModal({
     text: question?.text || "",
     category: question?.category || "Meaning",
     values: question?.values || [200, 400, 600, 800, 1000],
+    essentialId: question?.essentialId || "",
     isActive: question?.isActive ?? true,
   });
+
+  const [essentials, setEssentials] = useState<Essential[]>([]);
+  const [loadingEssentials, setLoadingEssentials] = useState(false);
+
+  // Fetch essentials when category changes
+  useEffect(() => {
+    const fetchEssentials = async () => {
+      if (!formData.category) return;
+      
+      setLoadingEssentials(true);
+      try {
+        const response = await fetch(`/api/essentials?category=${formData.category}`);
+        const data = await response.json();
+        if (data.success) {
+          setEssentials(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching essentials:", error);
+      } finally {
+        setLoadingEssentials(false);
+      }
+    };
+
+    fetchEssentials();
+  }, [formData.category]);
+
+  // Reset essentialId when category changes
+  useEffect(() => {
+    setFormData(prev => ({ ...prev, essentialId: "" }));
+  }, [formData.category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -380,6 +425,49 @@ function QuestionModal({
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Essential
+            </label>
+            <select
+              value={formData.essentialId}
+              onChange={(e) => {
+                const selectedEssentialId = e.target.value;
+                const selectedEssential = essentials.find(e => e.id === selectedEssentialId);
+                
+                setFormData({ 
+                  ...formData, 
+                  essentialId: selectedEssentialId,
+                  // Auto-populate values from selected essential
+                  values: selectedEssential ? [
+                    selectedEssential.value1,
+                    selectedEssential.value2,
+                    selectedEssential.value3,
+                    selectedEssential.value4,
+                    selectedEssential.value5
+                  ] : formData.values
+                });
+              }}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              disabled={loadingEssentials}
+            >
+              <option value="">Select an Essential (optional)</option>
+              {essentials.map((essential) => (
+                <option key={essential.id} value={essential.id}>
+                  {essential.title}{essential.merit ? `: ${essential.merit}` : ""}
+                </option>
+              ))}
+            </select>
+            {loadingEssentials && (
+              <p className="text-sm text-gray-500 mt-1">Loading essentials...</p>
+            )}
+            {formData.essentialId && (
+              <p className="text-sm text-green-600 mt-1">
+                ✓ Values will be auto-populated from selected Essential
+              </p>
+            )}
           </div>
 
           <div>

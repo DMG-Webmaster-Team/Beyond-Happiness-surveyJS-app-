@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { text, category, values, isActive } = body;
+    const { text, category, values, essentialId, isActive } = body;
 
     // Validation
     if (!text || !category || !values) {
@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
       text,
       category,
       values,
+      essentialId,
       isActive: isActive !== undefined ? isActive : true,
     });
 
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
       text,
       category,
       values: values, // MySQL JSON column handles this automatically
+      essentialId: essentialId || null,
       isActive: isActive !== undefined ? isActive : true,
     });
 

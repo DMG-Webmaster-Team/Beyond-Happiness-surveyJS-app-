@@ -21,7 +21,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { text, category, values, isActive } = body;
+    const { text, category, values, essentialId, isActive } = body;
 
     // Validation
     if (values && (!Array.isArray(values) || values.length !== 5)) {
@@ -55,6 +55,7 @@ export async function PUT(
     if (text !== undefined) updateData.text = text;
     if (category !== undefined) updateData.category = category;
     if (values !== undefined) updateData.values = values; // MySQL JSON column handles this
+    if (essentialId !== undefined) updateData.essentialId = essentialId || null;
     if (isActive !== undefined) updateData.isActive = isActive;
 
     // Update the question (MySQL doesn't support .returning())
