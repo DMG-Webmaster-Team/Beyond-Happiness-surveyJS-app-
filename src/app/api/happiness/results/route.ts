@@ -363,9 +363,9 @@ export async function POST(request: NextRequest) {
       fullError: error,
     });
     return NextResponse.json(
-      { 
+      {
         error: "Failed to submit results",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
     );
