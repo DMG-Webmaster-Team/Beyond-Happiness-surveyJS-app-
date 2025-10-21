@@ -380,6 +380,12 @@ export default function HappinessResultsPage({
     totalScore: 0,
   };
 
+  // Use unified scores if available, otherwise fall back to legacy calculation
+  const subtypeScores = unifiedScore?.subtypeScores || {};
+  const categoryPercentages = displayData.categoryPercentages;
+  const overallPercentage = displayData.overallPercentage;
+  const totalScore = displayData.totalScore;
+
   // Circular Progress Component
   const CircularProgress = ({
     percentage,
@@ -468,12 +474,6 @@ export default function HappinessResultsPage({
     code: result.code,
   });
   console.log("Category totals:", result.categoryTotals);
-
-  // Use unified scores if available, otherwise fall back to legacy calculation
-  const subtypeScores = unifiedScore?.subtypeScores || {};
-  const categoryPercentages = displayData.categoryPercentages;
-  const overallPercentage = displayData.overallPercentage;
-  const totalScore = displayData.totalScore;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -763,13 +763,11 @@ export default function HappinessResultsPage({
                     </h4>
 
                     {(["A", "B", "C", "D"] as const).map((subtype) => {
-                      const subtypeScore =
-                        subtypeScores[category.name][subtype];
-                      // Each subtype has 2 questions, each with max value of 2000, so max = 4000
-                      const subtypeMaxScore = 4000;
-                      const subtypePercentage = Math.round(
-                        (subtypeScore / subtypeMaxScore) * 100
-                      );
+                      // Use unified scores if available, otherwise fall back to proportional distribution
+                      const subtypeScore = unifiedScore?.subtypeScores?.[category.name]?.[subtype] || 
+                        Math.round((category.score * 0.25)); // Fallback: 25% of category score
+                      const subtypePercentage = unifiedScore?.subtypePercentages?.[category.name]?.[subtype] || 
+                        Math.round((subtypeScore / 1000) * 100); // Fallback calculation
 
                       // Get Essential name instead of Type A/B/C/D
                       const essentialName = getEssentialName(
