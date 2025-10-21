@@ -764,10 +764,14 @@ export default function HappinessResultsPage({
 
                     {(["A", "B", "C", "D"] as const).map((subtype) => {
                       // Use unified scores if available, otherwise fall back to proportional distribution
-                      const subtypeScore = unifiedScore?.subtypeScores?.[category.name]?.[subtype] || 
-                        Math.round((category.score * 0.25)); // Fallback: 25% of category score
-                      const subtypePercentage = unifiedScore?.subtypePercentages?.[category.name]?.[subtype] || 
-                        Math.round((subtypeScore / 1000) * 100); // Fallback calculation
+                      const subtypeScore =
+                        unifiedScore?.subtypeScores?.[category.name]?.[
+                          subtype
+                        ] || Math.round(category.score * 0.25); // Fallback: 25% of category score
+                      const subtypePercentage =
+                        unifiedScore?.subtypePercentages?.[category.name]?.[
+                          subtype
+                        ] || Math.round((subtypeScore / 1000) * 100); // Fallback calculation
 
                       // Get Essential name instead of Type A/B/C/D
                       const essentialName = getEssentialName(
