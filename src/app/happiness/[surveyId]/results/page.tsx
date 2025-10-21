@@ -6,7 +6,6 @@ import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import DownloadPDFButton from "@/components/DownloadPDFButton";
 import { getEssentialName } from "@/lib/essential-mappings";
-import { calculateUnifiedHappinessScore } from "@/lib/services/unified-happiness-scoring";
 import {
   BarChart,
   Bar,
@@ -340,12 +339,24 @@ export default function HappinessResultsPage({
     if (result?.answers) {
       const calculateScores = async () => {
         try {
-          const unified = await calculateUnifiedHappinessScore(
-            result.answers || [],
-            selectedLanguage
-          );
-          setUnifiedScore(unified);
-          console.log("📊 Unified scores calculated:", unified);
+          const response = await fetch("/api/happiness/unified-scoring", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              answers: result.answers || [],
+              language: selectedLanguage,
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setUnifiedScore(data.data);
+            console.log("📊 Unified scores calculated:", data.data);
+          } else {
+            console.error("Failed to calculate unified scores");
+          }
         } catch (error) {
           console.error("Error calculating unified scores:", error);
         }
@@ -356,14 +367,14 @@ export default function HappinessResultsPage({
 
   // Use unified scores if available, otherwise fall back to legacy calculation
   const displayData = unifiedScore || {
-    categoryPercentages: result?.categoryTotals ? Object.entries(result.categoryTotals).map(
-      ([category, score]) => ({
-        name: category,
-        value: Math.round(((score as number) / 10000) * 100), // Legacy max score
-        score: score as number,
-        color: getCategoryColor(category).hex,
-      })
-    ) : [],
+    categoryPercentages: result?.categoryTotals
+      ? Object.entries(result.categoryTotals).map(([category, score]) => ({
+          name: category,
+          value: Math.round(((score as number) / 10000) * 100), // Legacy max score
+          score: score as number,
+          color: getCategoryColor(category).hex,
+        }))
+      : [],
     subtypePercentages: {},
     overallPercentage: 0,
     totalScore: 0,
