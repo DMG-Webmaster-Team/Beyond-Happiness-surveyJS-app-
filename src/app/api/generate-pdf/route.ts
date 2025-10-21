@@ -204,19 +204,24 @@ async function generatePDFHTML(result: any, language: string) {
           return `
           <div style="margin: 0.5rem 0 0.5rem ${
             language === "ar" ? "0" : "2rem"
-          }; display: flex; align-items: center; gap: 0.75rem;">
+          }; display: flex; ${
+            language === "ar" ? "flex-direction: row-reverse;" : ""
+          } align-items: center; gap: 0.75rem;">
             <div style="width: 10rem; font-size: 0.875rem; font-weight: 500; color: #374151; ${
               language === "ar" ? "text-align: right;" : "text-align: left;"
             }">
               ${subtypeLabel}:
             </div>
-            <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
+            <div style="flex: 1; display: flex; ${
+              language === "ar" ? "flex-direction: row-reverse;" : ""
+            } align-items: center; gap: 0.5rem;">
               <div style="
                 flex: 1;
                 height: 6px; 
                 background-color: #e5e7eb; 
                 border-radius: 3px; 
                 overflow: hidden;
+                ${language === "ar" ? "direction: rtl;" : ""}
               ">
                 <div style="
                   width: ${subtypePercentage}%; 
@@ -224,6 +229,7 @@ async function generatePDFHTML(result: any, language: string) {
                   background-color: ${color}; 
                   border-radius: 3px;
                   transition: width 0.3s ease;
+                  ${language === "ar" ? "margin-left: auto;" : ""}
                 "></div>
               </div>
               <span style="min-width: 2.5rem; font-size: 0.75rem; font-weight: 600; color: #111827;">

@@ -891,13 +891,18 @@ export default function HappinessResultsPage({
                             {essentialName}:
                           </div>
 
-                          <div className="flex-1 flex items-center gap-2">
+                          <div className={`flex-1 flex items-center gap-2 ${
+                            selectedLanguage === "ar" ? "flex-row-reverse" : ""
+                          }`}>
                             <div className="flex-1 bg-gray-200 rounded-full h-2">
                               <div
-                                className="h-2 rounded-full transition-all duration-700 ease-out"
+                                className={`h-2 rounded-full transition-all duration-700 ease-out ${
+                                  selectedLanguage === "ar" ? "ml-auto" : ""
+                                }`}
                                 style={{
                                   width: `${subtypePercentage}%`,
                                   backgroundColor: colors.hex,
+                                  direction: selectedLanguage === "ar" ? "rtl" : "ltr",
                                 }}
                               />
                             </div>
