@@ -312,7 +312,7 @@ export default function QuestionsTab() {
 
       {/* Dashboard Stats - Truth & Essential Overview */}
       {truthStats.length > 0 && (
-        <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-purple-50">
+        <div className="mb-6 p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
             📊 Question Distribution by Category & Essential
           </h3>
@@ -421,7 +421,7 @@ function QuestionModal({
     category: question?.category || "Meaning",
     categoryValues: question?.categoryValues || [200, 400, 600, 800, 1000],
     essentialId: question?.essentialId || "",
-    essentialValues: question?.essentialValues || [0, 3.75, 12.5, 18.75, 25],
+    essentialValues: question?.essentialValues || [0, 3.125, 6.25, 9.375, 12.5],
     isActive: question?.isActive ?? true,
   });
 
@@ -448,7 +448,7 @@ function QuestionModal({
         essentialId: question.essentialId
           ? question.essentialId.toString()
           : "",
-        essentialValues: question.essentialValues || [0, 3.75, 12.5, 18.75, 25],
+        essentialValues: question.essentialValues || [0, 3.125, 6.25, 9.375, 12.5],
         isActive: question.isActive ?? true,
       });
     } else {
@@ -458,7 +458,7 @@ function QuestionModal({
         category: "Meaning",
         categoryValues: [200, 400, 600, 800, 1000],
         essentialId: "",
-        essentialValues: [0, 3.75, 12.5, 18.75, 25],
+        essentialValues: [0, 3.125, 6.25, 9.375, 12.5],
         isActive: true,
       });
     }
@@ -500,7 +500,7 @@ function QuestionModal({
       setFormData((prev) => ({
         ...prev,
         essentialId: "",
-        essentialValues: [0, 3.75, 12.5, 18.75, 25],
+        essentialValues: [0, 3.125, 6.25, 9.375, 12.5],
       }));
     }
   }, [formData.category, question]);
@@ -534,9 +534,12 @@ function QuestionModal({
       category: formData.category,
       categoryValues: formData.categoryValues,
       essentialId: formData.essentialId || null,
-      essentialValues: (formData.essentialId && formData.essentialValues && formData.essentialValues.length === 5) 
-        ? formData.essentialValues 
-        : null,
+      essentialValues:
+        formData.essentialId &&
+        formData.essentialValues &&
+        formData.essentialValues.length === 5
+          ? formData.essentialValues
+          : null,
       isActive: formData.isActive,
     };
 
@@ -630,7 +633,7 @@ function QuestionModal({
                   essentialId: selectedEssentialId || "",
                   // Reset essential values when essential changes
                   essentialValues: selectedEssentialId
-                    ? [0, 3.75, 12.5, 18.75, 25]
+                    ? [0, 3.125, 6.25, 9.375, 12.5]
                     : [],
                 });
               }}

@@ -107,11 +107,11 @@ export async function PUT(
         ...updatedQuestion[0],
         categoryValues: Array.isArray(updatedQuestion[0].categoryValues)
           ? updatedQuestion[0].categoryValues
-          : JSON.parse(updatedQuestion[0].categoryValues),
+          : JSON.parse(updatedQuestion[0].categoryValues as string) as number[],
         essentialValues: updatedQuestion[0].essentialValues
           ? Array.isArray(updatedQuestion[0].essentialValues)
             ? updatedQuestion[0].essentialValues
-            : JSON.parse(updatedQuestion[0].essentialValues)
+            : JSON.parse(updatedQuestion[0].essentialValues as string) as number[]
           : null,
       },
     });

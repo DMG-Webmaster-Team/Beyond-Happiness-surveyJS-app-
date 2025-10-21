@@ -59,12 +59,12 @@ export async function GET(request: NextRequest) {
       if (q.categoryValues) {
         categoryValues = Array.isArray(q.categoryValues)
           ? q.categoryValues
-          : JSON.parse(q.categoryValues);
+          : JSON.parse(q.categoryValues as string) as number[];
       } else if ((q as any).values) {
         // Fallback to old 'values' field during migration
         categoryValues = Array.isArray((q as any).values)
           ? (q as any).values
-          : JSON.parse((q as any).values);
+          : JSON.parse((q as any).values as string) as number[];
       } else {
         // Default values if neither exists
         categoryValues = [200, 400, 600, 800, 1000];
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
         essentialValues: q.essentialValues
           ? Array.isArray(q.essentialValues)
             ? q.essentialValues
-            : JSON.parse(q.essentialValues)
+            : JSON.parse(q.essentialValues as string) as number[]
           : null,
       };
     });
@@ -228,11 +228,11 @@ export async function POST(request: NextRequest) {
         ...insertedQuestion[0],
         categoryValues: Array.isArray(insertedQuestion[0].categoryValues)
           ? insertedQuestion[0].categoryValues
-          : JSON.parse(insertedQuestion[0].categoryValues),
+          : JSON.parse(insertedQuestion[0].categoryValues as string) as number[],
         essentialValues: insertedQuestion[0].essentialValues
           ? Array.isArray(insertedQuestion[0].essentialValues)
             ? insertedQuestion[0].essentialValues
-            : JSON.parse(insertedQuestion[0].essentialValues)
+            : JSON.parse(insertedQuestion[0].essentialValues as string) as number[]
           : null,
       },
     });

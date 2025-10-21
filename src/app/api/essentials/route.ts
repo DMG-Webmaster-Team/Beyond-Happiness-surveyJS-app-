@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
         truth: essentials.truth,
       })
       .from(essentials)
-      .where(eq(essentials.truth, category))
+      .where(eq(essentials.truth, category as "Meaning" | "Delight" | "Freedom" | "Engagement" | "Vitality"))
       .orderBy(essentials.name);
 
     return NextResponse.json({
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const allEssentials = await db
       .select()
       .from(essentials)
-      .orderBy(essentials.category, essentials.title);
+      .orderBy(essentials.truth, essentials.name);
 
     return NextResponse.json({
       success: true,
