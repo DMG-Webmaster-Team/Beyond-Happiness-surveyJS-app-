@@ -1081,156 +1081,41 @@
       ]
     }
   ],
-  "choicesByCategory": {
-    "Meaning": [
-      {
-        "value": 1,
-        "text": {
-          "en": "Higher Purpose",
-          "ar": "هدف أسمى"
-        }
-      },
-      {
-        "value": 2,
-        "text": {
-          "en": "Values",
-          "ar": "القيم"
-        }
-      },
-      {
-        "value": 3,
-        "text": {
-          "en": "Growth",
-          "ar": "النمو"
-        }
-      },
-      {
-        "value": 4,
-        "text": {
-          "en": "Appreciation",
-          "ar": "التقدير"
-        }
+  "choices": [
+    {
+      "value": 1,
+      "text": {
+        "en": "Never / Strongly Disagree",
+        "ar": "أبداً / أعارض بشدة"
       }
-    ],
-    "Delight": [
-      {
-        "value": 1,
-        "text": {
-          "en": "Creativity",
-          "ar": "الإبداع"
-        }
-      },
-      {
-        "value": 2,
-        "text": {
-          "en": "Playfulness",
-          "ar": "المرح"
-        }
-      },
-      {
-        "value": 3,
-        "text": {
-          "en": "Enthusiasm",
-          "ar": "الحماس"
-        }
-      },
-      {
-        "value": 4,
-        "text": {
-          "en": "Surprise",
-          "ar": "المفاجأة"
-        }
+    },
+    {
+      "value": 2,
+      "text": {
+        "en": "Rarely / Disagree",
+        "ar": "نادراً / أعارض"
       }
-    ],
-    "Freedom": [
-      {
-        "value": 1,
-        "text": {
-          "en": "Safety",
-          "ar": "الأمان"
-        }
-      },
-      {
-        "value": 2,
-        "text": {
-          "en": "Emergency Prep",
-          "ar": "الاستعداد للطوارئ"
-        }
-      },
-      {
-        "value": 3,
-        "text": {
-          "en": "Personalization",
-          "ar": "التخصيص"
-        }
-      },
-      {
-        "value": 4,
-        "text": {
-          "en": "Flexibility",
-          "ar": "المرونة"
-        }
+    },
+    {
+      "value": 3,
+      "text": {
+        "en": "Sometimes / Neutral",
+        "ar": "أحياناً / محايد"
       }
-    ],
-    "Engagement": [
-      {
-        "value": 1,
-        "text": {
-          "en": "Cooperation",
-          "ar": "التعاون"
-        }
-      },
-      {
-        "value": 2,
-        "text": {
-          "en": "Inclusivity",
-          "ar": "الشمولية"
-        }
-      },
-      {
-        "value": 3,
-        "text": {
-          "en": "Connectedness",
-          "ar": "الترابط"
-        }
-      },
-      {
-        "value": 4,
-        "text": {
-          "en": "Socialization",
-          "ar": "التواصل الاجتماعي"
-        }
+    },
+    {
+      "value": 4,
+      "text": {
+        "en": "Often / Agree",
+        "ar": "غالباً / أوافق"
       }
-    ],
-    "Vitality": [
-      {
-        "value": 1,
-        "text": {
-          "en": "Movement",
-          "ar": "الحركة"
-        }
-      },
-      {
-        "value": 2,
-        "text": {
-          "en": "Rejuvenation",
-          "ar": "التجديد"
-        }
-      },
-      {
-        "value": 3,
-        "text": {
-          "en": "Comfort",
-          "ar": "الراحة"
-        }
-      },
-      {
-        "value": 4,
-        "text": {
-          "en": "Mindfulness",
-          "ar": "اليقظة الذهنية"
-        }
+    },
+    {
+      "value": 5,
+      "text": {
+        "en": "Always / Strongly Agree",
+        "ar": "دائماً / أوافق بشدة"
       }
-    ]
-  }
+    }
+  ]
 }

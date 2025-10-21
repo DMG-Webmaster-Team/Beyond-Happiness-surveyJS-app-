@@ -74,9 +74,6 @@ export default function HappinessSurveyPage({
   const [multilingualChoices, setMultilingualChoices] = useState<
     MultilingualChoice[]
   >([]);
-  const [choicesByCategory, setChoicesByCategory] = useState<
-    Record<string, MultilingualChoice[]>
-  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessCheckComplete, setAccessCheckComplete] = useState(false);
@@ -322,9 +319,7 @@ export default function HappinessSurveyPage({
           const multilingualData = await multilingualResponse.json();
           console.log("🔍 Multilingual questions fetched:", multilingualData);
           setQuestionsData(multilingualData);
-          // Store both legacy choices and new category-based choices
           setMultilingualChoices(multilingualData.choices || []);
-          setChoicesByCategory(multilingualData.choicesByCategory || {});
         } else {
           // Fallback to original API
           const response = await fetch("/api/happiness/questions");
@@ -348,10 +343,7 @@ export default function HappinessSurveyPage({
 
   const handleAnswer = (valueIndex: number) => {
     const currentQuestion = questions[currentQuestionIndex];
-    // Get category-specific choices or fall back to generic choices
-    const categoryChoices =
-      choicesByCategory[currentQuestion.category] || multilingualChoices;
-    const selectedChoice = categoryChoices.find((c) => c.value === valueIndex);
+    const selectedChoice = multilingualChoices.find((c) => c.value === valueIndex);
 
     const newAnswer: SurveyAnswer = {
       questionId: currentQuestion.id,
@@ -902,48 +894,42 @@ export default function HappinessSurveyPage({
             </h2>
 
             <div className="space-y-3">
-              {(() => {
-                // Get category-specific choices or fall back to generic choices
-                const currentChoices =
-                  choicesByCategory[currentQuestion.category] ||
-                  multilingualChoices;
+              {multilingualChoices.length > 0
+                ? multilingualChoices.map((choice, index) => {
+                    const label = getLocalizedText(choice.text);
+                    const isSelected = answers.some(
+                      (a) =>
+                        a.questionId === currentQuestion.id &&
+                        a.valueIndex === choice.value
+                    );
 
-                return currentChoices.length > 0
-                  ? currentChoices.map((choice, index) => {
-                      const label = getLocalizedText(choice.text);
-                      const isSelected = answers.some(
-                        (a) =>
-                          a.questionId === currentQuestion.id &&
-                          a.valueIndex === choice.value
-                      );
-
-                      return (
-                        <button
-                          key={choice.value}
-                          onClick={() => handleAnswer(choice.value)}
-                          className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
-                            isSelected
-                              ? "border-blue-400 bg-blue-50 text-blue-900"
-                              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-medium">{label}</span>
-                            <div
-                              className={`w-5 h-5 rounded-full border-2 ${
-                                isSelected
-                                  ? "border-blue-400 bg-blue-400"
-                                  : "border-gray-300"
-                              }`}
-                            >
-                              {isSelected && (
-                                <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                              )}
-                            </div>
+                    return (
+                      <button
+                        key={choice.value}
+                        onClick={() => handleAnswer(choice.value)}
+                        className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
+                          isSelected
+                            ? "border-blue-400 bg-blue-50 text-blue-900"
+                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{label}</span>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 ${
+                              isSelected
+                                ? "border-blue-400 bg-blue-400"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
                           </div>
-                        </button>
-                      );
-                    })
+                        </div>
+                      </button>
+                    );
+                  })
                   : [
                       {
                         value: 1,
@@ -1006,10 +992,9 @@ export default function HappinessSurveyPage({
                               )}
                             </div>
                           </div>
-                        </button>
-                      );
-                    });
-              })()}
+                      </button>
+                    );
+                  })}
             </div>
           </div>
 
