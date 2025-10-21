@@ -6,6 +6,7 @@ import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import DownloadPDFButton from "@/components/DownloadPDFButton";
 import { getEssentialName } from "@/lib/essential-mappings";
+import { calculateUnifiedHappinessScore } from "@/lib/services/unified-happiness-scoring";
 import {
   BarChart,
   Bar,
@@ -331,120 +332,41 @@ export default function HappinessResultsPage({
     return "text-red-600 font-medium"; // Below average
   };
 
-  // Calculate subtype scores based on actual question responses
-  const calculateSubtypeScores = (answers: any[], categoryTotals: any) => {
-    // Question mapping: Each category has 8 questions, grouped into 4 subtypes (2 questions each)
-    const categoryQuestionMapping = {
-      Meaning: { A: [1, 2], B: [3, 4], C: [5, 6], D: [7, 8] },
-      Delight: { A: [9, 10], B: [11, 12], C: [13, 14], D: [15, 16] },
-      Freedom: { A: [17, 18], B: [19, 20], C: [21, 22], D: [23, 24] },
-      Engagement: { A: [25, 26], B: [27, 28], C: [29, 30], D: [31, 32] },
-      Vitality: { A: [33, 34], B: [35, 36], C: [37, 38], D: [39, 40] },
-    };
+  // Use unified scoring service for consistent calculations
+  const [unifiedScore, setUnifiedScore] = useState<any>(null);
 
-    // If no answers provided, fall back to proportional distribution
-    if (!answers || !Array.isArray(answers)) {
-      console.log(
-        "📊 Web: No individual answers available, using proportional distribution"
-      );
-      const subtypeScores: any = {};
-      Object.entries(categoryTotals).forEach(([category, totalScore]) => {
-        subtypeScores[category] = {
-          A: Math.round((totalScore as number) * 0.25),
-          B: Math.round((totalScore as number) * 0.25),
-          C: Math.round((totalScore as number) * 0.25),
-          D: Math.round((totalScore as number) * 0.25),
-        };
-      });
-      return subtypeScores;
+  // Calculate unified scores when result data is available
+  useEffect(() => {
+    if (result?.answers) {
+      const calculateScores = async () => {
+        try {
+          const unified = await calculateUnifiedHappinessScore(
+            result.answers || [],
+            selectedLanguage
+          );
+          setUnifiedScore(unified);
+          console.log("📊 Unified scores calculated:", unified);
+        } catch (error) {
+          console.error("Error calculating unified scores:", error);
+        }
+      };
+      calculateScores();
     }
+  }, [result?.answers, selectedLanguage]);
 
-    // For web interface, we'll use the stored answers from localStorage
-    // In a real implementation, you'd fetch question data and calculate properly
-    // For now, we'll simulate the calculation based on the question mapping
-    const subtypeScores: any = {};
-    Object.keys(categoryQuestionMapping).forEach((category) => {
-      subtypeScores[category] = { A: 0, B: 0, C: 0, D: 0 };
-    });
-
-    // Simulate subtype calculation based on answers
-    // This is a simplified version - in production you'd fetch question values from the database
-    answers.forEach((answer: any) => {
-      const questionId = answer.questionId;
-      const valueIndex = answer.valueIndex;
-
-      // Determine category and subtype based on question ID
-      let category = "";
-      let subtype = "";
-
-      if (questionId >= 1 && questionId <= 8) {
-        category = "Meaning";
-        if (questionId <= 2) subtype = "A";
-        else if (questionId <= 4) subtype = "B";
-        else if (questionId <= 6) subtype = "C";
-        else subtype = "D";
-      } else if (questionId >= 9 && questionId <= 16) {
-        category = "Delight";
-        if (questionId <= 10) subtype = "A";
-        else if (questionId <= 12) subtype = "B";
-        else if (questionId <= 14) subtype = "C";
-        else subtype = "D";
-      } else if (questionId >= 17 && questionId <= 24) {
-        category = "Freedom";
-        if (questionId <= 18) subtype = "A";
-        else if (questionId <= 20) subtype = "B";
-        else if (questionId <= 22) subtype = "C";
-        else subtype = "D";
-      } else if (questionId >= 25 && questionId <= 32) {
-        category = "Engagement";
-        if (questionId <= 26) subtype = "A";
-        else if (questionId <= 28) subtype = "B";
-        else if (questionId <= 30) subtype = "C";
-        else subtype = "D";
-      } else if (questionId >= 33 && questionId <= 40) {
-        category = "Vitality";
-        if (questionId <= 34) subtype = "A";
-        else if (questionId <= 36) subtype = "B";
-        else if (questionId <= 38) subtype = "C";
-        else subtype = "D";
-      }
-
-      if (category && subtype && subtypeScores[category]) {
-        // Estimate score based on valueIndex (1-5 maps to different score ranges)
-        // This is a simplified calculation - in production you'd use actual question values
-        const estimatedScore = valueIndex * 400; // Rough estimate
-        subtypeScores[category][subtype] += estimatedScore;
-      }
-    });
-
-    console.log(
-      "📊 Web: Calculated subtype scores from answers:",
-      subtypeScores
-    );
-    return subtypeScores;
-  };
-
-  // Calculate percentages and prepare chart data
-  const calculatePercentages = (categoryTotals: any) => {
-    const maxPossibleScore = 10000; // Assuming max possible score per category is 10000
-    const totalMaxScore = maxPossibleScore * 5; // 5 categories
-
-    const categoryPercentages = Object.entries(categoryTotals).map(
+  // Use unified scores if available, otherwise fall back to legacy calculation
+  const displayData = unifiedScore || {
+    categoryPercentages: result?.categoryTotals ? Object.entries(result.categoryTotals).map(
       ([category, score]) => ({
         name: category,
-        value: Math.round(((score as number) / maxPossibleScore) * 100),
+        value: Math.round(((score as number) / 10000) * 100), // Legacy max score
         score: score as number,
         color: getCategoryColor(category).hex,
       })
-    );
-
-    const totalScore = Object.values(categoryTotals).reduce(
-      (sum: number, score) => sum + (score as number),
-      0
-    );
-    const overallPercentage = Math.round((totalScore / totalMaxScore) * 100);
-
-    return { categoryPercentages, overallPercentage, totalScore };
+    ) : [],
+    subtypePercentages: {},
+    overallPercentage: 0,
+    totalScore: 0,
   };
 
   // Circular Progress Component
@@ -536,40 +458,11 @@ export default function HappinessResultsPage({
   });
   console.log("Category totals:", result.categoryTotals);
 
-  const { categoryPercentages, overallPercentage, totalScore } =
-    calculatePercentages(result.categoryTotals);
-
-  // Get answers from localStorage or result object for subtype calculation
-  const getStoredAnswers = () => {
-    try {
-      // First try to get answers from localStorage
-      const storedAnswers = localStorage.getItem(
-        `happiness:answers:${params.surveyId}`
-      );
-      if (storedAnswers) {
-        const parsedAnswers = JSON.parse(storedAnswers);
-        console.log("📊 Found answers in localStorage:", parsedAnswers);
-        return parsedAnswers;
-      }
-
-      // Fallback to answers stored in result object
-      if (result.answers && Array.isArray(result.answers)) {
-        console.log("📊 Using answers from result object:", result.answers);
-        return result.answers;
-      }
-
-      console.log("📊 No answers found, using proportional distribution");
-      return [];
-    } catch (error) {
-      console.error("Error getting stored answers:", error);
-      return [];
-    }
-  };
-
-  const subtypeScores = calculateSubtypeScores(
-    getStoredAnswers(),
-    result.categoryTotals
-  );
+  // Use unified scores if available, otherwise fall back to legacy calculation
+  const subtypeScores = unifiedScore?.subtypeScores || {};
+  const categoryPercentages = displayData.categoryPercentages;
+  const overallPercentage = displayData.overallPercentage;
+  const totalScore = displayData.totalScore;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -798,7 +691,7 @@ export default function HappinessResultsPage({
                   labelFormatter={(label) => `${label} Dimension`}
                 />
                 <Bar dataKey="value" fill="#3B82F6" radius={[4, 4, 0, 0]}>
-                  {categoryPercentages.map((entry, index) => (
+                  {categoryPercentages.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
@@ -814,7 +707,7 @@ export default function HappinessResultsPage({
           </h3>
 
           <div className="space-y-8">
-            {categoryPercentages.map((category) => {
+            {categoryPercentages.map((category: any) => {
               const colors = getCategoryColor(category.name);
               const percentage = category.value;
               const maxPossibleScore = 10000;

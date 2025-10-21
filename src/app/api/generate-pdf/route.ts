@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer";
 import { loadImageAsBase64 } from "../../../utils/pdf/loadImageAsBase64";
-import { calculateSubtypeScores } from "@/lib/services/subtype-scoring";
+import { calculateUnifiedHappinessScore } from "@/lib/services/unified-happiness-scoring";
 import { getEssentialName } from "@/lib/essential-mappings";
 
 // Force Node.js runtime (disable Edge runtime)
@@ -76,14 +76,9 @@ async function generatePDFHTML(result: any, language: string) {
     return texts[key]?.[lang] || texts[key]?.en || key;
   };
 
-  // Calculate percentages
-  const totalScore = Object.values(result.categoryTotals).reduce(
-    (sum: number, score) => sum + (score as number),
-    0
-  );
-  const maxPossibleScorePerCategory = 10000;
-  const maxTotalScore = maxPossibleScorePerCategory * 5;
-  const overallPercentage = Math.round((totalScore / maxTotalScore) * 100);
+  // Use unified scores for overall percentage
+  const overallPercentage = unifiedScore.overallPercentage;
+  const totalScore = unifiedScore.totalScore;
 
   // Get essential names for display
   const essentialNames: Record<string, string> = {};
@@ -115,18 +110,16 @@ async function generatePDFHTML(result: any, language: string) {
 
   console.log(`🖼️ Loading avatar: ${avatarPath}, success: ${!!avatarBase64}`);
 
-  // Generate chart bars HTML
-  const chartBarsHTML = Object.entries(result.categoryTotals)
-    .map(([category, score]) => {
-      const percentage = Math.round(
-        ((score as number) / maxPossibleScorePerCategory) * 100
-      );
+  // Generate chart bars HTML using unified scores
+  const chartBarsHTML = unifiedScore.categoryPercentages
+    .map((category) => {
+      const percentage = category.value;
       const height = Math.max((percentage / 100) * 180, 8);
-      const color = getCategoryColor(category);
+      const color = category.color;
       const categoryName =
-        categoryTranslations[category as keyof typeof categoryTranslations]?.[
+        categoryTranslations[category.name as keyof typeof categoryTranslations]?.[
           language as "en" | "ar"
-        ] || category;
+        ] || category.name;
 
       return `
         <div style="display: flex; flex-direction: column; align-items: center; flex: 1; margin: 0 0.25rem;">
@@ -161,42 +154,34 @@ async function generatePDFHTML(result: any, language: string) {
     })
     .join("");
 
-  // Calculate subtype scores using the imported service
-
-  const subtypeScores = await calculateSubtypeScores(
+  // Calculate unified scores using the unified service
+  const unifiedScore = await calculateUnifiedHappinessScore(
     result.answers || [],
-    result.categoryTotals
+    language as "en" | "ar"
   );
 
   // Generate detailed dimensions HTML with subtypes
-  const detailedDimensionsHTML = Object.entries(result.categoryTotals)
-    .map(([category, score]) => {
-      const percentage = Math.round(
-        ((score as number) / maxPossibleScorePerCategory) * 100
-      );
-      const color = getCategoryColor(category);
+  const detailedDimensionsHTML = unifiedScore.categoryPercentages
+    .map((category) => {
+      const percentage = category.value;
+      const color = category.color;
       const categoryName =
-        categoryTranslations[category as keyof typeof categoryTranslations]?.[
+        categoryTranslations[category.name as keyof typeof categoryTranslations]?.[
           language as "en" | "ar"
-        ] || category;
+        ] || category.name;
       const description =
-        categoryDescriptions[category as keyof typeof categoryDescriptions]?.[
+        categoryDescriptions[category.name as keyof typeof categoryDescriptions]?.[
           language as "en" | "ar"
         ] || "";
 
-      // Generate subtype progress bars
+      // Generate subtype progress bars using unified scores
       const subtypeHTML = (["A", "B", "C", "D"] as const)
         .map((subtype) => {
-          const subtypeScore = (subtypeScores[category] as any)[subtype];
-          // Each subtype has 2 questions, each with max value of 2000, so max = 4000
-          const subtypeMaxScore = 4000;
-          const subtypePercentage = Math.round(
-            (subtypeScore / subtypeMaxScore) * 100
-          );
+          const subtypePercentage = unifiedScore.subtypePercentages[category.name][subtype];
 
           // Get Essential name instead of Type A/B/C/D
           const subtypeLabel = getEssentialName(
-            category,
+            category.name,
             subtype,
             language as "en" | "ar"
           );

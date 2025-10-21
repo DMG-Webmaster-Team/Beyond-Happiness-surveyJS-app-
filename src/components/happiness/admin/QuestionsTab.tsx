@@ -436,7 +436,7 @@ function QuestionModal({
 
   const [essentials, setEssentials] = useState<Essential[]>([]);
   const [loadingEssentials, setLoadingEssentials] = useState(false);
-  
+
   // Track manual overrides to disable auto-calculation
   const [manualOverrides, setManualOverrides] = useState({
     categoryValues: false,
@@ -456,15 +456,27 @@ function QuestionModal({
       console.log("📊 Question essentialValues:", question.essentialValues);
       console.log("📊 Question categoryValues:", question.categoryValues);
 
-      const categoryValues = question.categoryValues || [200, 400, 600, 800, 1000];
-      const essentialValues = question.essentialValues || [0, 3.125, 6.25, 9.375, 12.5];
-      
+      const categoryValues = question.categoryValues || [
+        200, 400, 600, 800, 1000,
+      ];
+      const essentialValues = question.essentialValues || [
+        0, 3.125, 6.25, 9.375, 12.5,
+      ];
+
       // Detect if values are manually overridden
-      const autoCategoryValues = getAutoCategoryValues(question.category || "Meaning");
+      const autoCategoryValues = getAutoCategoryValues(
+        question.category || "Meaning"
+      );
       const autoEssentialValues = getAutoEssentialValues();
-      
-      const categoryOverride = !valuesMatchAuto(categoryValues, autoCategoryValues);
-      const essentialOverride = !valuesMatchAuto(essentialValues, autoEssentialValues);
+
+      const categoryOverride = !valuesMatchAuto(
+        categoryValues,
+        autoCategoryValues
+      );
+      const essentialOverride = !valuesMatchAuto(
+        essentialValues,
+        autoEssentialValues
+      );
 
       setFormData({
         text: question.text || "",
@@ -484,7 +496,7 @@ function QuestionModal({
     } else {
       // Reset form when no question (adding new)
       const defaultValues = getDefaultQuestionValues("Meaning");
-      
+
       setFormData({
         text: "",
         category: "Meaning",
@@ -536,14 +548,14 @@ function QuestionModal({
     if (!question) {
       const autoCategoryValues = getAutoCategoryValues(formData.category);
       const autoEssentialValues = getAutoEssentialValues();
-      
+
       setFormData((prev) => ({
         ...prev,
         categoryValues: autoCategoryValues,
         essentialId: "",
         essentialValues: autoEssentialValues,
       }));
-      
+
       // Reset manual overrides for new questions
       setManualOverrides({
         categoryValues: false,
@@ -571,7 +583,10 @@ function QuestionModal({
     }
 
     // Validate category values
-    const categoryValidation = validateValues(formData.categoryValues, "category");
+    const categoryValidation = validateValues(
+      formData.categoryValues,
+      "category"
+    );
     if (!categoryValidation.isValid) {
       alert(`Category Values Error: ${categoryValidation.error}`);
       return;
@@ -579,7 +594,10 @@ function QuestionModal({
 
     // Validate essential values if essential is selected
     if (formData.essentialId && formData.essentialId !== "") {
-      const essentialValidation = validateValues(formData.essentialValues, "essential");
+      const essentialValidation = validateValues(
+        formData.essentialValues,
+        "essential"
+      );
       if (!essentialValidation.isValid) {
         alert(`Essential Values Error: ${essentialValidation.error}`);
         return;
@@ -668,11 +686,11 @@ function QuestionModal({
                     const newValues = [...formData.categoryValues];
                     newValues[index] = parseFloat(e.target.value) || 0;
                     setFormData({ ...formData, categoryValues: newValues });
-                    
+
                     // Detect manual override
                     const autoValues = getAutoCategoryValues(formData.category);
                     const isOverride = !valuesMatchAuto(newValues, autoValues);
-                    setManualOverrides(prev => ({
+                    setManualOverrides((prev) => ({
                       ...prev,
                       categoryValues: isOverride,
                     }));
@@ -687,7 +705,8 @@ function QuestionModal({
             <div className="mt-1">
               {!manualOverrides.categoryValues ? (
                 <p className="text-sm text-green-600">
-                  ✓ Auto-calculated values (Max: {CATEGORY_MAX_SCORES[formData.category] || 2000})
+                  ✓ Auto-calculated values (Max:{" "}
+                  {CATEGORY_MAX_SCORES[formData.category] || 2000})
                 </p>
               ) : (
                 <div className="flex items-center gap-2">
@@ -697,12 +716,14 @@ function QuestionModal({
                   <button
                     type="button"
                     onClick={() => {
-                      const autoValues = getAutoCategoryValues(formData.category);
-                      setFormData(prev => ({
+                      const autoValues = getAutoCategoryValues(
+                        formData.category
+                      );
+                      setFormData((prev) => ({
                         ...prev,
                         categoryValues: autoValues,
                       }));
-                      setManualOverrides(prev => ({
+                      setManualOverrides((prev) => ({
                         ...prev,
                         categoryValues: false,
                       }));
@@ -725,21 +746,22 @@ function QuestionModal({
               onChange={(e) => {
                 const selectedEssentialId = e.target.value;
                 const autoEssentialValues = getAutoEssentialValues();
-                
+
                 setFormData({
                   ...formData,
                   essentialId: selectedEssentialId || "",
                   // Auto-calculate essential values if not manually overridden
-                  essentialValues: selectedEssentialId && !manualOverrides.essentialValues
-                    ? autoEssentialValues
-                    : selectedEssentialId
-                    ? formData.essentialValues
-                    : [],
+                  essentialValues:
+                    selectedEssentialId && !manualOverrides.essentialValues
+                      ? autoEssentialValues
+                      : selectedEssentialId
+                      ? formData.essentialValues
+                      : [],
                 });
-                
+
                 // Reset manual override flag when selecting new essential
                 if (selectedEssentialId && !manualOverrides.essentialValues) {
-                  setManualOverrides(prev => ({
+                  setManualOverrides((prev) => ({
                     ...prev,
                     essentialValues: false,
                   }));
@@ -775,11 +797,11 @@ function QuestionModal({
                       type="button"
                       onClick={() => {
                         const autoValues = getAutoEssentialValues();
-                        setFormData(prev => ({
+                        setFormData((prev) => ({
                           ...prev,
                           essentialValues: autoValues,
                         }));
-                        setManualOverrides(prev => ({
+                        setManualOverrides((prev) => ({
                           ...prev,
                           essentialValues: false,
                         }));
@@ -809,11 +831,14 @@ function QuestionModal({
                       const newValues = [...formData.essentialValues];
                       newValues[index] = parseFloat(e.target.value) || 0;
                       setFormData({ ...formData, essentialValues: newValues });
-                      
+
                       // Detect manual override
                       const autoValues = getAutoEssentialValues();
-                      const isOverride = !valuesMatchAuto(newValues, autoValues);
-                      setManualOverrides(prev => ({
+                      const isOverride = !valuesMatchAuto(
+                        newValues,
+                        autoValues
+                      );
+                      setManualOverrides((prev) => ({
                         ...prev,
                         essentialValues: isOverride,
                       }));
