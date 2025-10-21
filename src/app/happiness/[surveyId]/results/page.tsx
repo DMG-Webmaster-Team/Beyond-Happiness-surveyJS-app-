@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import DownloadPDFButton from "@/components/DownloadPDFButton";
+import { getEssentialName } from "@/lib/essential-mappings";
 import {
   BarChart,
   Bar,
@@ -857,13 +858,20 @@ export default function HappinessResultsPage({
                       {getText("subtypeBreakdown")}
                     </h4>
 
-                    {["A", "B", "C", "D"].map((subtype) => {
+                    {(["A", "B", "C", "D"] as const).map((subtype) => {
                       const subtypeScore =
                         subtypeScores[category.name][subtype];
                       // Each subtype has 2 questions, each with max value of 2000, so max = 4000
                       const subtypeMaxScore = 4000;
                       const subtypePercentage = Math.round(
                         (subtypeScore / subtypeMaxScore) * 100
+                      );
+
+                      // Get Essential name instead of Type A/B/C/D
+                      const essentialName = getEssentialName(
+                        category.name,
+                        subtype,
+                        selectedLanguage
                       );
 
                       return (
@@ -880,7 +888,7 @@ export default function HappinessResultsPage({
                                 : "text-left"
                             }`}
                           >
-                            {getText(`type${subtype}`)}:
+                            {essentialName}:
                           </div>
 
                           <div className="flex-1 flex items-center gap-2">

@@ -74,7 +74,9 @@ export default function HappinessSurveyPage({
   const [multilingualChoices, setMultilingualChoices] = useState<
     MultilingualChoice[]
   >([]);
-  const [choicesByCategory, setChoicesByCategory] = useState<Record<string, MultilingualChoice[]>>({});
+  const [choicesByCategory, setChoicesByCategory] = useState<
+    Record<string, MultilingualChoice[]>
+  >({});
   const [isLoading, setIsLoading] = useState(true);
   const [accessLoading, setAccessLoading] = useState(true);
   const [accessCheckComplete, setAccessCheckComplete] = useState(false);
@@ -347,10 +349,9 @@ export default function HappinessSurveyPage({
   const handleAnswer = (valueIndex: number) => {
     const currentQuestion = questions[currentQuestionIndex];
     // Get category-specific choices or fall back to generic choices
-    const categoryChoices = choicesByCategory[currentQuestion.category] || multilingualChoices;
-    const selectedChoice = categoryChoices.find(
-      (c) => c.value === valueIndex
-    );
+    const categoryChoices =
+      choicesByCategory[currentQuestion.category] || multilingualChoices;
+    const selectedChoice = categoryChoices.find((c) => c.value === valueIndex);
 
     const newAnswer: SurveyAnswer = {
       questionId: currentQuestion.id,
@@ -903,8 +904,10 @@ export default function HappinessSurveyPage({
             <div className="space-y-3">
               {(() => {
                 // Get category-specific choices or fall back to generic choices
-                const currentChoices = choicesByCategory[currentQuestion.category] || multilingualChoices;
-                
+                const currentChoices =
+                  choicesByCategory[currentQuestion.category] ||
+                  multilingualChoices;
+
                 return currentChoices.length > 0
                   ? currentChoices.map((choice, index) => {
                       const label = getLocalizedText(choice.text);
@@ -941,71 +944,71 @@ export default function HappinessSurveyPage({
                         </button>
                       );
                     })
-                : [
-                    {
-                      value: 1,
-                      text: {
-                        en: "Never / Strongly Disagree",
-                        ar: "أبداً / أعارض بشدة",
+                  : [
+                      {
+                        value: 1,
+                        text: {
+                          en: "Never / Strongly Disagree",
+                          ar: "أبداً / أعارض بشدة",
+                        },
                       },
-                    },
-                    {
-                      value: 2,
-                      text: { en: "Rarely / Disagree", ar: "نادراً / أعارض" },
-                    },
-                    {
-                      value: 3,
-                      text: {
-                        en: "Sometimes / Neutral",
-                        ar: "أحياناً / محايد",
+                      {
+                        value: 2,
+                        text: { en: "Rarely / Disagree", ar: "نادراً / أعارض" },
                       },
-                    },
-                    {
-                      value: 4,
-                      text: { en: "Often / Agree", ar: "غالباً / أوافق" },
-                    },
-                    {
-                      value: 5,
-                      text: {
-                        en: "Always / Strongly Agree",
-                        ar: "دائماً / أوافق بشدة",
+                      {
+                        value: 3,
+                        text: {
+                          en: "Sometimes / Neutral",
+                          ar: "أحياناً / محايد",
+                        },
                       },
-                    },
-                  ].map((choice) => {
-                    const label = getLocalizedText(choice.text);
-                    const isSelected = answers.some(
-                      (a) =>
-                        a.questionId === currentQuestion.id &&
-                        a.valueIndex === choice.value
-                    );
+                      {
+                        value: 4,
+                        text: { en: "Often / Agree", ar: "غالباً / أوافق" },
+                      },
+                      {
+                        value: 5,
+                        text: {
+                          en: "Always / Strongly Agree",
+                          ar: "دائماً / أوافق بشدة",
+                        },
+                      },
+                    ].map((choice) => {
+                      const label = getLocalizedText(choice.text);
+                      const isSelected = answers.some(
+                        (a) =>
+                          a.questionId === currentQuestion.id &&
+                          a.valueIndex === choice.value
+                      );
 
-                    return (
-                      <button
-                        key={choice.value}
-                        onClick={() => handleAnswer(choice.value)}
-                        className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
-                          isSelected
-                            ? "border-blue-400 bg-blue-50 text-blue-900"
-                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{label}</span>
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 ${
-                              isSelected
-                                ? "border-blue-400 bg-blue-400"
-                                : "border-gray-300"
-                            }`}
-                          >
-                            {isSelected && (
-                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                            )}
+                      return (
+                        <button
+                          key={choice.value}
+                          onClick={() => handleAnswer(choice.value)}
+                          className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
+                            isSelected
+                              ? "border-blue-400 bg-blue-50 text-blue-900"
+                              : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{label}</span>
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 ${
+                                isSelected
+                                  ? "border-blue-400 bg-blue-400"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  });
+                        </button>
+                      );
+                    });
               })()}
             </div>
           </div>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import puppeteer from "puppeteer";
 import { loadImageAsBase64 } from "../../../utils/pdf/loadImageAsBase64";
 import { calculateSubtypeScores } from "@/lib/services/subtype-scoring";
+import { getEssentialName } from "@/lib/essential-mappings";
 
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = "nodejs";
@@ -184,7 +185,7 @@ async function generatePDFHTML(result: any, language: string) {
         ] || "";
 
       // Generate subtype progress bars
-      const subtypeHTML = ["A", "B", "C", "D"]
+      const subtypeHTML = (["A", "B", "C", "D"] as const)
         .map((subtype) => {
           const subtypeScore = (subtypeScores[category] as any)[subtype];
           // Each subtype has 2 questions, each with max value of 2000, so max = 4000
@@ -193,8 +194,12 @@ async function generatePDFHTML(result: any, language: string) {
             (subtypeScore / subtypeMaxScore) * 100
           );
 
-          const subtypeLabel =
-            language === "ar" ? `النوع ${subtype}` : `Type ${subtype}`;
+          // Get Essential name instead of Type A/B/C/D
+          const subtypeLabel = getEssentialName(
+            category,
+            subtype,
+            language as "en" | "ar"
+          );
 
           return `
           <div style="margin: 0.5rem 0 0.5rem ${
