@@ -882,7 +882,7 @@ export default function HappinessResultsPage({
                           }`}
                         >
                           <div
-                            className={`min-w-16 text-sm font-medium text-gray-600 ${
+                            className={`w-40 text-sm font-medium text-gray-600 ${
                               selectedLanguage === "ar"
                                 ? "text-right"
                                 : "text-left"

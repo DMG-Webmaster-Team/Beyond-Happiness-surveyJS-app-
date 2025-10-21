@@ -205,7 +205,9 @@ async function generatePDFHTML(result: any, language: string) {
           <div style="margin: 0.5rem 0 0.5rem ${
             language === "ar" ? "0" : "2rem"
           }; display: flex; align-items: center; gap: 0.75rem;">
-            <div style="min-width: 4rem; font-size: 0.875rem; font-weight: 500; color: #374151;">
+            <div style="width: 10rem; font-size: 0.875rem; font-weight: 500; color: #374151; ${
+              language === "ar" ? "text-align: right;" : "text-align: left;"
+            }">
               ${subtypeLabel}:
             </div>
             <div style="flex: 1; display: flex; align-items: center; gap: 0.5rem;">
