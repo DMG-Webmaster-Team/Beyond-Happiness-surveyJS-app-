@@ -881,35 +881,45 @@ export default function HappinessResultsPage({
                             selectedLanguage === "ar" ? "flex-row-reverse" : ""
                           }`}
                         >
-                          <div
-                            className={`w-40 text-sm font-medium text-gray-600 ${
-                              selectedLanguage === "ar"
-                                ? "text-right"
-                                : "text-left"
-                            }`}
-                          >
-                            {essentialName}:
-                          </div>
-
-                          <div className={`flex-1 flex items-center gap-2 ${
-                            selectedLanguage === "ar" ? "flex-row-reverse" : ""
-                          }`}>
-                            <div className="flex-1 bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all duration-700 ease-out ${
-                                  selectedLanguage === "ar" ? "ml-auto" : ""
-                                }`}
-                                style={{
-                                  width: `${subtypePercentage}%`,
-                                  backgroundColor: colors.hex,
-                                  direction: selectedLanguage === "ar" ? "rtl" : "ltr",
-                                }}
-                              />
-                            </div>
-                            <span className="min-w-12 text-xs font-semibold text-gray-700">
-                              {subtypePercentage}%
-                            </span>
-                          </div>
+                          {selectedLanguage === "ar" ? (
+                            // Arabic layout: percentage, progress bar, then label
+                            <>
+                              <span className="min-w-12 text-xs font-semibold text-gray-700">
+                                {subtypePercentage}%
+                              </span>
+                              <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="h-2 rounded-full transition-all duration-700 ease-out ml-auto"
+                                  style={{
+                                    width: `${subtypePercentage}%`,
+                                    backgroundColor: colors.hex,
+                                  }}
+                                />
+                              </div>
+                              <div className="w-40 text-sm font-medium text-gray-600 text-right">
+                                {essentialName}:
+                              </div>
+                            </>
+                          ) : (
+                            // English layout: label, progress bar, then percentage
+                            <>
+                              <div className="w-40 text-sm font-medium text-gray-600 text-left">
+                                {essentialName}:
+                              </div>
+                              <div className="flex-1 bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="h-2 rounded-full transition-all duration-700 ease-out"
+                                  style={{
+                                    width: `${subtypePercentage}%`,
+                                    backgroundColor: colors.hex,
+                                  }}
+                                />
+                              </div>
+                              <span className="min-w-12 text-xs font-semibold text-gray-700">
+                                {subtypePercentage}%
+                              </span>
+                            </>
+                          )}
                         </div>
                       );
                     })}
