@@ -321,7 +321,7 @@ export async function POST(request: NextRequest) {
       finalCollectedUserData = collectedUserData;
     }
 
-    // Build insert values
+    // Build insert values with explicit null for collectedUserData
     const insertValues: any = {
       id: resultId,
       surveyId,
@@ -333,18 +333,10 @@ export async function POST(request: NextRequest) {
       categoryTotals: scoreResult.categoryTotals, // MySQL JSON column handles this automatically
       essentialTotals: scoreResult.essentialTotals, // MySQL JSON column handles this automatically
       code: scoreResult.code,
-      characterId: scoreResult.character.id,
+      characterId: String(scoreResult.character.id), // Convert to string to match DB schema
+      collectedUserData: finalCollectedUserData, // Explicitly set to null or data
       language: selectedLanguage,
     };
-
-    // Only add collectedUserData if column exists (after migration)
-    if (finalCollectedUserData !== null) {
-      try {
-        insertValues.collectedUserData = finalCollectedUserData;
-      } catch (e) {
-        console.log("collectedUserData column not yet available, skipping");
-      }
-    }
 
     await db.insert(happinessResults).values(insertValues);
 
@@ -363,9 +355,18 @@ export async function POST(request: NextRequest) {
       essentialTotals: scoreResult.essentialTotals,
     });
   } catch (error) {
-    console.error("Error submitting happiness results:", error);
+    console.error("❌ Error submitting happiness results:", error);
+    console.error("❌ Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+      fullError: error,
+    });
     return NextResponse.json(
-      { error: "Failed to submit results" },
+      { 
+        error: "Failed to submit results",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500 }
     );
   }

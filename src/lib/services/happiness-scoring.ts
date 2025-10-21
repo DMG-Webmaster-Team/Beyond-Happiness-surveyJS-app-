@@ -50,65 +50,42 @@ export async function getMultilingualCharacter(
   avatarUrl: string;
 }> {
   try {
-    // Try to load multilingual character data from file system
-    const fs = await import("fs");
-    const path = await import("path");
-    const filePath = path.join(
-      process.cwd(),
-      "data",
-      "happiness-characters-multilingual.json"
-    );
+    // Skip file system access and go directly to database
 
-    if (fs.existsSync(filePath)) {
-      const fileContent = fs.readFileSync(filePath, "utf8");
-      const multilingualData = JSON.parse(fileContent);
-      const character = multilingualData.characters.find(
-        (c: MultilingualCharacter) => c.match === code
-      );
+    // Fallback to database
+    const characters = await db
+      .select()
+      .from(happinessCharacters)
+      .where(eq(happinessCharacters.match, code))
+      .limit(1);
 
-      if (character) {
-        return {
-          id: character.id,
-          name: character.name[language] || character.name.en,
-          description:
-            character.description[language] || character.description.en,
-          avatarUrl: character.avatar_url,
-        };
-      }
+    if (characters.length > 0) {
+      const char = characters[0];
+      return {
+        id: char.id,
+        name: char.name,
+        description: char.description,
+        avatarUrl: char.avatarUrl || `/characters/${code}.png`,
+      };
     }
-  } catch (error) {
-    console.warn(
-      "Failed to load multilingual character data, falling back to database"
-    );
-  }
 
-  // Fallback to database
-  const characters = await db
-    .select()
-    .from(happinessCharacters)
-    .where(eq(happinessCharacters.match, code))
-    .limit(1);
-
-  if (characters.length > 0) {
-    const char = characters[0];
+    // If no character found, return a default
     return {
-      id: char.id,
-      name: char.name,
-      description: char.description,
-      avatarUrl: char.avatarUrl || `/characters/${code}.png`,
+      id: 0,
+      name: "Unknown Character",
+      description: "Character not found",
+      avatarUrl: `/characters/${code}.png`,
+    };
+  } catch (error) {
+    console.error("Error getting character:", error);
+    // Return a fallback character
+    return {
+      id: 0,
+      name: "Unknown Character",
+      description: "Character lookup failed",
+      avatarUrl: `/characters/${code}.png`,
     };
   }
-
-  // Ultimate fallback
-  return {
-    id: 1,
-    name: language === "ar" ? "الرحالة الفضولي" : "Curious Nomad",
-    description:
-      language === "ar"
-        ? "مستكشف حر الروح يجد الفرح في الاكتشاف والتجارب الجديدة."
-        : "A free-spirited explorer who finds joy in discovery and new experiences.",
-    avatarUrl: "/characters/00000.png",
-  };
 }
 
 const THRESHOLD = 6000; // Threshold for each category to be considered "high"
@@ -133,7 +110,6 @@ export async function computeHappinessScore(
         isActive: happinessQuestions.isActive,
       })
       .from(happinessQuestions)
-      .leftJoin(essentials, eq(happinessQuestions.essentialId, essentials.id))
       .where(inArray(happinessQuestions.id, questionIds));
 
     // Create a map for quick question lookup

@@ -448,7 +448,9 @@ function QuestionModal({
         essentialId: question.essentialId
           ? question.essentialId.toString()
           : "",
-        essentialValues: question.essentialValues || [0, 3.125, 6.25, 9.375, 12.5],
+        essentialValues: question.essentialValues || [
+          0, 3.125, 6.25, 9.375, 12.5,
+        ],
         isActive: question.isActive ?? true,
       });
     } else {

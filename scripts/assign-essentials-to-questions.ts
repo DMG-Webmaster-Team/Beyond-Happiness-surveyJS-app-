@@ -5,15 +5,30 @@ import { eq, asc } from "drizzle-orm";
 // Essential mapping based on actual database contents
 const essentialMapping = [
   // Meaning Category
-  "Higher Purpose", "Values", "Growth", "Appreciation",
-  // Delight Category  
-  "Creativity", "Playfulness", "Enthusiasm", "Surprise",
+  "Higher Purpose",
+  "Values",
+  "Growth",
+  "Appreciation",
+  // Delight Category
+  "Creativity",
+  "Playfulness",
+  "Enthusiasm",
+  "Surprise",
   // Freedom Category
-  "Safety", "Emergency Prep", "Personalization", "Flexibility",
+  "Safety",
+  "Emergency Prep",
+  "Personalization",
+  "Flexibility",
   // Engagement Category
-  "Cooperation", "Inclusivity", "Connectedness", "Socialization",
+  "Cooperation",
+  "Inclusivity",
+  "Connectedness",
+  "Socialization",
   // Vitality Category
-  "Movement", "Rejuvenation", "Comfort", "Mindfulness"
+  "Movement",
+  "Rejuvenation",
+  "Comfort",
+  "Mindfulness",
 ];
 
 // Default Essential values as specified
@@ -37,12 +52,14 @@ async function assignEssentialsToQuestions() {
 
     // Create mapping from essential name to ID
     const essentialNameToId = new Map<string, number>();
-    allEssentials.forEach(essential => {
+    allEssentials.forEach((essential) => {
       essentialNameToId.set(essential.name, essential.id);
     });
 
     // Verify all required essentials exist
-    const missingEssentials = essentialMapping.filter(name => !essentialNameToId.has(name));
+    const missingEssentials = essentialMapping.filter(
+      (name) => !essentialNameToId.has(name)
+    );
     if (missingEssentials.length > 0) {
       console.error("❌ Missing essentials in database:", missingEssentials);
       throw new Error(`Missing essentials: ${missingEssentials.join(", ")}`);
@@ -63,7 +80,9 @@ async function assignEssentialsToQuestions() {
     console.log(`📋 Found ${allQuestions.length} questions in database`);
 
     if (allQuestions.length < 40) {
-      console.warn(`⚠️ Only ${allQuestions.length} questions found, expected 40`);
+      console.warn(
+        `⚠️ Only ${allQuestions.length} questions found, expected 40`
+      );
     }
 
     // Assign essentials to questions (2 questions per essential)
@@ -73,9 +92,11 @@ async function assignEssentialsToQuestions() {
     for (let i = 0; i < allQuestions.length && i < 40; i++) {
       const question = allQuestions[i];
       const essentialIndex = Math.floor(i / 2); // 2 questions per essential
-      
+
       if (essentialIndex >= essentialMapping.length) {
-        console.warn(`⚠️ Question ${question.id} (index ${i}) exceeds essential mapping`);
+        console.warn(
+          `⚠️ Question ${question.id} (index ${i}) exceeds essential mapping`
+        );
         break;
       }
 
@@ -83,13 +104,17 @@ async function assignEssentialsToQuestions() {
       const essentialId = essentialNameToId.get(essentialName);
 
       if (!essentialId) {
-        console.error(`❌ Essential "${essentialName}" not found for question ${question.id}`);
+        console.error(
+          `❌ Essential "${essentialName}" not found for question ${question.id}`
+        );
         continue;
       }
 
       // Check if question already has this essential assigned
       if (question.essentialId === essentialId) {
-        console.log(`✅ Question ${question.id} already has essential "${essentialName}"`);
+        console.log(
+          `✅ Question ${question.id} already has essential "${essentialName}"`
+        );
         continue;
       }
 
@@ -117,9 +142,14 @@ async function assignEssentialsToQuestions() {
           })
           .where(eq(happinessQuestions.id, update.questionId));
 
-        console.log(`✅ Updated question ${update.questionId} → "${update.essentialName}"`);
+        console.log(
+          `✅ Updated question ${update.questionId} → "${update.essentialName}"`
+        );
       } catch (error) {
-        console.error(`❌ Failed to update question ${update.questionId}:`, error);
+        console.error(
+          `❌ Failed to update question ${update.questionId}:`,
+          error
+        );
       }
     }
 
@@ -139,7 +169,7 @@ async function assignEssentialsToQuestions() {
 
     // Group by essential for display
     const groupedByEssential = new Map<string, any[]>();
-    verification.forEach(q => {
+    verification.forEach((q) => {
       const essentialName = q.essentialName || "No Essential";
       if (!groupedByEssential.has(essentialName)) {
         groupedByEssential.set(essentialName, []);
@@ -161,7 +191,6 @@ async function assignEssentialsToQuestions() {
     console.log(`  - Questions updated: ${updateCount}`);
     console.log(`  - Essentials assigned: ${groupedByEssential.size - 1}`); // -1 for "No Essential"
     console.log(`  - Default values: [${DEFAULT_ESSENTIAL_VALUES.join(", ")}]`);
-
   } catch (error) {
     console.error("❌ Error assigning essentials to questions:", error);
     throw error;

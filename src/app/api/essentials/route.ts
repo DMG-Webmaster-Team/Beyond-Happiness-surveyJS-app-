@@ -26,8 +26,7 @@ export async function GET(request: NextRequest) {
     if (!validCategories.includes(category)) {
       return NextResponse.json(
         {
-          error:
-            "Invalid truth. Must be one of: " + validCategories.join(", "),
+          error: "Invalid truth. Must be one of: " + validCategories.join(", "),
         },
         { status: 400 }
       );
@@ -41,7 +40,17 @@ export async function GET(request: NextRequest) {
         truth: essentials.truth,
       })
       .from(essentials)
-      .where(eq(essentials.truth, category as "Meaning" | "Delight" | "Freedom" | "Engagement" | "Vitality"))
+      .where(
+        eq(
+          essentials.truth,
+          category as
+            | "Meaning"
+            | "Delight"
+            | "Freedom"
+            | "Engagement"
+            | "Vitality"
+        )
+      )
       .orderBy(essentials.name);
 
     return NextResponse.json({

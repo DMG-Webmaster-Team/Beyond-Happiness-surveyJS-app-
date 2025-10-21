@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     console.log("🔍 GET /api/happiness/questions - Starting request");
-    
+
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
@@ -26,7 +26,10 @@ export async function GET(request: NextRequest) {
     } catch (dbError) {
       console.error("❌ Database connection test failed:", dbError);
       return NextResponse.json(
-        { error: "Database connection failed", details: dbError instanceof Error ? dbError.message : "Unknown error" },
+        {
+          error: "Database connection failed",
+          details: dbError instanceof Error ? dbError.message : "Unknown error",
+        },
         { status: 500 }
       );
     }
@@ -59,12 +62,12 @@ export async function GET(request: NextRequest) {
       if (q.categoryValues) {
         categoryValues = Array.isArray(q.categoryValues)
           ? q.categoryValues
-          : JSON.parse(q.categoryValues as string) as number[];
+          : (JSON.parse(q.categoryValues as string) as number[]);
       } else if ((q as any).values) {
         // Fallback to old 'values' field during migration
         categoryValues = Array.isArray((q as any).values)
           ? (q as any).values
-          : JSON.parse((q as any).values as string) as number[];
+          : (JSON.parse((q as any).values as string) as number[]);
       } else {
         // Default values if neither exists
         categoryValues = [200, 400, 600, 800, 1000];
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
         essentialValues: q.essentialValues
           ? Array.isArray(q.essentialValues)
             ? q.essentialValues
-            : JSON.parse(q.essentialValues as string) as number[]
+            : (JSON.parse(q.essentialValues as string) as number[])
           : null,
       };
     });
@@ -86,7 +89,9 @@ export async function GET(request: NextRequest) {
     // Apply client-side filtering since Drizzle ORM filtering can be complex
     if (category && category !== "all") {
       parsedQuestions = parsedQuestions.filter((q) => q.category === category);
-      console.log(`🔍 Filtered by category '${category}': ${parsedQuestions.length} questions`);
+      console.log(
+        `🔍 Filtered by category '${category}': ${parsedQuestions.length} questions`
+      );
     }
 
     if (search && search.trim()) {
@@ -94,7 +99,9 @@ export async function GET(request: NextRequest) {
       parsedQuestions = parsedQuestions.filter((q) =>
         q.text.toLowerCase().includes(searchLower)
       );
-      console.log(`🔍 Filtered by search '${search}': ${parsedQuestions.length} questions`);
+      console.log(
+        `🔍 Filtered by search '${search}': ${parsedQuestions.length} questions`
+      );
     }
 
     if (isActive && isActive !== "all") {
@@ -102,7 +109,9 @@ export async function GET(request: NextRequest) {
       parsedQuestions = parsedQuestions.filter(
         (q) => Boolean(q.isActive) === activeFilter
       );
-      console.log(`🔍 Filtered by active '${isActive}': ${parsedQuestions.length} questions`);
+      console.log(
+        `🔍 Filtered by active '${isActive}': ${parsedQuestions.length} questions`
+      );
     }
 
     console.log(`✅ Returning ${parsedQuestions.length} questions`);
@@ -119,7 +128,10 @@ export async function GET(request: NextRequest) {
       name: error instanceof Error ? error.name : undefined,
     });
     return NextResponse.json(
-      { error: "Failed to fetch questions", details: error instanceof Error ? error.message : "Unknown error" },
+      {
+        error: "Failed to fetch questions",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
@@ -228,11 +240,15 @@ export async function POST(request: NextRequest) {
         ...insertedQuestion[0],
         categoryValues: Array.isArray(insertedQuestion[0].categoryValues)
           ? insertedQuestion[0].categoryValues
-          : JSON.parse(insertedQuestion[0].categoryValues as string) as number[],
+          : (JSON.parse(
+              insertedQuestion[0].categoryValues as string
+            ) as number[]),
         essentialValues: insertedQuestion[0].essentialValues
           ? Array.isArray(insertedQuestion[0].essentialValues)
             ? insertedQuestion[0].essentialValues
-            : JSON.parse(insertedQuestion[0].essentialValues as string) as number[]
+            : (JSON.parse(
+                insertedQuestion[0].essentialValues as string
+              ) as number[])
           : null,
       },
     });
