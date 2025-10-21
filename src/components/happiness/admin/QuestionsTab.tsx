@@ -5,6 +5,15 @@ import useSWR from "swr";
 import { useDebounce } from "@/hooks/useDebounce";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 import {
+  getAutoEssentialValues,
+  getAutoCategoryValues,
+  valuesMatchAuto,
+  validateValues,
+  getDefaultQuestionValues,
+  CATEGORY_MAX_SCORES,
+  MAX_ESSENTIAL_SCORE,
+} from "@/lib/value-calculations";
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -427,6 +436,12 @@ function QuestionModal({
 
   const [essentials, setEssentials] = useState<Essential[]>([]);
   const [loadingEssentials, setLoadingEssentials] = useState(false);
+  
+  // Track manual overrides to disable auto-calculation
+  const [manualOverrides, setManualOverrides] = useState({
+    categoryValues: false,
+    essentialValues: false,
+  });
 
   // Update form data when question prop changes (for editing)
   useEffect(() => {
@@ -441,27 +456,47 @@ function QuestionModal({
       console.log("📊 Question essentialValues:", question.essentialValues);
       console.log("📊 Question categoryValues:", question.categoryValues);
 
+      const categoryValues = question.categoryValues || [200, 400, 600, 800, 1000];
+      const essentialValues = question.essentialValues || [0, 3.125, 6.25, 9.375, 12.5];
+      
+      // Detect if values are manually overridden
+      const autoCategoryValues = getAutoCategoryValues(question.category || "Meaning");
+      const autoEssentialValues = getAutoEssentialValues();
+      
+      const categoryOverride = !valuesMatchAuto(categoryValues, autoCategoryValues);
+      const essentialOverride = !valuesMatchAuto(essentialValues, autoEssentialValues);
+
       setFormData({
         text: question.text || "",
         category: question.category || "Meaning",
-        categoryValues: question.categoryValues || [200, 400, 600, 800, 1000],
+        categoryValues,
         essentialId: question.essentialId
           ? question.essentialId.toString()
           : "",
-        essentialValues: question.essentialValues || [
-          0, 3.125, 6.25, 9.375, 12.5,
-        ],
+        essentialValues,
         isActive: question.isActive ?? true,
+      });
+
+      setManualOverrides({
+        categoryValues: categoryOverride,
+        essentialValues: essentialOverride,
       });
     } else {
       // Reset form when no question (adding new)
+      const defaultValues = getDefaultQuestionValues("Meaning");
+      
       setFormData({
         text: "",
         category: "Meaning",
-        categoryValues: [200, 400, 600, 800, 1000],
+        categoryValues: defaultValues.categoryValues,
         essentialId: "",
-        essentialValues: [0, 3.125, 6.25, 9.375, 12.5],
+        essentialValues: defaultValues.essentialValues,
         isActive: true,
+      });
+
+      setManualOverrides({
+        categoryValues: false,
+        essentialValues: false,
       });
     }
   }, [question]);
@@ -495,17 +530,36 @@ function QuestionModal({
     fetchEssentials();
   }, [formData.category]);
 
-  // Reset essentialId when category changes (but not on initial load for edit)
+  // Auto-calculate values when category changes (if not manually overridden)
   useEffect(() => {
-    // Only reset if we're not loading a question for editing
+    // Only auto-calculate if we're not loading a question for editing
     if (!question) {
+      const autoCategoryValues = getAutoCategoryValues(formData.category);
+      const autoEssentialValues = getAutoEssentialValues();
+      
       setFormData((prev) => ({
         ...prev,
+        categoryValues: autoCategoryValues,
         essentialId: "",
-        essentialValues: [0, 3.125, 6.25, 9.375, 12.5],
+        essentialValues: autoEssentialValues,
       }));
+      
+      // Reset manual overrides for new questions
+      setManualOverrides({
+        categoryValues: false,
+        essentialValues: false,
+      });
+    } else {
+      // For editing, only auto-calculate category values if not manually overridden
+      if (!manualOverrides.categoryValues) {
+        const autoCategoryValues = getAutoCategoryValues(formData.category);
+        setFormData((prev) => ({
+          ...prev,
+          categoryValues: autoCategoryValues,
+        }));
+      }
     }
-  }, [formData.category, question]);
+  }, [formData.category, question, manualOverrides.categoryValues]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -516,18 +570,20 @@ function QuestionModal({
       return;
     }
 
-    if (formData.categoryValues.some((v) => isNaN(v) || v < 0)) {
-      alert("All category values must be positive numbers");
+    // Validate category values
+    const categoryValidation = validateValues(formData.categoryValues, "category");
+    if (!categoryValidation.isValid) {
+      alert(`Category Values Error: ${categoryValidation.error}`);
       return;
     }
 
-    if (
-      formData.essentialId &&
-      formData.essentialValues &&
-      formData.essentialValues.some((v) => isNaN(v) || v < 0)
-    ) {
-      alert("All essential values must be positive numbers");
-      return;
+    // Validate essential values if essential is selected
+    if (formData.essentialId && formData.essentialId !== "") {
+      const essentialValidation = validateValues(formData.essentialValues, "essential");
+      if (!essentialValidation.isValid) {
+        alert(`Essential Values Error: ${essentialValidation.error}`);
+        return;
+      }
     }
 
     // Map formData to API expected format
@@ -612,6 +668,14 @@ function QuestionModal({
                     const newValues = [...formData.categoryValues];
                     newValues[index] = parseFloat(e.target.value) || 0;
                     setFormData({ ...formData, categoryValues: newValues });
+                    
+                    // Detect manual override
+                    const autoValues = getAutoCategoryValues(formData.category);
+                    const isOverride = !valuesMatchAuto(newValues, autoValues);
+                    setManualOverrides(prev => ({
+                      ...prev,
+                      categoryValues: isOverride,
+                    }));
                   }}
                   className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                   min="0"
@@ -619,6 +683,36 @@ function QuestionModal({
                   required
                 />
               ))}
+            </div>
+            <div className="mt-1">
+              {!manualOverrides.categoryValues ? (
+                <p className="text-sm text-green-600">
+                  ✓ Auto-calculated values (Max: {CATEGORY_MAX_SCORES[formData.category] || 2000})
+                </p>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-sm text-orange-600">
+                    ⚠️ Manually overridden values
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const autoValues = getAutoCategoryValues(formData.category);
+                      setFormData(prev => ({
+                        ...prev,
+                        categoryValues: autoValues,
+                      }));
+                      setManualOverrides(prev => ({
+                        ...prev,
+                        categoryValues: false,
+                      }));
+                    }}
+                    className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                  >
+                    Reset to Auto
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -630,14 +724,26 @@ function QuestionModal({
               value={formData.essentialId}
               onChange={(e) => {
                 const selectedEssentialId = e.target.value;
+                const autoEssentialValues = getAutoEssentialValues();
+                
                 setFormData({
                   ...formData,
                   essentialId: selectedEssentialId || "",
-                  // Reset essential values when essential changes
-                  essentialValues: selectedEssentialId
-                    ? [0, 3.125, 6.25, 9.375, 12.5]
+                  // Auto-calculate essential values if not manually overridden
+                  essentialValues: selectedEssentialId && !manualOverrides.essentialValues
+                    ? autoEssentialValues
+                    : selectedEssentialId
+                    ? formData.essentialValues
                     : [],
                 });
+                
+                // Reset manual override flag when selecting new essential
+                if (selectedEssentialId && !manualOverrides.essentialValues) {
+                  setManualOverrides(prev => ({
+                    ...prev,
+                    essentialValues: false,
+                  }));
+                }
               }}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
               disabled={loadingEssentials}
@@ -655,9 +761,36 @@ function QuestionModal({
               </p>
             )}
             {formData.essentialId && formData.essentialId !== "" && (
-              <p className="text-sm text-green-600 mt-1">
-                ✓ Values will be auto-populated from selected Essential
-              </p>
+              <div className="mt-1">
+                {!manualOverrides.essentialValues ? (
+                  <p className="text-sm text-green-600">
+                    ✓ Auto-calculated values (Max: {MAX_ESSENTIAL_SCORE})
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-orange-600">
+                      ⚠️ Manually overridden values
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const autoValues = getAutoEssentialValues();
+                        setFormData(prev => ({
+                          ...prev,
+                          essentialValues: autoValues,
+                        }));
+                        setManualOverrides(prev => ({
+                          ...prev,
+                          essentialValues: false,
+                        }));
+                      }}
+                      className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
+                    >
+                      Reset to Auto
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
@@ -676,6 +809,14 @@ function QuestionModal({
                       const newValues = [...formData.essentialValues];
                       newValues[index] = parseFloat(e.target.value) || 0;
                       setFormData({ ...formData, essentialValues: newValues });
+                      
+                      // Detect manual override
+                      const autoValues = getAutoEssentialValues();
+                      const isOverride = !valuesMatchAuto(newValues, autoValues);
+                      setManualOverrides(prev => ({
+                        ...prev,
+                        essentialValues: isOverride,
+                      }));
                     }}
                     className="border border-gray-300 rounded-md px-2 py-1 text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                     min="0"

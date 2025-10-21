@@ -741,9 +741,6 @@ export default function HappinessSurveyPage({
                   <option value="female">
                     {selectedLanguage === "ar" ? "أنثى" : "Female"}
                   </option>
-                  <option value="other">
-                    {selectedLanguage === "ar" ? "آخر" : "Other"}
-                  </option>
                 </select>
               </div>
 

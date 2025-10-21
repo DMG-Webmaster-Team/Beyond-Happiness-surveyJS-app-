@@ -201,7 +201,7 @@ async function generatePDFHTML(result: any, language: string) {
             language as "en" | "ar"
           );
 
-          return language === "ar" 
+          return language === "ar"
             ? `
             <div style="margin: 0.5rem 0 0.5rem 0; display: flex; align-items: center; gap: 0.75rem;">
               <span style="min-width: 2.5rem; font-size: 0.75rem; font-weight: 600; color: #111827;">
