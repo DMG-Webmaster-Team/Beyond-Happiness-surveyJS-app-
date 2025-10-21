@@ -157,10 +157,24 @@ export async function calculateUnifiedHappinessScore(
       }
     }
 
-    // Calculate percentages
+    // Calculate actual max scores for each category based on the questions
+    const categoryMaxScores: Record<string, number> = {};
+    Object.keys(categoryTotals).forEach(category => {
+      const categoryQuestions = questions.filter(q => q.category === category);
+      let maxScore = 0;
+      categoryQuestions.forEach(q => {
+        const values = Array.isArray(q.categoryValues)
+          ? q.categoryValues
+          : JSON.parse(q.categoryValues as string);
+        maxScore += Math.max(...values);
+      });
+      categoryMaxScores[category] = maxScore;
+    });
+
+    // Calculate percentages using actual max scores
     const categoryPercentages = Object.entries(categoryTotals).map(
       ([category, score]) => {
-        const maxPossibleScore = getMaxPossibleScoreForCategory(category);
+        const maxPossibleScore = categoryMaxScores[category] || 2000;
         const percentage = Math.round(((score as number) / maxPossibleScore) * 100);
         const color = getCategoryColor(category).hex;
         
@@ -173,28 +187,50 @@ export async function calculateUnifiedHappinessScore(
       }
     );
 
-    // Calculate subtype percentages
+    // Calculate subtype percentages using actual max scores
     const subtypePercentages: {
       [category: string]: { A: number; B: number; C: number; D: number };
     } = {};
     
     Object.entries(subtypeScores).forEach(([category, scores]) => {
-      const maxPossibleScore = getMaxPossibleScoreForSubtype(category);
+      // Calculate actual max score for each subtype based on the questions
+      const subtypeMaxScores: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+      
+      // Get questions for this category
+      const categoryQuestions = questions.filter(q => q.category === category);
+      
+      // Calculate max score for each subtype
+      ['A', 'B', 'C', 'D'].forEach(subtype => {
+        const subtypeQuestions = categoryQuestions.filter(q => {
+          const subtypeFromId = getSubtypeFromQuestionId(q.id);
+          return subtypeFromId === subtype;
+        });
+        
+        let maxScore = 0;
+        subtypeQuestions.forEach(q => {
+          const values = Array.isArray(q.categoryValues)
+            ? q.categoryValues
+            : JSON.parse(q.categoryValues as string);
+          maxScore += Math.max(...values);
+        });
+        subtypeMaxScores[subtype] = maxScore;
+      });
+      
       subtypePercentages[category] = {
-        A: Math.round((scores.A / maxPossibleScore) * 100),
-        B: Math.round((scores.B / maxPossibleScore) * 100),
-        C: Math.round((scores.C / maxPossibleScore) * 100),
-        D: Math.round((scores.D / maxPossibleScore) * 100),
+        A: subtypeMaxScores.A > 0 ? Math.round((scores.A / subtypeMaxScores.A) * 100) : 0,
+        B: subtypeMaxScores.B > 0 ? Math.round((scores.B / subtypeMaxScores.B) * 100) : 0,
+        C: subtypeMaxScores.C > 0 ? Math.round((scores.C / subtypeMaxScores.C) * 100) : 0,
+        D: subtypeMaxScores.D > 0 ? Math.round((scores.D / subtypeMaxScores.D) * 100) : 0,
       };
     });
 
-    // Calculate overall percentage
+    // Calculate overall percentage using actual max scores
     const totalScore = Object.values(categoryTotals).reduce(
       (sum: number, score) => sum + (score as number),
       0
     );
-    const totalMaxScore = Object.keys(categoryTotals).reduce(
-      (sum, category) => sum + getMaxPossibleScoreForCategory(category),
+    const totalMaxScore = Object.values(categoryMaxScores).reduce(
+      (sum: number, max) => sum + max,
       0
     );
     const overallPercentage = Math.round((totalScore / totalMaxScore) * 100);
@@ -244,11 +280,11 @@ function getSubtypeFromQuestionId(questionId: number): "A" | "B" | "C" | "D" | n
  * This should match the sum of all category values for questions in that category
  */
 function getMaxPossibleScoreForCategory(category: string): number {
-  // These values should match the maximum possible scores from the database
+  // These values should match the CATEGORY_MAX_SCORES from value-calculations.ts
   // Each category has 8 questions, and we need to sum the max values from all questions
   const categoryMaxScores = {
     Meaning: 2000,    // 8 questions × 250 max each
-    Delight: 1500,    // 8 questions × 187.5 max each
+    Delight: 1500,    // 8 questions × 187.5 max each  
     Freedom: 1800,    // 8 questions × 225 max each
     Engagement: 1600, // 8 questions × 200 max each
     Vitality: 1700,   // 8 questions × 212.5 max each
@@ -259,10 +295,12 @@ function getMaxPossibleScoreForCategory(category: string): number {
 
 /**
  * Get maximum possible score for a subtype
- * Each subtype has 2 questions, so it's half of the category max
+ * Each subtype has 2 questions, each with max value of 1000, so max = 2000
  */
 function getMaxPossibleScoreForSubtype(category: string): number {
-  return getMaxPossibleScoreForCategory(category) / 4; // 4 subtypes per category
+  // Each subtype has 2 questions, each question can score up to 1000
+  // So each subtype max = 2 × 1000 = 2000
+  return 2000;
 }
 
 /**
