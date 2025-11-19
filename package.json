@@ -12,6 +12,7 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
     "db:setup": "tsx scripts/setup-sqlite.ts",
+    "db:update-characters": "tsx scripts/update-characters-from-json.ts",
     "test:sms": "node scripts/test-twilio.js",
     "test:sms:simple": "node scripts/test-sms-simple.js",
     "test:input": "node scripts/test-unified-input.js",
@@ -30,14 +31,17 @@
     "@types/pg": "^8.15.5",
     "@types/puppeteer": "^5.4.7",
     "@types/uuid": "^10.0.0",
-    "ace-builds": "latest",
+    "ace-builds": "^1.32.2",
     "better-sqlite3": "^12.2.0",
     "chart.js": "^4.5.0",
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.4",
     "fast-glob": "3.2.12",
     "fontawesome": "^5.6.3",
+    "html-react-parser": "^5.2.7",
     "jspdf": "^2.4.0",
+    "html-to-image": "^1.11.11",
+    "downloadjs": "^1.4.7",
     "jspdf-autotable": "^3.5.20",
     "lucide-react": "^0.539.0",
     "motion": "^12.23.12",
@@ -75,6 +79,7 @@
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
+    "node-fetch": "^2.7.0",
     "postcss": "^8",
     "tailwindcss": "^4.1.12",
     "tsx": "^4.20.3",
@@ -82,5 +87,9 @@
   },
   "overrides": {
     "fast-glob": "3.2.12"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
