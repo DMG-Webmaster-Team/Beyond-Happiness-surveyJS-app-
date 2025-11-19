@@ -4,7 +4,7 @@ import { createCompanySchema } from "@/db/queries/companies";
 // Helper function to update survey assignments using many-to-many relationships
 
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 async function updateSurveyAssignments(
   companyId: string,
   companyName: string,

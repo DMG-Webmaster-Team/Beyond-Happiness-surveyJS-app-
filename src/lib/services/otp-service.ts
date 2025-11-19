@@ -551,8 +551,11 @@ export const verifyOTP = async (
     });
 
     // Check if expired (30 minutes from updatedAt)
-    const expiryTime =
-      (row.updatedAt || Date.now()) + OTP_EXPIRY_MINUTES * 60 * 1000;
+    const updatedAtMs =
+      row.updatedAt instanceof Date
+        ? row.updatedAt.getTime()
+        : row.updatedAt || Date.now();
+    const expiryTime = updatedAtMs + OTP_EXPIRY_MINUTES * 60 * 1000;
     const now = Date.now();
 
     console.log(`⏰ OTP expiry check:`, {
@@ -609,12 +612,16 @@ export const getOTPStatus = async (
         expiresAt: undefined,
       };
     }
+ 
+    const updatedAtMs =
+      record.updatedAt instanceof Date
+        ? record.updatedAt.getTime()
+        : record.updatedAt || Date.now();
 
     return {
       exists: true,
       attempts: 0, // Not tracked in users table
-      expiresAt:
-        (record.updatedAt || Date.now()) + OTP_EXPIRY_MINUTES * 60 * 1000,
+      expiresAt: updatedAtMs + OTP_EXPIRY_MINUTES * 60 * 1000,
     };
   } catch (error) {
     console.error("Error getting OTP status:", error);
@@ -651,8 +658,11 @@ export const cleanupExpiredOTPs = async (): Promise<number> => {
 
     let cleanedCount = 0;
     for (const user of usersWithOTPs) {
-      const userExpiryTime =
-        (user.updatedAt || now) + OTP_EXPIRY_MINUTES * 60 * 1000;
+      const updatedAtMs =
+        user.updatedAt instanceof Date
+          ? user.updatedAt.getTime()
+          : user.updatedAt || now;
+      const userExpiryTime = updatedAtMs + OTP_EXPIRY_MINUTES * 60 * 1000;
       if (now > userExpiryTime) {
         await db.update(users).set({ otp: null }).where(eq(users.id, user.id));
         cleanedCount++;

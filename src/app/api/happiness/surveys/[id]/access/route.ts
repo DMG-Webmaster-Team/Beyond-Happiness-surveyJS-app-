@@ -125,7 +125,7 @@ export async function GET(
       });
     }
 
-    // Check if user is assigned to this survey
+    // Check if user is assigned to this survey (either directly or via company)
     console.log("🔍 Checking happiness assignment:", {
       surveyId,
       userId,
@@ -153,11 +153,61 @@ export async function GET(
       timestamp: new Date().toISOString(),
     });
 
-    if (assignment.length === 0) {
+    // If no direct assignment, check if user's company matches survey's company
+    if (assignment.length === 0 && surveyData.companyId) {
+      console.log("🔍 No direct assignment, checking company access:", {
+        surveyCompanyId: surveyData.companyId,
+        userId,
+      });
+
+      // Import users schema
+      const { users } = await import("@/db/schema/users");
+
+      // Get user's company
+      const user = await db
+        .select({ companyId: users.companyId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (user.length > 0 && user[0].companyId === surveyData.companyId) {
+        console.log("✅ User has access via company assignment:", {
+          userCompanyId: user[0].companyId,
+          surveyCompanyId: surveyData.companyId,
+        });
+
+        // Grant access via company membership
+        // Continue to cooldown check below
+      } else {
+        console.log("❌ User not assigned to happiness survey:", {
+          surveyId,
+          userId,
+          userCompanyId: user[0]?.companyId || null,
+          surveyCompanyId: surveyData.companyId,
+          message:
+            "No active assignment found in happiness_assignments table or company mismatch",
+        });
+
+        return NextResponse.json({
+          assigned: false,
+          requiresAuth: false, // User is authenticated, but not assigned
+          canAccess: false,
+          cooldown: false,
+          cooldownRemaining: 0,
+          hasPreviousResult: false,
+          message: "You are not assigned to this survey",
+          survey: {
+            ...surveyData,
+            accessMode,
+          },
+          accessMode,
+        });
+      }
+    } else if (assignment.length === 0) {
       console.log("❌ User not assigned to happiness survey:", {
         surveyId,
         userId,
-        message: "No active assignment found in happiness_assignments table",
+        message: "No active assignment found and no company assignment",
       });
 
       return NextResponse.json({
@@ -255,8 +305,9 @@ export async function GET(
               character: character[0]
                 ? {
                     id: character[0].id,
-                    name: character[0].name,
-                    description: character[0].description,
+                    nameEn: character[0].nameEn,
+                    nameAr: character[0].nameAr,
+                    description: character[0].descriptionEn,
                     avatarUrl: character[0].avatarUrl,
                   }
                 : null,

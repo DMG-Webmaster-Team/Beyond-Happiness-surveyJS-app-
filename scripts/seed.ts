@@ -45,18 +45,14 @@ async function seed() {
     // Seed users
     for (const user of usersData) {
       await db.insert(users).values({
-        id: user.id,
         email: user.email,
+        name: user.name,
         phone: user.phone,
         otp: user.otp,
         status: user.status || "active",
         companyId: user.companyId,
-        createdAt: user.createdAt
-          ? new Date(user.createdAt).getTime()
-          : Date.now(),
-        updatedAt: user.updatedAt
-          ? new Date(user.updatedAt).getTime()
-          : Date.now(),
+        companyName: user.companyName,
+        // createdAt and updatedAt will use database defaults
       });
     }
     console.log(`👤 Seeded ${usersData.length} users`);

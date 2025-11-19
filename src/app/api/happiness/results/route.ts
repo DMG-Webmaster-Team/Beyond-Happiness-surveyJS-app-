@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
         characterId: happinessResults.characterId,
         createdAt: happinessResults.createdAt,
         surveyTitle: happinessSurveys.title,
-        characterName: happinessCharacters.name,
+        characterNameEn: happinessCharacters.nameEn,
+        characterNameAr: happinessCharacters.nameAr,
         companyId: happinessSurveys.companyId,
         companyName: happinessSurveys.companyName,
       })
@@ -275,24 +276,21 @@ export async function POST(request: NextRequest) {
             });
 
             // Instead of rejecting, return the previous result for cooldown period
+            // Use getMultilingualCharacter to get proper multilingual data
+            const { getMultilingualCharacter } = await import(
+              "@/lib/services/happiness-scoring"
+            );
+            const multilingualCharacter = await getMultilingualCharacter(
+              lastSubmission.code,
+              selectedLanguage as "en" | "ar"
+            );
+
             return NextResponse.json({
               id: lastSubmission.id, // Include the database ID for PDF generation
               ok: true,
               surveyId,
               code: lastSubmission.code,
-              character: character[0]
-                ? {
-                    id: character[0].id,
-                    name: character[0].name,
-                    description: character[0].description,
-                    avatarUrl: character[0].avatarUrl,
-                  }
-                : {
-                    id: lastSubmission.characterId,
-                    name: "Your Previous Character",
-                    description: "Your character from previous submission",
-                    avatarUrl: `/characters/${lastSubmission.code}.png`,
-                  },
+              character: multilingualCharacter,
               categoryTotals:
                 typeof lastSubmission.categoryTotals === "string"
                   ? JSON.parse(lastSubmission.categoryTotals)
@@ -347,8 +345,10 @@ export async function POST(request: NextRequest) {
       code: scoreResult.code,
       character: {
         id: scoreResult.character.id,
-        name: scoreResult.character.name,
+        nameEn: scoreResult.character.nameEn,
+        nameAr: scoreResult.character.nameAr,
         description: scoreResult.character.description,
+        detailedDescription: scoreResult.character.detailedDescription,
         avatarUrl: scoreResult.character.avatarUrl,
       },
       categoryTotals: scoreResult.categoryTotals,

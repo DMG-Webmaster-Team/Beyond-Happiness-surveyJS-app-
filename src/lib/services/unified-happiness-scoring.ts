@@ -1,6 +1,6 @@
 /**
  * Unified Happiness Scoring Service
- * 
+ *
  * This service provides consistent scoring calculations for both the results page and PDF generation.
  * It ensures that the same answer data and calculation logic is used across all components.
  */
@@ -121,7 +121,9 @@ export async function calculateUnifiedHappinessScore(
         : (JSON.parse(question.categoryValues as string) as number[]);
 
       if (!categoryValues || categoryValues.length !== 5) {
-        console.warn(`Invalid category values for question ${answer.questionId}`);
+        console.warn(
+          `Invalid category values for question ${answer.questionId}`
+        );
         continue;
       }
 
@@ -129,16 +131,19 @@ export async function calculateUnifiedHappinessScore(
       const scoreIndex = answer.valueIndex - 1;
       if (scoreIndex >= 0 && scoreIndex < categoryValues.length) {
         const categoryScore = categoryValues[scoreIndex];
-        categoryTotals[question.category as keyof CategoryTotals] += categoryScore;
+        categoryTotals[question.category as keyof CategoryTotals] +=
+          categoryScore;
 
         // Calculate essential score if question has an essential
+        // Also use this for subtype calculations
+        let essentialScore = 0;
         if (question.essentialId && question.essentialValues) {
           const essentialValues = Array.isArray(question.essentialValues)
             ? question.essentialValues
             : (JSON.parse(question.essentialValues as string) as number[]);
 
           if (scoreIndex >= 0 && scoreIndex < essentialValues.length) {
-            const essentialScore = essentialValues[scoreIndex];
+            essentialScore = essentialValues[scoreIndex];
             const essentialKey = `essential_${question.essentialId}`;
             essentialTotals[essentialKey] =
               (essentialTotals[essentialKey] || 0) + essentialScore;
@@ -146,9 +151,13 @@ export async function calculateUnifiedHappinessScore(
         }
 
         // Calculate subtype scores based on question ID mapping
+        // IMPORTANT: Use essentialScore for subtypes, NOT categoryScore!
         const subtype = getSubtypeFromQuestionId(answer.questionId);
         if (subtype) {
-          subtypeScores[question.category][subtype] += categoryScore;
+          // Use essentialScore if available, otherwise fall back to categoryScore (legacy)
+          const scoreToUse =
+            essentialScore > 0 ? essentialScore : categoryScore;
+          subtypeScores[question.category][subtype] += scoreToUse;
         }
       } else {
         console.warn(
@@ -159,10 +168,12 @@ export async function calculateUnifiedHappinessScore(
 
     // Calculate actual max scores for each category based on the questions
     const categoryMaxScores: Record<string, number> = {};
-    Object.keys(categoryTotals).forEach(category => {
-      const categoryQuestions = questions.filter(q => q.category === category);
+    Object.keys(categoryTotals).forEach((category) => {
+      const categoryQuestions = questions.filter(
+        (q) => q.category === category
+      );
       let maxScore = 0;
-      categoryQuestions.forEach(q => {
+      categoryQuestions.forEach((q) => {
         const values = Array.isArray(q.categoryValues)
           ? q.categoryValues
           : JSON.parse(q.categoryValues as string);
@@ -174,10 +185,22 @@ export async function calculateUnifiedHappinessScore(
     // Calculate percentages using actual max scores
     const categoryPercentages = Object.entries(categoryTotals).map(
       ([category, score]) => {
-        const maxPossibleScore = categoryMaxScores[category] || 2000;
-        const percentage = Math.round(((score as number) / maxPossibleScore) * 100);
+        const maxPossibleScore = categoryMaxScores[category];
+        if (!maxPossibleScore || maxPossibleScore === 0) {
+          console.warn(`No max score found for category: ${category}`);
+          return {
+            name: category,
+            value: 0,
+            score: score as number,
+            color: getCategoryColor(category).hex,
+          };
+        }
+
+        const percentage = Math.round(
+          ((score as number) / maxPossibleScore) * 100
+        );
         const color = getCategoryColor(category).hex;
-        
+
         return {
           name: category,
           value: percentage,
@@ -191,36 +214,65 @@ export async function calculateUnifiedHappinessScore(
     const subtypePercentages: {
       [category: string]: { A: number; B: number; C: number; D: number };
     } = {};
-    
+
     Object.entries(subtypeScores).forEach(([category, scores]) => {
       // Calculate actual max score for each subtype based on the questions
-      const subtypeMaxScores: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-      
+      const subtypeMaxScores: Record<string, number> = {
+        A: 0,
+        B: 0,
+        C: 0,
+        D: 0,
+      };
+
       // Get questions for this category
-      const categoryQuestions = questions.filter(q => q.category === category);
-      
+      const categoryQuestions = questions.filter(
+        (q) => q.category === category
+      );
+
       // Calculate max score for each subtype
-      ['A', 'B', 'C', 'D'].forEach(subtype => {
-        const subtypeQuestions = categoryQuestions.filter(q => {
+      ["A", "B", "C", "D"].forEach((subtype) => {
+        const subtypeQuestions = categoryQuestions.filter((q) => {
           const subtypeFromId = getSubtypeFromQuestionId(q.id);
           return subtypeFromId === subtype;
         });
-        
+
         let maxScore = 0;
-        subtypeQuestions.forEach(q => {
-          const values = Array.isArray(q.categoryValues)
-            ? q.categoryValues
-            : JSON.parse(q.categoryValues as string);
+        subtypeQuestions.forEach((q) => {
+          // Use essentialValues for subtype calculations, NOT categoryValues
+          // If essentialValues doesn't exist, fall back to categoryValues (legacy support)
+          let values;
+          if (q.essentialValues) {
+            values = Array.isArray(q.essentialValues)
+              ? q.essentialValues
+              : JSON.parse(q.essentialValues as string);
+          } else {
+            // Fallback to categoryValues for legacy data
+            values = Array.isArray(q.categoryValues)
+              ? q.categoryValues
+              : JSON.parse(q.categoryValues as string);
+          }
           maxScore += Math.max(...values);
         });
         subtypeMaxScores[subtype] = maxScore;
       });
-      
+
       subtypePercentages[category] = {
-        A: subtypeMaxScores.A > 0 ? Math.round((scores.A / subtypeMaxScores.A) * 100) : 0,
-        B: subtypeMaxScores.B > 0 ? Math.round((scores.B / subtypeMaxScores.B) * 100) : 0,
-        C: subtypeMaxScores.C > 0 ? Math.round((scores.C / subtypeMaxScores.C) * 100) : 0,
-        D: subtypeMaxScores.D > 0 ? Math.round((scores.D / subtypeMaxScores.D) * 100) : 0,
+        A:
+          subtypeMaxScores.A > 0
+            ? Math.round((scores.A / subtypeMaxScores.A) * 100)
+            : 0,
+        B:
+          subtypeMaxScores.B > 0
+            ? Math.round((scores.B / subtypeMaxScores.B) * 100)
+            : 0,
+        C:
+          subtypeMaxScores.C > 0
+            ? Math.round((scores.C / subtypeMaxScores.C) * 100)
+            : 0,
+        D:
+          subtypeMaxScores.D > 0
+            ? Math.round((scores.D / subtypeMaxScores.D) * 100)
+            : 0,
       };
     });
 
@@ -254,7 +306,9 @@ export async function calculateUnifiedHappinessScore(
  * Get subtype (A, B, C, D) from question ID
  * Each category has 8 questions, grouped into 4 subtypes (2 questions each)
  */
-function getSubtypeFromQuestionId(questionId: number): "A" | "B" | "C" | "D" | null {
+function getSubtypeFromQuestionId(
+  questionId: number
+): "A" | "B" | "C" | "D" | null {
   // Question mapping: Each category has 8 questions, grouped into 4 subtypes (2 questions each)
   const questionMapping = {
     Meaning: { A: [1, 2], B: [3, 4], C: [5, 6], D: [7, 8] },
@@ -283,11 +337,11 @@ function getMaxPossibleScoreForCategory(category: string): number {
   // These values should match the CATEGORY_MAX_SCORES from value-calculations.ts
   // Each category has 8 questions, and we need to sum the max values from all questions
   const categoryMaxScores = {
-    Meaning: 2000,    // 8 questions × 250 max each
-    Delight: 1500,    // 8 questions × 187.5 max each  
-    Freedom: 1800,    // 8 questions × 225 max each
+    Meaning: 2000, // 8 questions × 250 max each
+    Delight: 1500, // 8 questions × 187.5 max each
+    Freedom: 1800, // 8 questions × 225 max each
     Engagement: 1600, // 8 questions × 200 max each
-    Vitality: 1700,   // 8 questions × 212.5 max each
+    Vitality: 1700, // 8 questions × 212.5 max each
   };
 
   return categoryMaxScores[category as keyof typeof categoryMaxScores] || 2000;
@@ -308,11 +362,11 @@ function getMaxPossibleScoreForSubtype(category: string): number {
  */
 function getCategoryColor(category: string) {
   const colors = {
-    Meaning: { hex: "#8B5CF6", bg: "bg-purple-100", text: "text-purple-800" },
-    Delight: { hex: "#F59E0B", bg: "bg-yellow-100", text: "text-yellow-800" },
-    Freedom: { hex: "#10B981", bg: "bg-green-100", text: "text-green-800" },
-    Engagement: { hex: "#3B82F6", bg: "bg-blue-100", text: "text-blue-800" },
-    Vitality: { hex: "#EF4444", bg: "bg-red-100", text: "text-red-800" },
+    Meaning: { hex: "#784C9F", bg: "bg-purple-100", text: "text-purple-800" }, // rgb(120, 76, 159)
+    Delight: { hex: "#FEC010", bg: "bg-yellow-100", text: "text-yellow-800" }, // rgb(254, 192, 16)
+    Freedom: { hex: "#F67E52", bg: "bg-orange-100", text: "text-orange-800" }, // rgb(246, 126, 82)
+    Engagement: { hex: "#4972B8", bg: "bg-blue-100", text: "text-blue-800" }, // rgb(73, 114, 184)
+    Vitality: { hex: "#71AD46", bg: "bg-green-100", text: "text-green-800" }, // rgb(113, 173, 70)
   };
 
   return colors[category as keyof typeof colors] || colors.Meaning;

@@ -101,8 +101,19 @@ export default function SurveysTab() {
     setSurveyToDelete(null);
   };
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleDateString();
+  const formatDate = (timestamp: number | string | Date) => {
+    if (!timestamp) return "N/A";
+
+    // Handle different timestamp formats
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) {
+        return "Invalid Date";
+      }
+      return date.toLocaleDateString();
+    } catch (error) {
+      return "Invalid Date";
+    }
   };
 
   const getSurveyUrl = (surveyId: string, anonymous: boolean) => {
@@ -387,31 +398,6 @@ function SurveyModal({ survey, onSave, onCancel }: SurveyModalProps) {
               placeholder="Enter survey title..."
               required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Assigned Company (Optional)
-            </label>
-            <select
-              value={formData.companyId}
-              onChange={(e) =>
-                setFormData({ ...formData, companyId: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-              <option value="">No company assigned</option>
-              {companies.map((company: Company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name}
-                </option>
-              ))}
-            </select>
-            {companiesError && (
-              <p className="text-sm text-red-600 mt-1">
-                Failed to load companies
-              </p>
-            )}
           </div>
 
           {/* Show assigned surveys for selected company */}

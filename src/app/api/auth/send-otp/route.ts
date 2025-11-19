@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendOTP } from "../../../../lib/services/otp-service";
 import { verifyRecaptchaToken } from "../../../../components/shared/RecaptchaWrapper";
 
-
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();

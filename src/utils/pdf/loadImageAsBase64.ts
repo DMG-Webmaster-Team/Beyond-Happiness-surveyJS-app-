@@ -9,7 +9,18 @@ export async function loadImageAsBase64(
   try {
     if (isLocal) {
       // 🧪 Load directly from local /public/ directory
-      const fullPath = path.join(process.cwd(), "public", imagePath);
+      // Remove leading slash if present
+      const cleanPath = imagePath.startsWith("/")
+        ? imagePath.slice(1)
+        : imagePath;
+      const fullPath = path.join(process.cwd(), "public", cleanPath);
+
+      console.log(`🔍 Loading image:`, {
+        originalPath: imagePath,
+        cleanPath,
+        fullPath,
+        exists: fs.existsSync(fullPath),
+      });
 
       // Check if file exists
       if (!fs.existsSync(fullPath)) {
@@ -18,7 +29,9 @@ export async function loadImageAsBase64(
       }
 
       const buffer = fs.readFileSync(fullPath);
-      return `data:image/png;base64,${buffer.toString("base64")}`;
+      const base64 = `data:image/png;base64,${buffer.toString("base64")}`;
+      console.log(`✅ Image loaded successfully, size: ${buffer.length} bytes`);
+      return base64;
     } else {
       // ☁️ Use fetch from BASE_URL in Vercel
       const baseUrl =

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, color } from "motion/react";
 import { Plus, Edit, Trash2, Building2 } from "lucide-react";
 import AdminNavbar from "@/components/shared/AdminNavbar";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
+import SurveySelectorSeparate from "@/components/shared/SurveySelectorSeparate";
 
 interface Company {
   id: string;
@@ -37,10 +38,6 @@ interface CompanyFormData {
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [happinessSurveys, setHappinessSurveys] = useState<HappinessSurvey[]>(
-    []
-  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -78,56 +75,9 @@ export default function CompaniesPage() {
     }
   };
 
-  // Fetch surveys
-  const fetchSurveys = async () => {
-    try {
-      const [surveysRes, happinessRes] = await Promise.all([
-        fetch("/api/surveys", { credentials: "include" }),
-        fetch("/api/happiness/surveys", { credentials: "include" }),
-      ]);
-
-      if (surveysRes.ok) {
-        const surveysData = await surveysRes.json();
-        setSurveys(surveysData || []);
-      }
-
-      if (happinessRes.ok) {
-        const happinessData = await happinessRes.json();
-        setHappinessSurveys(happinessData.surveys || []);
-      }
-    } catch (error) {
-      console.error("Error fetching surveys:", error);
-    }
-  };
-
   useEffect(() => {
     fetchCompanies();
-    fetchSurveys();
   }, []);
-
-  // Handle survey selection
-  const handleSurveyToggle = (
-    surveyId: string,
-    type: "regular" | "happiness"
-  ) => {
-    if (type === "regular") {
-      setFormData((prev) => ({
-        ...prev,
-        selectedSurveyIds: prev.selectedSurveyIds.includes(surveyId)
-          ? prev.selectedSurveyIds.filter((id) => id !== surveyId)
-          : [...prev.selectedSurveyIds, surveyId],
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        selectedHappinessSurveyIds: prev.selectedHappinessSurveyIds.includes(
-          surveyId
-        )
-          ? prev.selectedHappinessSurveyIds.filter((id) => id !== surveyId)
-          : [...prev.selectedHappinessSurveyIds, surveyId],
-      }));
-    }
-  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,8 +111,8 @@ export default function CompaniesPage() {
         throw new Error(errorData.error || "Failed to save company");
       }
 
-      // Refresh companies and surveys list
-      await Promise.all([fetchCompanies(), fetchSurveys()]);
+      // Refresh companies list
+      await fetchCompanies();
 
       // Reset form and close modal
       setFormData({
@@ -472,87 +422,48 @@ export default function CompaniesPage() {
                         />
                       </div>
 
-                      {/* Survey Assignment */}
+                      {/* Survey Assignment - Regular Surveys */}
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                          Assign Surveys to Company
-                        </label>
+                        <SurveySelectorSeparate
+                          value={formData.selectedSurveyIds}
+                          onChange={(selectedIds) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              selectedSurveyIds: selectedIds,
+                            }));
+                          }}
+                          surveyType="regular"
+                          label="Assign Regular Surveys to Company"
+                          placeholder="Select regular surveys to assign to this company..."
+                          multiple={true}
+                          includeDeleted={false}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          All users in this company will be automatically
+                          assigned to these regular surveys.
+                        </p>
+                      </div>
 
-                        {/* Regular Surveys */}
-                        {surveys.length > 0 && (
-                          <div className="mb-4">
-                            <h4 className="text-sm font-medium text-gray-600 mb-2">
-                              Regular Surveys
-                            </h4>
-                            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-gray-50">
-                              {surveys.map((survey) => (
-                                <label
-                                  key={survey.id}
-                                  className="flex items-center py-1"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={formData.selectedSurveyIds.includes(
-                                      survey.id
-                                    )}
-                                    onChange={() =>
-                                      handleSurveyToggle(survey.id, "regular")
-                                    }
-                                    className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                                  />
-                                  <span className="ml-2 text-sm text-gray-700">
-                                    {survey.title}{" "}
-                                    {survey.isAnonymous
-                                      ? "(Anonymous)"
-                                      : "(Authenticated)"}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Happiness Surveys */}
-                        {happinessSurveys.length > 0 && (
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-600 mb-2">
-                              Happiness Surveys
-                            </h4>
-                            <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-gray-50">
-                              {happinessSurveys.map((survey) => (
-                                <label
-                                  key={survey.id}
-                                  className="flex items-center py-1"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={formData.selectedHappinessSurveyIds.includes(
-                                      survey.id
-                                    )}
-                                    onChange={() =>
-                                      handleSurveyToggle(survey.id, "happiness")
-                                    }
-                                    className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                                  />
-                                  <span className="ml-2 text-sm text-gray-700">
-                                    {survey.title}{" "}
-                                    {survey.anonymous
-                                      ? "(Anonymous)"
-                                      : "(Authenticated)"}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {surveys.length === 0 &&
-                          happinessSurveys.length === 0 && (
-                            <p className="text-sm text-gray-500 italic">
-                              No surveys available. Create surveys first to
-                              assign them to companies.
-                            </p>
-                          )}
+                      {/* Survey Assignment - Happiness Surveys */}
+                      <div className="mt-4">
+                        <SurveySelectorSeparate
+                          value={formData.selectedHappinessSurveyIds}
+                          onChange={(selectedIds) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              selectedHappinessSurveyIds: selectedIds,
+                            }));
+                          }}
+                          surveyType="happiness"
+                          label="Assign Happiness Surveys to Company"
+                          placeholder="Select happiness surveys to assign to this company..."
+                          multiple={true}
+                          includeDeleted={false}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          All users in this company will be automatically
+                          assigned to these happiness surveys.
+                        </p>
                       </div>
                     </div>
 

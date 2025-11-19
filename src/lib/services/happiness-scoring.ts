@@ -25,8 +25,10 @@ export interface HappinessScore {
   code: string;
   character: {
     id: number;
-    name: string;
+    nameEn: string;
+    nameAr: string;
     description: string;
+    detailedDescription: string;
     avatarUrl: string | null;
   };
 }
@@ -45,44 +47,83 @@ export async function getMultilingualCharacter(
   language: "en" | "ar" = "en"
 ): Promise<{
   id: number;
-  name: string;
+  nameEn: string;
+  nameAr: string;
   description: string;
+  detailedDescription: string;
   avatarUrl: string;
 }> {
   try {
-    // Skip file system access and go directly to database
+    console.log(
+      "🔍 Looking up character with code:",
+      code,
+      "language:",
+      language
+    );
 
-    // Fallback to database
+    // Fetch character with multilingual fields
     const characters = await db
       .select()
       .from(happinessCharacters)
       .where(eq(happinessCharacters.match, code))
       .limit(1);
 
+    console.log("🔍 Character query result:", {
+      found: characters.length > 0,
+    });
+
     if (characters.length > 0) {
       const char = characters[0];
+
+      // Use multilingual fields based on language
+      const description =
+        language === "ar" ? char.descriptionAr : char.descriptionEn;
+      const detailedDescription =
+        language === "ar"
+          ? char.detailedDescriptionArHtml || ""
+          : char.detailedDescriptionEnHtml || "";
+
+      console.log("🔍 Character data:", {
+        id: char.id,
+        nameEn: char.nameEn,
+        nameAr: char.nameAr,
+        description: description.substring(0, 50) + "...",
+        hasDetailedDescription: !!detailedDescription,
+      });
+
       return {
         id: char.id,
-        name: char.name,
-        description: char.description,
+        nameEn: char.nameEn,
+        nameAr: char.nameAr,
+        description,
+        detailedDescription,
         avatarUrl: char.avatarUrl || `/characters/${code}.png`,
       };
     }
 
     // If no character found, return a default
+    console.warn("⚠️ Character not found for code:", code);
     return {
       id: 0,
-      name: "Unknown Character",
+      nameEn: "Unknown Character",
+      nameAr: "شخصية غير معروفة",
       description: "Character not found",
+      detailedDescription: "",
       avatarUrl: `/characters/${code}.png`,
     };
   } catch (error) {
-    console.error("Error getting character:", error);
+    console.error("❌ Error getting character:", error);
+    console.error("❌ Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     // Return a fallback character
     return {
       id: 0,
-      name: "Unknown Character",
+      nameEn: "Unknown Character",
+      nameAr: "شخصية غير معروفة",
       description: "Character lookup failed",
+      detailedDescription: "",
       avatarUrl: `/characters/${code}.png`,
     };
   }

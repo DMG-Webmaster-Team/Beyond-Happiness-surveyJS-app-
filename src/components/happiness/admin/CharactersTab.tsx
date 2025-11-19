@@ -7,8 +7,12 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface HappinessCharacter {
   id: number;
-  name: string;
-  description: string;
+  nameEn: string;
+  nameAr: string;
+  descriptionEn: string;
+  descriptionAr: string;
+  detailedDescriptionEnHtml?: string | null;
+  detailedDescriptionArHtml?: string | null;
   match: string;
   avatarUrl: string | null;
   createdAt: number;
@@ -18,6 +22,8 @@ interface HappinessCharacter {
 export default function CharactersTab() {
   const [editingCharacter, setEditingCharacter] =
     useState<HappinessCharacter | null>(null);
+  const [language, setLanguage] = useState<"en" | "ar">("en");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data, error, isLoading, mutate } = useSWR(
     "/api/happiness/characters",
@@ -47,6 +53,76 @@ export default function CharactersTab() {
     }
   };
 
+  const handleSyncFromJSON = async () => {
+    if (
+      !confirm(
+        "This will update all characters from the JSON file (data/happiness-characters-multilingual.json). This will update names, descriptions, and avatar URLs. Continue?"
+      )
+    ) {
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/happiness/characters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync-from-json" }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(
+          `Successfully synced ${result.updatedCount} characters from JSON${
+            result.notFoundCount > 0
+              ? `\n${result.notFoundCount} characters not found in database`
+              : ""
+          }`
+        );
+        mutate(); // Refresh the data
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      alert("Failed to sync from JSON");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleSyncAvatars = async () => {
+    if (
+      !confirm(
+        "This will sync all avatar URLs based on their match codes. Continue?"
+      )
+    ) {
+      return;
+    }
+
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/happiness/characters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sync-avatars" }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`Successfully synced ${result.updatedCount} avatar URLs`);
+        mutate(); // Refresh the data
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+      }
+    } catch (error) {
+      alert("Failed to sync avatars");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="p-6">
@@ -72,7 +148,9 @@ export default function CharactersTab() {
     );
   }
 
-  const characters = data?.characters || [];
+  const characters = (data?.characters || []).sort(
+    (a: HappinessCharacter, b: HappinessCharacter) => a.id - b.id
+  );
 
   return (
     <div className="p-6">
@@ -82,8 +160,8 @@ export default function CharactersTab() {
           Happiness Characters ({characters.length})
         </h2>
         <p className="text-sm text-gray-600">
-          Characters are automatically mapped by their 5-bit codes. You can only
-          edit descriptions and avatar URLs.
+          Characters are automatically mapped by their 5-bit codes and ordered
+          by ID. You can only edit descriptions and avatar URLs.
         </p>
       </div>
 
@@ -97,7 +175,7 @@ export default function CharactersTab() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-semibold text-gray-900">
-                  {character.name}
+                  {language === "en" ? character.nameEn : character.nameAr}
                 </h3>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
@@ -122,7 +200,7 @@ export default function CharactersTab() {
                   src={
                     character.avatarUrl || `/characters/${character.match}.png`
                   }
-                  alt={character.name}
+                  alt={language === "en" ? character.nameEn : character.nameAr}
                   className="w-full h-full rounded-full object-cover bg-white"
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
@@ -133,7 +211,9 @@ export default function CharactersTab() {
             </div>
 
             <p className="text-sm text-gray-600 line-clamp-3">
-              {character.description}
+              {language === "en"
+                ? character.descriptionEn
+                : character.descriptionAr}
             </p>
 
             {character.avatarUrl && (
@@ -157,6 +237,7 @@ export default function CharactersTab() {
           character={editingCharacter}
           onSave={handleSaveCharacter}
           onCancel={() => setEditingCharacter(null)}
+          language={language}
         />
       )}
     </div>
@@ -167,11 +248,19 @@ interface CharacterModalProps {
   character: HappinessCharacter;
   onSave: (data: any) => void;
   onCancel: () => void;
+  language: "en" | "ar";
 }
 
-function CharacterModal({ character, onSave, onCancel }: CharacterModalProps) {
+function CharacterModal({
+  character,
+  onSave,
+  onCancel,
+  language: initialLanguage,
+}: CharacterModalProps) {
+  const [language, setLanguage] = useState<"en" | "ar">(initialLanguage);
   const [formData, setFormData] = useState({
-    description: character.description,
+    descriptionEn: character.descriptionEn,
+    descriptionAr: character.descriptionAr,
     avatarUrl: character.avatarUrl || "",
   });
 
@@ -179,13 +268,14 @@ function CharacterModal({ character, onSave, onCancel }: CharacterModalProps) {
     e.preventDefault();
 
     // Validation
-    if (!formData.description.trim()) {
-      alert("Description is required");
+    if (!formData.descriptionEn.trim() || !formData.descriptionAr.trim()) {
+      alert("Both English and Arabic descriptions are required");
       return;
     }
 
     onSave({
-      description: formData.description.trim(),
+      descriptionEn: formData.descriptionEn.trim(),
+      descriptionAr: formData.descriptionAr.trim(),
       avatarUrl: formData.avatarUrl.trim() || null,
     });
   };
@@ -193,20 +283,49 @@ function CharacterModal({ character, onSave, onCancel }: CharacterModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="fixed inset-0 bg-black/70 z-40" onClick={onCancel} />
-      <div className="relative z-50 w-full max-w-2xl bg-white rounded-lg shadow-lg">
-        <div className="p-4 border-b bg-blue-400 text-white">
-          <h3 className="text-lg font-semibold text-black">
-            Edit Character: {character.name}
-          </h3>
-          <p className="text-sm text-black opacity-90">
-            Match Code: {character.match} | ID: {character.id}
-          </p>
+      <div className="relative z-50 w-full max-w-2xl bg-white rounded-lg shadow-lg max-h-[90vh] overflow-y-auto">
+        <div className="p-4 border-b bg-blue-400 text-white sticky top-0 z-10">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-lg font-semibold text-black">
+                Edit Character:{" "}
+                {language === "en" ? character.nameEn : character.nameAr}
+              </h3>
+              <p className="text-sm text-black opacity-90">
+                Match Code: {character.match} | ID: {character.id}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setLanguage("en")}
+                className={`px-2 py-1 rounded text-xs font-medium ${
+                  language === "en"
+                    ? "bg-white text-blue-600"
+                    : "bg-blue-300 text-blue-900 hover:bg-blue-200"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                onClick={() => setLanguage("ar")}
+                className={`px-2 py-1 rounded text-xs font-medium ${
+                  language === "ar"
+                    ? "bg-white text-blue-600"
+                    : "bg-blue-300 text-blue-900 hover:bg-blue-200"
+                }`}
+              >
+                AR
+              </button>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
             <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> You can only edit the description and
+              <strong>Note:</strong> You can only edit the descriptions and
               avatar URL. The character name and match code are fixed to
               maintain scoring consistency.
             </p>
@@ -214,17 +333,34 @@ function CharacterModal({ character, onSave, onCancel }: CharacterModalProps) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description *
+              Description (English) *
             </label>
             <textarea
-              value={formData.description}
+              value={formData.descriptionEn}
               onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
+                setFormData({ ...formData, descriptionEn: e.target.value })
               }
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
               rows={4}
               required
-              placeholder="Describe this character type and what it represents..."
+              placeholder="Describe this character type in English..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description (Arabic) *
+            </label>
+            <textarea
+              value={formData.descriptionAr}
+              onChange={(e) =>
+                setFormData({ ...formData, descriptionAr: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 text-right"
+              rows={4}
+              required
+              placeholder="وصف هذا النوع من الشخصيات بالعربية..."
+              dir="rtl"
             />
           </div>
 
@@ -233,17 +369,17 @@ function CharacterModal({ character, onSave, onCancel }: CharacterModalProps) {
               Avatar URL (optional)
             </label>
             <input
-              type="url"
+              type="text"
               value={formData.avatarUrl}
               onChange={(e) =>
                 setFormData({ ...formData, avatarUrl: e.target.value })
               }
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              placeholder="/avatars/character-name.svg"
+              placeholder="/characters/00000.png"
             />
             <p className="text-xs text-gray-500 mt-1">
               Provide a path to the character&apos;s avatar image (e.g.,
-              /avatars/curious-nomad.svg)
+              /characters/00000.png)
             </p>
           </div>
 
@@ -254,7 +390,7 @@ function CharacterModal({ character, onSave, onCancel }: CharacterModalProps) {
             <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full p-1 shadow">
               <img
                 src={formData.avatarUrl || `/characters/${character.match}.png`}
-                alt={character.name}
+                alt={language === "en" ? character.nameEn : character.nameAr}
                 className="w-full h-full rounded-full object-cover bg-white"
                 onError={(e) => {
                   const img = e.target as HTMLImageElement;
