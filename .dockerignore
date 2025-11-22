@@ -1,0 +1,124 @@
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp
+.pnp.js
+
+# Next.js build output
+.next
+out
+build
+dist
+
+# Production
+/build
+
+# Environment variables
+.env
+.env*.local
+.env.local
+.env.development
+.env.production
+.env.test
+
+# Testing
+coverage
+.nyc_output
+*.test.js
+*.test.ts
+*.test.tsx
+tests
+__tests__
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+docs
+
+# Scripts and utilities
+scripts
+*.sh
+*.py
+*.js
+!next.config.mjs
+!postcss.config.js
+add-runtime-config.js
+check-admin.js
+setup-admin.js
+delete-user.sh
+
+# Database files (local development)
+*.db
+*.db-shm
+*.db-wal
+*.db.backup
+surveyjs.db*
+
+# Logs
+*.log
+server.log
+logs
+
+# Temporary files
+*.tmp
+*.temp
+.cache
+.temp
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Vercel
+.vercel
+
+# Misc
+*.pem
+*.key
+*.cert
+.pnp
+.yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+
+# Data files (if not needed in production)
+data/*.json
+!data/happiness-characters-multilingual.json
+!data/happiness-questions-multilingual.json
+
+# Excel files
+*.xlsx
+*.xls
+
+# Migration files (if not needed)
+drizzle/meta
+
+# Test files
+test-*.js
+test-*.ts
+test-*.csv
+testsprite_tests
+
+# Documentation markdown files
+*.md
+!README.md
+
