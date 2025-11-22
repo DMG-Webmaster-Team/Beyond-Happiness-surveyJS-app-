@@ -166,7 +166,7 @@ export async function POST(req: NextRequest) {
         if (lastSubmission.createdAt) {
           const cooldownPeriod = survey.retakeCooldownDays * 24 * 60 * 60; // Convert days to seconds
           const timeSinceLastSubmission =
-            Date.now() / 1000 - lastSubmission.createdAt;
+            Date.now() / 1000 - lastSubmission.createdAt.getTime() / 1000;
 
           if (timeSinceLastSubmission < cooldownPeriod) {
             const remainingTime = Math.ceil(
