@@ -1,8 +1,10 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, Component, ErrorInfo, ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import useSWR, { mutate } from "swr";
 import AdminNavbar from "@/components/shared/AdminNavbar";
 import CompanySelect from "@/components/shared/CompanySelect";
@@ -10,7 +12,7 @@ import "survey-core/survey-core.css";
 import "survey-creator-core/survey-creator-core.css";
 
 // Dynamically import SurveyJS Creator to avoid SSR issues
-const SurveyCreatorComponent = dynamic(
+const SurveyCreatorComponent = nextDynamic(
   () =>
     import("survey-creator-react").then((mod) => mod.SurveyCreatorComponent),
   {

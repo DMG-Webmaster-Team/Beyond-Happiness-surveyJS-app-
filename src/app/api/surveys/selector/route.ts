@@ -6,6 +6,7 @@ import { eq, and, or, like } from "drizzle-orm";
 
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
