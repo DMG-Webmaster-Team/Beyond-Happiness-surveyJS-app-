@@ -165,8 +165,15 @@ export async function POST(req: NextRequest) {
         const lastSubmission = existingResult[0];
         if (lastSubmission.createdAt) {
           const cooldownPeriod = survey.retakeCooldownDays * 24 * 60 * 60; // Convert days to seconds
+          // Convert createdAt to timestamp (handle both Date objects and timestamps)
+          const lastSubmissionTime =
+            lastSubmission.createdAt instanceof Date
+              ? lastSubmission.createdAt.getTime() / 1000
+              : typeof lastSubmission.createdAt === "number"
+              ? lastSubmission.createdAt / 1000
+              : new Date(lastSubmission.createdAt).getTime() / 1000;
           const timeSinceLastSubmission =
-            Date.now() / 1000 - lastSubmission.createdAt.getTime() / 1000;
+            Date.now() / 1000 - lastSubmissionTime;
 
           if (timeSinceLastSubmission < cooldownPeriod) {
             const remainingTime = Math.ceil(
