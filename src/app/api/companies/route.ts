@@ -88,7 +88,7 @@ async function syncUsersWithCompanySurveys(
     }
 
     // Add new assignments
-    const now = Date.now();
+    const now = new Date();
 
     // Regular survey assignments
     if (surveyIds.length > 0) {
