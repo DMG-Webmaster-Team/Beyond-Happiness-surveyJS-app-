@@ -53,8 +53,13 @@ export async function assignSurveyToCompanies(
     assignedBy,
   }));
 
-  const result = await db.insert(surveyCompanyAssignments).values(assignments);
-  return result;
+  await db.insert(surveyCompanyAssignments).values(assignments);
+
+  // Fetch and return all assignments for this survey
+  return await db
+    .select()
+    .from(surveyCompanyAssignments)
+    .where(eq(surveyCompanyAssignments.surveyId, surveyId));
 }
 
 /**
@@ -98,10 +103,13 @@ export async function assignHappinessSurveyToCompanies(
     assignedBy,
   }));
 
-  const result = await db
-    .insert(happinessSurveyCompanyAssignments)
-    .values(assignments);
-  return result;
+  await db.insert(happinessSurveyCompanyAssignments).values(assignments);
+
+  // Fetch and return all assignments for this survey
+  return await db
+    .select()
+    .from(happinessSurveyCompanyAssignments)
+    .where(eq(happinessSurveyCompanyAssignments.surveyId, surveyId));
 }
 
 /**
@@ -172,7 +180,7 @@ export async function getCompanySurveys(companyId: string): Promise<any[]> {
     );
 
   // Get surveys with direct companyId assignment
-  const directSurveys = await db
+  const directSurveysRaw = await db
     .select({
       id: surveys.id,
       title: surveys.title,
@@ -180,7 +188,6 @@ export async function getCompanySurveys(companyId: string): Promise<any[]> {
       isActive: surveys.isActive,
       isPublished: surveys.isPublished,
       assignedAt: surveys.createdAt, // Use createdAt as assignedAt for direct assignments
-      assignedBy: "direct_assignment", // Indicate this is a direct assignment
     })
     .from(surveys)
     .where(
@@ -190,6 +197,12 @@ export async function getCompanySurveys(companyId: string): Promise<any[]> {
         eq(surveys.isPublished, true)
       )
     );
+
+  // Add assignedBy field after fetching
+  const directSurveys = directSurveysRaw.map((survey) => ({
+    ...survey,
+    assignedBy: "direct_assignment" as string | null,
+  }));
 
   // Merge both results, removing duplicates by id
   const surveyMap = new Map();
@@ -235,14 +248,13 @@ export async function getCompanyHappinessSurveys(
     );
 
   // Get surveys with direct companyId assignment
-  const directSurveys = await db
+  const directSurveysRaw = await db
     .select({
       id: happinessSurveys.id,
       title: happinessSurveys.title,
       isActive: happinessSurveys.isActive,
       isPublished: happinessSurveys.isPublished,
       assignedAt: happinessSurveys.createdAt, // Use createdAt as assignedAt for direct assignments
-      assignedBy: "direct_assignment", // Indicate this is a direct assignment
     })
     .from(happinessSurveys)
     .where(
@@ -252,6 +264,12 @@ export async function getCompanyHappinessSurveys(
         eq(happinessSurveys.isPublished, true)
       )
     );
+
+  // Add assignedBy field after fetching
+  const directSurveys = directSurveysRaw.map((survey) => ({
+    ...survey,
+    assignedBy: "direct_assignment" as string | null,
+  }));
 
   // Merge both results, removing duplicates by id
   const surveyMap = new Map();

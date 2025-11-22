@@ -73,7 +73,9 @@ export async function calculateSubtypeScores(
       if (question.categoryValues) {
         values = Array.isArray(question.categoryValues)
           ? question.categoryValues
-          : (JSON.parse(question.categoryValues) as number[]);
+          : typeof question.categoryValues === "string"
+          ? (JSON.parse(question.categoryValues) as number[])
+          : [];
       } else if ((question as any).values) {
         values = Array.isArray((question as any).values)
           ? (question as any).values

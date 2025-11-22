@@ -155,19 +155,6 @@ async function createConnection(): Promise<mysql.Pool> {
   return await ensureHealthyConnection();
 }
 
-// Create a lazy-initialized Drizzle instance
-let drizzleInstance: ReturnType<typeof drizzle> | null = null;
-
-// Get Drizzle instance with health check
-export async function getDb() {
-  if (!drizzleInstance) {
-    const pool = await ensureHealthyConnection();
-    drizzleInstance = drizzle(pool, { schema, mode: "default" });
-    console.log("🔧 Drizzle ORM initialized with healthy connection pool");
-  }
-  return drizzleInstance;
-}
-
 // Legacy synchronous db export (deprecated - use getDb() instead)
 // This creates the connection immediately but doesn't ensure health
 export const db = drizzle(mysql.createPool(CONNECTION_CONFIG), {
@@ -175,9 +162,22 @@ export const db = drizzle(mysql.createPool(CONNECTION_CONFIG), {
   mode: "default",
 });
 
+// Create a lazy-initialized Drizzle instance
+let drizzleInstance: typeof db | null = null;
+
+// Get Drizzle instance with health check
+export async function getDb() {
+  if (!drizzleInstance) {
+    const pool = await ensureHealthyConnection();
+    drizzleInstance = drizzle(pool, { schema, mode: "default" }) as typeof db;
+    console.log("🔧 Drizzle ORM initialized with healthy connection pool");
+  }
+  return drizzleInstance;
+}
+
 // Database query wrapper with automatic health check and error handling
 export async function withDb<T>(
-  operation: (db: ReturnType<typeof drizzle>) => Promise<T>,
+  operation: (dbInstance: Awaited<ReturnType<typeof getDb>>) => Promise<T>,
   operationName: string = "database operation"
 ): Promise<T> {
   try {

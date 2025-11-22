@@ -42,7 +42,11 @@ export async function listCompanies(): Promise<Company[]> {
 export async function createCompany(companyData: NewCompany): Promise<Company> {
   const companyId = companyData.id || require("nanoid").nanoid();
   await db.insert(companies).values({ ...companyData, id: companyId });
-  return { ...companyData, id: companyId };
+  const createdCompany = await getCompanyById(companyId);
+  if (!createdCompany) {
+    throw new Error("Failed to create company");
+  }
+  return createdCompany;
 }
 
 export async function updateCompany(

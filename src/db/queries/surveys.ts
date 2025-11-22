@@ -45,6 +45,7 @@ export async function getSurveyById(id: string): Promise<Survey | undefined> {
       isActive: surveys.isActive,
       isPublished: surveys.isPublished,
       createdBy: surveys.createdBy,
+      createdAt: surveys.createdAt,
       updatedAt: surveys.updatedAt,
     })
     .from(surveys)

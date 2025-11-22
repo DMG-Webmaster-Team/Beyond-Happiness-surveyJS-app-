@@ -66,7 +66,11 @@ export async function createUser(
 
   const userId = newUser.id || require("nanoid").nanoid();
   await db.insert(users).values({ ...newUser, id: userId });
-  return { ...newUser, id: userId };
+  const createdUser = await getUserById(userId);
+  if (!createdUser) {
+    throw new Error("Failed to create user");
+  }
+  return createdUser;
 }
 
 // Update user
@@ -110,7 +114,7 @@ export async function deleteUser(id: string): Promise<boolean> {
     .set({ status: "inactive", updatedAt: new Date() })
     .where(eq(users.id, id));
 
-  return result.changes > 0;
+  return ((result as any).affectedRows || 0) > 0;
 }
 
 // List users with pagination and search
@@ -198,12 +202,24 @@ export async function createUserAssignment(assignmentData: {
     userId: assignmentData.userId,
     surveyId: assignmentData.surveyId,
     assignedAt: now,
-    dueAt: assignmentData.dueAt || null,
+    dueAt: assignmentData.dueAt ? new Date(assignmentData.dueAt) : null,
     status: assignmentData.status || "pending",
   };
 
-  const result = await db.insert(userAssignments).values(newAssignment);
-  return result[0];
+  await db.insert(userAssignments).values(newAssignment);
+
+  // Fetch the created assignment using the composite key
+  const createdAssignment = await db
+    .select()
+    .from(userAssignments)
+    .where(
+      and(
+        eq(userAssignments.userId, assignmentData.userId),
+        eq(userAssignments.surveyId, assignmentData.surveyId)
+      )
+    )
+    .limit(1);
+  return createdAssignment[0];
 }
 
 // Upsert user assignment
@@ -226,10 +242,12 @@ export async function upsertUserAssignment(assignmentData: {
 
   if (existingAssignment.length > 0) {
     // Update existing assignment
-    const result = await db
+    await db
       .update(userAssignments)
       .set({
-        dueAt: assignmentData.dueAt || existingAssignment[0].dueAt,
+        dueAt: assignmentData.dueAt
+          ? new Date(assignmentData.dueAt)
+          : existingAssignment[0].dueAt,
         status: assignmentData.status || existingAssignment[0].status,
       })
       .where(
@@ -238,7 +256,19 @@ export async function upsertUserAssignment(assignmentData: {
           eq(userAssignments.surveyId, assignmentData.surveyId)
         )
       );
-    return result[0];
+
+    // Fetch the updated assignment
+    const updatedAssignment = await db
+      .select()
+      .from(userAssignments)
+      .where(
+        and(
+          eq(userAssignments.userId, assignmentData.userId),
+          eq(userAssignments.surveyId, assignmentData.surveyId)
+        )
+      )
+      .limit(1);
+    return updatedAssignment[0];
   } else {
     // Create new assignment
     return createUserAssignment(assignmentData);
@@ -272,7 +302,7 @@ export async function upsertSurvey(surveyData: {
       .set({
         title: surveyData.title,
         description: surveyData.description || existingSurvey.description,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       })
       .where(eq(surveys.id, surveyData.id));
     const updatedSurvey = await getSurveyById(surveyData.id);
@@ -284,15 +314,19 @@ export async function upsertSurvey(surveyData: {
       id: surveyData.id,
       title: surveyData.title,
       description: surveyData.description || "",
-      definition: "{}", // Default empty JSON definition
-      canTakeMultiple: surveyData.canTakeMultiple ? 1 : 0,
+      definition: {}, // Default empty JSON definition
+      canTakeMultiple: Boolean(surveyData.canTakeMultiple),
       createdBy: surveyData.createdBy,
-      createdAt: now.toISOString(),
-      updatedAt: now.toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
 
     await db.insert(surveys).values(newSurvey);
-    return { survey: newSurvey, created: true };
+    const createdSurvey = await getSurveyById(surveyData.id);
+    if (!createdSurvey) {
+      throw new Error("Failed to create survey");
+    }
+    return { survey: createdSurvey, created: true };
   }
 }
 

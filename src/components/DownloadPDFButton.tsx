@@ -33,6 +33,7 @@ interface HappinessResult {
     Engagement: number;
     Vitality: number;
   };
+  essentialTotals?: Record<string, number>;
 }
 
 interface DownloadPDFButtonProps {

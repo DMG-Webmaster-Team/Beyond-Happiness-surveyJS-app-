@@ -37,12 +37,16 @@ export async function getAdminById(id: string): Promise<Admin | undefined> {
 }
 
 export async function createAdmin(
-  adminData: z.infer<typeof createAdminSchema>
+  adminData: z.infer<typeof createAdminSchema> & { id?: string }
 ): Promise<Admin> {
   const validatedData = createAdminSchema.parse(adminData);
-  const adminId = validatedData.id || require("nanoid").nanoid();
+  const adminId = (adminData as any).id || require("nanoid").nanoid();
   await db.insert(admins).values({ ...validatedData, id: adminId });
-  return { ...validatedData, id: adminId };
+  const createdAdmin = await getAdminById(adminId);
+  if (!createdAdmin) {
+    throw new Error("Failed to create admin");
+  }
+  return createdAdmin;
 }
 
 export async function validateAdminCredentials(
