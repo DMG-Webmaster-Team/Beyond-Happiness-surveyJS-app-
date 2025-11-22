@@ -358,8 +358,9 @@ export async function GET(
           character: character[0]
             ? {
                 id: character[0].id,
-                name: character[0].name,
-                description: character[0].description,
+                nameEn: character[0].nameEn,
+                nameAr: character[0].nameAr,
+                description: character[0].descriptionEn,
                 avatarUrl: character[0].avatarUrl,
               }
             : null,
