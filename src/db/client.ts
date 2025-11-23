@@ -43,7 +43,7 @@ function getConnectionConfig(): mysql.PoolOptions {
       return config;
     } catch (error) {
       console.error(
-        "❌ Failed to parse DATABASE_URL, falling back to individual variables:",
+        "❌ Failed  to parse DATABASE_URL,  falling back to individual variables:",
         error
       );
     }
