@@ -26,29 +26,36 @@ function getConnectionConfig(): mysql.PoolOptions {
         idleTimeout: 60000,
         maxIdle: 2,
       };
-      
+
       // Only add socketPath if it's a local socket connection (not in production)
-      if (url.protocol === 'mysql:' && url.hostname === 'localhost' && process.env.NODE_ENV === 'development') {
+      if (
+        url.protocol === "mysql:" &&
+        url.hostname === "localhost" &&
+        process.env.NODE_ENV === "development"
+      ) {
         // Check if socket path is provided in query params
-        const socketPath = url.searchParams.get('socketPath');
+        const socketPath = url.searchParams.get("socketPath");
         if (socketPath) {
           config.socketPath = socketPath;
         }
       }
-      
+
       return config;
     } catch (error) {
-      console.error('❌ Failed to parse DATABASE_URL, falling back to individual variables:', error);
+      console.error(
+        "❌ Failed to parse DATABASE_URL, falling back to individual variables:",
+        error
+      );
     }
   }
 
   // Fall back to individual environment variables
   const config: mysql.PoolOptions = {
-    host: process.env.DB_HOST || 'localhost',
+    host: process.env.DB_HOST || "localhost",
     port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 3306,
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'surveyjs_nextjs',
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_NAME || "surveyjs_nextjs",
     connectionLimit: 10,
     queueLimit: 50,
     idleTimeout: 60000,
@@ -56,7 +63,11 @@ function getConnectionConfig(): mysql.PoolOptions {
   };
 
   // Only use socketPath in development with localhost
-  if (config.host === 'localhost' && process.env.NODE_ENV === 'development' && process.env.DB_SOCKET_PATH) {
+  if (
+    config.host === "localhost" &&
+    process.env.NODE_ENV === "development" &&
+    process.env.DB_SOCKET_PATH
+  ) {
     config.socketPath = process.env.DB_SOCKET_PATH;
   }
 
