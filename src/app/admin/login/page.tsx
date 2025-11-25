@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -44,6 +45,15 @@ export default function AdminLogin() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8">
         <div className="text-center">
+          <div className="flex justify-center mb-6 ms-7">
+            <Image
+              src="/beyond-happiness-logo.svg"
+              alt="Beyond Happiness"
+              width={200}
+              height={80}
+              priority
+            />
+          </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Admin Login</h2>
           <p className="text-gray-600 text-sm mb-8">
             Sign in to manage your surveys

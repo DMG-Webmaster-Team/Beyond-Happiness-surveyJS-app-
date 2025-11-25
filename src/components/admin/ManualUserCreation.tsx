@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import CompanySelect from "@/components/shared/CompanySelect";
+import SurveySelectorSeparate from "@/components/shared/SurveySelectorSeparate";
 import {
   ErrorCode,
   validateEgyptianPhone,
@@ -47,10 +48,6 @@ export default function ManualUserCreation({
     happinessSurveyIds: [],
   });
 
-  const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [happinessSurveys, setHappinessSurveys] = useState<HappinessSurvey[]>(
-    []
-  );
   const [companySurveys, setCompanySurveys] = useState<Survey[]>([]);
   const [companyHappinessSurveys, setCompanyHappinessSurveys] = useState<
     HappinessSurvey[]
@@ -59,32 +56,6 @@ export default function ManualUserCreation({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<ErrorCode | string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Fetch surveys and happiness surveys
-  useEffect(() => {
-    const fetchSurveys = async () => {
-      try {
-        const [surveysRes, happinessRes] = await Promise.all([
-          fetch("/api/surveys"),
-          fetch("/api/happiness/surveys"),
-        ]);
-
-        if (surveysRes.ok) {
-          const surveysData = await surveysRes.json();
-          setSurveys(surveysData.items || []);
-        }
-
-        if (happinessRes.ok) {
-          const happinessData = await happinessRes.json();
-          setHappinessSurveys(happinessData.surveys || []);
-        }
-      } catch (error) {
-        console.error("Error fetching surveys:", error);
-      }
-    };
-
-    fetchSurveys();
-  }, []);
 
   // Fetch company-specific surveys when company changes
   useEffect(() => {
@@ -272,27 +243,6 @@ export default function ManualUserCreation({
     }));
   };
 
-  const handleSurveyToggle = (
-    surveyId: string,
-    type: "regular" | "happiness"
-  ) => {
-    if (type === "regular") {
-      setFormData((prev) => ({
-        ...prev,
-        surveyIds: prev.surveyIds?.includes(surveyId)
-          ? prev.surveyIds.filter((id) => id !== surveyId)
-          : [...(prev.surveyIds || []), surveyId],
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        happinessSurveyIds: prev.happinessSurveyIds?.includes(surveyId)
-          ? prev.happinessSurveyIds.filter((id) => id !== surveyId)
-          : [...(prev.happinessSurveyIds || []), surveyId],
-      }));
-    }
-  };
-
   return (
     <div className="w-full">
       <div className="mb-6">
@@ -434,76 +384,53 @@ export default function ManualUserCreation({
             </div>
           )}
 
-        {/* Manual Survey Assignment */}
-        {!formData.companyId && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Manual Survey Assignment
-            </label>
-            <p className="text-xs text-gray-500 mb-3">
-              Select individual surveys to assign to this user
-            </p>
+        {/* Survey Selection - Regular Surveys */}
+        <div>
+          <SurveySelectorSeparate
+            value={formData.surveyIds || []}
+            onChange={(ids) =>
+              setFormData((prev) => ({ ...prev, surveyIds: ids }))
+            }
+            surveyType="regular"
+            label={
+              formData.companyId
+                ? "Additional Regular Surveys (Optional)"
+                : "Regular Surveys (Optional)"
+            }
+            placeholder="Select regular surveys..."
+            multiple={true}
+            includeDeleted={false}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            {formData.companyId
+              ? "These regular surveys will be assigned in addition to any company surveys."
+              : "Select regular surveys to assign to this user."}
+          </p>
+        </div>
 
-            {/* Regular Surveys */}
-            {surveys.length > 0 && (
-              <div className="mb-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Regular Surveys:
-                </h4>
-                <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                  {surveys.map((survey) => (
-                    <label key={survey.id} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        checked={
-                          formData.surveyIds?.includes(survey.id) || false
-                        }
-                        onChange={() =>
-                          handleSurveyToggle(survey.id, "regular")
-                        }
-                        className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        {survey.title}{" "}
-                        {survey.isAnonymous ? "(Anonymous)" : "(Authenticated)"}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Happiness Surveys */}
-            {happinessSurveys.length > 0 && (
-              <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Happiness Surveys:
-                </h4>
-                <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
-                  {happinessSurveys.map((survey) => (
-                    <label key={survey.id} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        checked={
-                          formData.happinessSurveyIds?.includes(survey.id) ||
-                          false
-                        }
-                        onChange={() =>
-                          handleSurveyToggle(survey.id, "happiness")
-                        }
-                        className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">
-                        {survey.title}{" "}
-                        {survey.anonymous ? "(Anonymous)" : "(Authenticated)"}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Survey Selection - Happiness Surveys */}
+        <div>
+          <SurveySelectorSeparate
+            value={formData.happinessSurveyIds || []}
+            onChange={(ids) =>
+              setFormData((prev) => ({ ...prev, happinessSurveyIds: ids }))
+            }
+            surveyType="happiness"
+            label={
+              formData.companyId
+                ? "Additional Happiness Surveys (Optional)"
+                : "Happiness Surveys (Optional)"
+            }
+            placeholder="Select happiness surveys..."
+            multiple={true}
+            includeDeleted={false}
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            {formData.companyId
+              ? "These happiness surveys will be assigned in addition to any company surveys."
+              : "Select happiness surveys to assign to this user."}
+          </p>
+        </div>
 
         {/* Submit Button */}
         <div className="flex justify-end space-x-3">

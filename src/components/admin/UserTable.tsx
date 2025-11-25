@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
 import CompanySelect from "@/components/shared/CompanySelect";
+import SurveySelectorSeparate from "@/components/shared/SurveySelectorSeparate";
 import ConfirmDialog from "@/components/shared/ConfirmDialog";
 
 interface User {
@@ -34,10 +35,6 @@ interface UserTableProps {
 
 export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
   const [users, setUsers] = useState<User[]>([]);
-  const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
-  const [happinessSurveys, setHappinessSurveys] = useState<
-    { id: string; title: string }[]
-  >([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 20,
@@ -101,38 +98,9 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
     }
   };
 
-  // Fetch surveys
-  const fetchSurveys = async () => {
-    try {
-      const response = await fetch("/api/surveys");
-      if (response.ok) {
-        const data = await response.json();
-        // The API returns an array directly, not wrapped in a surveys property
-        setSurveys(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch surveys:", error);
-    }
-  };
-
-  // Fetch happiness surveys
-  const fetchHappinessSurveys = async () => {
-    try {
-      const response = await fetch("/api/happiness/surveys");
-      if (response.ok) {
-        const data = await response.json();
-        setHappinessSurveys(data.surveys || []);
-      }
-    } catch (error) {
-      console.error("Failed to fetch happiness surveys:", error);
-    }
-  };
-
-  // Load users and surveys on component mount and when filters change
+  // Load users on component mount and when filters change
   useEffect(() => {
     fetchUsers(1, searchQuery, statusFilter);
-    fetchSurveys();
-    fetchHappinessSurveys();
   }, [searchQuery, statusFilter]);
 
   // Refresh data when refreshTrigger changes
@@ -160,29 +128,6 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
   // Handle page change
   const handlePageChange = (newPage: number) => {
     fetchUsers(newPage, searchQuery, statusFilter);
-  };
-
-  // Handle survey selection change
-  const handleSurveySelectionChange = (surveyId: string, checked: boolean) => {
-    if (checked) {
-      setSelectedSurveys((prev) => [...prev, surveyId]);
-    } else {
-      setSelectedSurveys((prev) => prev.filter((id) => id !== surveyId));
-    }
-  };
-
-  // Handle happiness survey selection change
-  const handleHappinessSurveySelectionChange = (
-    surveyId: string,
-    checked: boolean
-  ) => {
-    if (checked) {
-      setSelectedHappinessSurveys((prev) => [...prev, surveyId]);
-    } else {
-      setSelectedHappinessSurveys((prev) =>
-        prev.filter((id) => id !== surveyId)
-      );
-    }
   };
 
   // Initialize selected surveys when editing user
@@ -671,66 +616,44 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Regular Survey Assignments
-                  </label>
-                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                    {surveys.map((survey) => (
-                      <label
-                        key={survey.id}
-                        className="flex items-center space-x-2 py-0.5"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedSurveys.includes(survey.id)}
-                          onChange={(e) =>
-                            handleSurveySelectionChange(
-                              survey.id,
-                              e.target.checked
-                            )
-                          }
-                          className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {survey.title}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                  <SurveySelectorSeparate
+                    value={selectedSurveys}
+                    onChange={setSelectedSurveys}
+                    surveyType="regular"
+                    label={
+                      selectedCompanyId
+                        ? "Additional Regular Surveys (Optional)"
+                        : "Regular Surveys (Optional)"
+                    }
+                    placeholder="Select regular surveys..."
+                    multiple={true}
+                    includeDeleted={false}
+                  />
                   <p className="mt-1 text-xs text-gray-500">
-                    Select regular surveys to assign to this user.
+                    {selectedCompanyId
+                      ? "These regular surveys will be assigned in addition to any company surveys."
+                      : "Select regular surveys to assign to this user."}
                   </p>
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Happiness Survey Assignments
-                  </label>
-                  <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-2">
-                    {happinessSurveys.map((survey) => (
-                      <label
-                        key={survey.id}
-                        className="flex items-center space-x-2 py-0.5"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedHappinessSurveys.includes(survey.id)}
-                          onChange={(e) =>
-                            handleHappinessSurveySelectionChange(
-                              survey.id,
-                              e.target.checked
-                            )
-                          }
-                          className="rounded border-gray-300 text-blue-400 focus:ring-blue-400"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {survey.title}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
+                  <SurveySelectorSeparate
+                    value={selectedHappinessSurveys}
+                    onChange={setSelectedHappinessSurveys}
+                    surveyType="happiness"
+                    label={
+                      selectedCompanyId
+                        ? "Additional Happiness Surveys (Optional)"
+                        : "Happiness Surveys (Optional)"
+                    }
+                    placeholder="Select happiness surveys..."
+                    multiple={true}
+                    includeDeleted={false}
+                  />
                   <p className="mt-1 text-xs text-gray-500">
-                    Select happiness surveys to assign to this user.
+                    {selectedCompanyId
+                      ? "These happiness surveys will be assigned in addition to any company surveys."
+                      : "Select happiness surveys to assign to this user."}
                   </p>
                 </div>
               </form>

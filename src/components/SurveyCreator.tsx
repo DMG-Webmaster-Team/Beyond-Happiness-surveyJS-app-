@@ -40,6 +40,10 @@ export default function SurveyCreatorWidget(props: {
 
     const initCreator = async () => {
       try {
+        // Set SurveyJS license
+        const { setSurveyJSLicense } = await import("../lib/surveyjs-config");
+        setSurveyJSLicense();
+
         const { SurveyCreator } = await import("survey-creator-react");
 
         const newCreator = new SurveyCreator(

@@ -6,7 +6,7 @@ export default defineConfig({
   dialect: "mysql",
   dbCredentials: {
     host: "localhost",
-    port: 8889,
+    port: 3306,
     user: "root",
     password: "root",
     database: "happiness_survey",

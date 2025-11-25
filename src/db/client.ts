@@ -37,6 +37,9 @@ function getConnectionConfig(): mysql.PoolOptions {
         const socketPath = url.searchParams.get("socketPath");
         if (socketPath) {
           config.socketPath = socketPath;
+          // When using socket, remove host and port
+          delete config.host;
+          delete config.port;
         }
       }
 
@@ -69,6 +72,9 @@ function getConnectionConfig(): mysql.PoolOptions {
     process.env.DB_SOCKET_PATH
   ) {
     config.socketPath = process.env.DB_SOCKET_PATH;
+    // When using socket, remove host and port
+    delete config.host;
+    delete config.port;
   }
 
   return config;

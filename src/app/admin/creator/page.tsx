@@ -383,6 +383,10 @@ export default function AdminCreator() {
         // Check if we're in the browser and component is mounted
         if (typeof window === "undefined" || !mounted) return;
 
+        // Set SurveyJS license
+        const { setSurveyJSLicense } = await import("@/lib/surveyjs-config");
+        setSurveyJSLicense();
+
         const { SurveyCreator } = await import("survey-creator-react");
 
         const creatorOptions = {

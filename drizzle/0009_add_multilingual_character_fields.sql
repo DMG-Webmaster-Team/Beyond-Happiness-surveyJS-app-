@@ -23,3 +23,4 @@ ADD COLUMN detailed_description_ar_html TEXT AFTER detailed_description_en_html;
 
 
 
+
