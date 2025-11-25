@@ -58,7 +58,6 @@ const isEmail = (id: string) => id.includes("@");
 // Store OTP in users table only
 export async function storeOTP(identifier: string, otp: string) {
   try {
-    console.log(`🔐 Storing OTP in users table for ${identifier}: ${otp}`);
 
     const where = isEmail(identifier)
       ? eq(users.email, identifier)
@@ -73,8 +72,6 @@ export async function storeOTP(identifier: string, otp: string) {
       })
       .where(where);
 
-    console.log(`✅ OTP stored successfully in users table for ${identifier}`);
-    console.log(`📊 Database update result:`, result);
   } catch (error) {
     console.error(`❌ Failed to store OTP in users table:`, error);
     throw error;
@@ -99,10 +96,6 @@ export async function getOTPRow(identifier: string) {
       .where(where)
       .limit(1);
 
-    console.log(
-      `🔍 Retrieved OTP row for ${identifier}:`,
-      row[0] || "Not found"
-    );
     return row[0] ?? null;
   } catch (error) {
     console.error(`❌ Error getting OTP row:`, error);
@@ -125,8 +118,6 @@ export async function clearOTP(identifier: string) {
       })
       .where(where);
 
-    console.log(` Cleared OTP for ${identifier}`);
-    console.log(`📊 Clear result:`, result);
   } catch (error) {
     console.error(`❌ Error clearing OTP:`, error);
     throw error;
@@ -147,11 +138,7 @@ const sendOTPEmail = async (
       !process.env.MAILGUN_API_URL ||
       !process.env.MAILGUN_PRIVATE_API_KEY
     ) {
-      console.log(`📧 Mailgun not configured - cannot send OTP to ${email}`);
-      console.log(`💡 Add MAILGUN credentials to your .env.local file`);
-      console.log(
-        `💡 Required: MAILGUN_DOMAIN, MAILGUN_FROM, MAILGUN_API_URL, MAILGUN_PRIVATE_API_KEY`
-      );
+
       return false;
     }
 
@@ -179,13 +166,6 @@ const sendOTPEmail = async (
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3003");
 
-    console.log(`🔗 Using base URL for Mailgun API: ${baseUrl}`);
-    console.log(`🔧 Environment check:`, {
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-      VERCEL_URL: process.env.VERCEL_URL,
-      NODE_ENV: process.env.NODE_ENV,
-    });
-
     // Use the new Mailgun API route
     const response = await fetch(`${baseUrl}/api/send-mail`, {
       method: "POST",
@@ -211,9 +191,7 @@ const sendOTPEmail = async (
     const result = await response.json();
 
     if (result.success) {
-      console.log(
-        `📧 OTP email sent successfully to ${email} via Mailgun (ID: ${result.messageId})`
-      );
+
       return true;
     } else {
       console.error(`❌ Failed to send OTP email via Mailgun:`, result.error);
@@ -241,8 +219,7 @@ const sendOTPSMS = async (
       process.env.TWILIO_AUTH_TOKEN === "your-auth-token" ||
       process.env.TWILIO_PHONE_NUMBER === "your-twilio-phone-number"
     ) {
-      console.log(`📱 Twilio not configured - cannot send SMS to ${phone}`);
-      console.log(`💡 Add TWILIO credentials to your .env.local file`);
+
       return false;
     }
 
@@ -259,7 +236,6 @@ const sendOTPSMS = async (
       to: phone,
     });
 
-    console.log(`📱 OTP SMS sent successfully to ${phone}: ${message.sid}`);
     return true;
   } catch (error: any) {
     console.error(`❌ Failed to send OTP SMS to ${phone}:`, error);
@@ -282,8 +258,6 @@ export const sendOTP = async (
   rateLimited?: boolean;
 }> => {
   try {
-    console.log(`🚀 Starting OTP send for identifier: "${identifier}"`);
-    console.log(`🔑 Method requested: ${method}`);
 
     // Get client IP for rate limiting
     const clientIP = request ? getClientIP(request) : "127.0.0.1";
@@ -356,8 +330,6 @@ export const sendOTP = async (
       };
     }
 
-    console.log(`📧 Is email: ${identifier.includes("@")}`);
-
     // 4. Check if user exists in database before generating OTP
     const isEmailIdentifier = identifier.includes("@");
     const cleanPhone = identifier.replace(/\s+/g, ""); // Remove spaces from phone
@@ -366,18 +338,10 @@ export const sendOTP = async (
       ? eq(users.email, identifier)
       : eq(users.phone, cleanPhone);
 
-    console.log(`🔍 Checking user existence for: ${identifier}`);
     const existingUser = await db.select().from(users).where(where).limit(1);
 
     if (existingUser.length === 0) {
-      console.log(
-        `❌ USER EXISTENCE TEST - User not found for identifier: ${identifier}`,
-        {
-          isEmail: isEmailIdentifier,
-          cleanPhone: cleanPhone,
-          originalIdentifier: identifier,
-        }
-      );
+
       return {
         success: false,
         error: "User not found",
@@ -385,8 +349,6 @@ export const sendOTP = async (
         message: "User not found. Please try another email or mobile number.",
       };
     }
-
-    console.log(`✅ User found for identifier: ${identifier}`);
 
     // Check rate limiting
     if (!checkRateLimit(identifier)) {
@@ -400,7 +362,6 @@ export const sendOTP = async (
 
     // Generate OTP
     const otp = generateOTP();
-    console.log(`🔐 Generated OTP: ${otp}`);
 
     // Determine if identifier is phone (we already have isEmailIdentifier)
     const isPhone =
@@ -412,9 +373,9 @@ export const sendOTP = async (
     // Send OTP based on method and identifier type
     if (method === "email" || method === "both") {
       if (isEmailIdentifier) {
-        console.log(`📧 Attempting to send OTP email to: ${identifier}`);
+
         emailSuccess = await sendOTPEmail(identifier, otp, surveyTitle);
-        console.log(`📧 Email sending result: ${emailSuccess}`);
+
       }
     }
 
@@ -431,21 +392,17 @@ export const sendOTP = async (
         emailSuccess = await sendOTPEmail(identifier, otp, surveyTitle);
       } else if (isPhone && !smsSuccess) {
         // For phone numbers, provide specific error message if SMS fails
-        console.log(`📱 SMS failed for phone number: ${identifier}`);
-        console.log(
-          `⚠️ Twilio not configured - cannot send SMS to phone numbers`
-        );
+
       }
     }
 
     // Store OTP if any method succeeded
     if (emailSuccess || smsSuccess) {
-      console.log(`💾 About to store OTP for identifier: "${identifier}"`);
+
       const method = emailSuccess ? "email" : "sms";
 
       // Store OTP in users table
       await storeOTP(identifier, otp);
-      console.log(`✅ OTP stored successfully for ${identifier}`);
 
       // Log successful OTP request
       logOTPRequest({
@@ -514,7 +471,6 @@ export const verifyOTP = async (
   record?: any;
 }> => {
   try {
-    console.log(`🔍 Verifying OTP for ${identifier}: ${input}`);
 
     // Check if user exists in database before verifying OTP
     const isEmailIdentifier = identifier.includes("@");
@@ -524,13 +480,10 @@ export const verifyOTP = async (
       ? eq(users.email, identifier)
       : eq(users.phone, cleanPhone);
 
-    console.log(
-      `🔍 Checking user existence for OTP verification: ${identifier}`
-    );
     const existingUser = await db.select().from(users).where(where).limit(1);
 
     if (existingUser.length === 0) {
-      console.log(`❌ User not found for OTP verification: ${identifier}`);
+
       return {
         valid: false,
         message: "User not found. Please try another email or mobile number.",
@@ -539,16 +492,9 @@ export const verifyOTP = async (
 
     const row = await getOTPRow(identifier);
     if (!row?.otp) {
-      console.log(`❌ No OTP found for ${identifier}`);
+
       return { valid: false, message: "OTP expired or not found." };
     }
-
-    console.log(`✅ OTP row found:`, {
-      hasOtp: !!row.otp,
-      updatedAt: row.updatedAt,
-      email: row.email,
-      phone: row.phone,
-    });
 
     // Check if expired (30 minutes from updatedAt)
     const updatedAtMs =
@@ -558,15 +504,8 @@ export const verifyOTP = async (
     const expiryTime = updatedAtMs + OTP_EXPIRY_MINUTES * 60 * 1000;
     const now = Date.now();
 
-    console.log(`⏰ OTP expiry check:`, {
-      now: new Date(now).toISOString(),
-      expiryTime: new Date(expiryTime).toISOString(),
-      isExpired: now > expiryTime,
-      timeRemaining: Math.round((expiryTime - now) / 1000 / 60),
-    });
-
     if (now > expiryTime) {
-      console.log(`⏰ OTP expired for ${identifier}, clearing it`);
+
       await clearOTP(identifier);
       return {
         valid: false,
@@ -576,13 +515,10 @@ export const verifyOTP = async (
 
     // Verify OTP
     if (row.otp !== input) {
-      console.log(
-        `❌ OTP mismatch for ${identifier}: expected ${row.otp}, got ${input}`
-      );
+
       return { valid: false, message: "Invalid OTP. Please try again." };
     }
 
-    console.log(`✅ OTP verified successfully for ${identifier}, clearing it`);
     await clearOTP(identifier);
     return { valid: true, message: "OTP verified successfully!" };
   } catch (error) {
@@ -639,10 +575,6 @@ export const cleanupExpiredOTPs = async (): Promise<number> => {
     const now = Date.now();
     const expiryTime = now - OTP_EXPIRY_MINUTES * 60 * 1000;
 
-    console.log(`🧹 Starting cleanup of expired OTPs`);
-    console.log(`⏰ Current time: ${new Date(now).toISOString()}`);
-    console.log(`⏰ Expiry threshold: ${new Date(expiryTime).toISOString()}`);
-
     // Find users with OTPs
     const usersWithOTPs = await db
       .select({
@@ -654,8 +586,6 @@ export const cleanupExpiredOTPs = async (): Promise<number> => {
       .from(users)
       .where(sql`${users.otp} IS NOT NULL`);
 
-    console.log(`📊 Found ${usersWithOTPs.length} users with OTPs`);
-
     let cleanedCount = 0;
     for (const user of usersWithOTPs) {
       const updatedAtMs =
@@ -666,11 +596,10 @@ export const cleanupExpiredOTPs = async (): Promise<number> => {
       if (now > userExpiryTime) {
         await db.update(users).set({ otp: null }).where(eq(users.id, user.id));
         cleanedCount++;
-        console.log(`🧹 Cleared expired OTP for user: ${user.email}`);
+
       }
     }
 
-    console.log(`✅ Cleaned up ${cleanedCount} expired OTPs from users table`);
     return cleanedCount;
   } catch (error) {
     console.error("Error cleaning up expired OTPs:", error);

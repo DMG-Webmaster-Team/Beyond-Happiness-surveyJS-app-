@@ -23,10 +23,6 @@ export default function PDFExportButton({
     try {
       setIsExporting(true);
 
-      console.log("=== PDF Export Debug ===");
-      console.log("Survey JSON:", JSON.stringify(surveyJson, null, 2));
-      console.log("Survey Data:", JSON.stringify(surveyData, null, 2));
-
       // Validate survey structure
       if (!surveyJson) {
         throw new Error("No survey data provided");
@@ -36,7 +32,7 @@ export default function PDFExportButton({
       let validSurveyJson = surveyJson;
 
       if (!surveyJson.pages || surveyJson.pages.length === 0) {
-        console.log("Survey missing pages, creating basic structure");
+
         // Create a basic survey structure if missing
         validSurveyJson = {
           title: surveyJson.title || "Untitled Survey",
@@ -55,13 +51,8 @@ export default function PDFExportButton({
         };
       }
 
-      console.log("Valid survey JSON:", validSurveyJson);
-
       // Create survey model to validate
       const model = new Model(validSurveyJson);
-      console.log("Survey Model:", model);
-      console.log("Survey Pages:", model.pages);
-      console.log("Survey Questions:", model.getAllQuestions());
 
       // Check if survey has questions
       const questions = model.getAllQuestions();
@@ -74,41 +65,40 @@ export default function PDFExportButton({
 
       // Approach 1: Basic SurveyPDF
       try {
-        console.log("Trying Approach 1: Basic SurveyPDF");
+
         const surveyPDF = new SurveyPDF(validSurveyJson);
 
         if (surveyData && Object.keys(surveyData).length > 0) {
           surveyPDF.data = surveyData;
-          console.log("PDF data set:", surveyPDF.data);
+
         }
 
         // The save() method doesn't return a boolean, so we'll assume success if no error
         await surveyPDF.save();
-        console.log("PDF generated successfully with Approach 1");
+
         pdfGenerated = true;
       } catch (error1) {
-        console.log("Approach 1 failed:", error1);
+
       }
 
       // Approach 2: With survey model data
       if (!pdfGenerated) {
         try {
-          console.log("Trying Approach 2: With survey model data");
+
           const surveyPDF2 = new SurveyPDF(validSurveyJson);
           surveyPDF2.data = model.data;
 
           await surveyPDF2.save();
-          console.log("PDF generated successfully with Approach 2");
+
           pdfGenerated = true;
         } catch (error2) {
-          console.log("Approach 2 failed:", error2);
+
         }
       }
 
       // Approach 3: Create a more complete survey structure
       if (!pdfGenerated) {
         try {
-          console.log("Trying Approach 3: Enhanced survey structure");
 
           // Create a more complete survey structure for PDF
           const enhancedSurvey = {
@@ -136,23 +126,19 @@ export default function PDFExportButton({
           }
 
           await surveyPDF3.save();
-          console.log("PDF generated successfully with Approach 3");
+
           pdfGenerated = true;
         } catch (error3) {
-          console.log("Approach 3 failed:", error3);
+
         }
       }
 
       // Since the save() method doesn't return a boolean reliably,
       // and we're not getting errors, assume the PDF was generated successfully
       if (!pdfGenerated) {
-        console.log(
-          "Assuming PDF was generated successfully (no errors occurred)"
-        );
+
         pdfGenerated = true;
       }
-
-      console.log("=== PDF Export Complete ===");
 
       // Show success message
       alert("PDF exported successfully!");

@@ -78,14 +78,10 @@ export async function GET(
           if (sessionAge <= thirtyMinutes) {
             userId = sessionData.id;
           } else {
-            console.log("🔍 Session expired:", {
-              sessionAge: Math.round(sessionAge / 1000 / 60),
-              maxAge: 30,
-              userId: sessionData.id,
-            });
+
           }
         } else {
-          console.log("🔍 Invalid session data structure:", sessionData);
+
         }
       } catch (error) {
         console.error("Error parsing session cookie:", error);
@@ -93,20 +89,6 @@ export async function GET(
     }
 
     // Log session debugging info
-    console.log("🔍 CROSS-TAB TEST - Happiness Access API Debug:", {
-      path: "/access",
-      method: "GET",
-      surveyId,
-      hasSessionCookie: !!userSession,
-      userIdFromSession: userId,
-      sessionCookieValue: userSession
-        ? userSession.value.substring(0, 50) + "..."
-        : null,
-      anonymous: surveyData.anonymous,
-      timestamp: new Date().toISOString(),
-      userAgent:
-        request.headers.get("user-agent")?.substring(0, 100) || "unknown",
-    });
 
     if (!userId) {
       return NextResponse.json({
@@ -126,11 +108,6 @@ export async function GET(
     }
 
     // Check if user is assigned to this survey (either directly or via company)
-    console.log("🔍 Checking happiness assignment:", {
-      surveyId,
-      userId,
-      checkingTable: "happiness_assignments",
-    });
 
     const assignment = await db
       .select()
@@ -144,21 +121,8 @@ export async function GET(
       )
       .limit(1);
 
-    console.log("🔍 CROSS-TAB TEST - Assignment check result:", {
-      assignmentFound: assignment.length > 0,
-      assignmentCount: assignment.length,
-      assignment: assignment[0] || null,
-      surveyId,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
-
     // If no direct assignment, check if user's company matches survey's company
     if (assignment.length === 0 && surveyData.companyId) {
-      console.log("🔍 No direct assignment, checking company access:", {
-        surveyCompanyId: surveyData.companyId,
-        userId,
-      });
 
       // Import users schema
       const { users } = await import("@/db/schema/users");
@@ -171,22 +135,10 @@ export async function GET(
         .limit(1);
 
       if (user.length > 0 && user[0].companyId === surveyData.companyId) {
-        console.log("✅ User has access via company assignment:", {
-          userCompanyId: user[0].companyId,
-          surveyCompanyId: surveyData.companyId,
-        });
 
         // Grant access via company membership
         // Continue to cooldown check below
       } else {
-        console.log("❌ User not assigned to happiness survey:", {
-          surveyId,
-          userId,
-          userCompanyId: user[0]?.companyId || null,
-          surveyCompanyId: surveyData.companyId,
-          message:
-            "No active assignment found in happiness_assignments table or company mismatch",
-        });
 
         return NextResponse.json({
           assigned: false,
@@ -204,11 +156,6 @@ export async function GET(
         });
       }
     } else if (assignment.length === 0) {
-      console.log("❌ User not assigned to happiness survey:", {
-        surveyId,
-        userId,
-        message: "No active assignment found and no company assignment",
-      });
 
       return NextResponse.json({
         assigned: false,
@@ -284,12 +231,6 @@ export async function GET(
             .where(eq(happinessCharacters.id, lastSubmission.characterId))
             .limit(1);
 
-          console.log("🔍 Character fetch debug:", {
-            characterId: lastSubmission.characterId,
-            characterFound: character.length > 0,
-            character: character[0] || null,
-          });
-
           // Return canonical decision object for cooldown period
           return NextResponse.json({
             assigned: true,
@@ -337,12 +278,6 @@ export async function GET(
         .from(happinessCharacters)
         .where(eq(happinessCharacters.id, lastSubmission.characterId))
         .limit(1);
-
-      console.log("🔍 Character fetch debug (retake):", {
-        characterId: lastSubmission.characterId,
-        characterFound: character.length > 0,
-        character: character[0] || null,
-      });
 
       return NextResponse.json({
         assigned: true,

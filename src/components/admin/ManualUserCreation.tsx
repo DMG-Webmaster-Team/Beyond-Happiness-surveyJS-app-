@@ -112,25 +112,24 @@ export default function ManualUserCreation({
 
   const validateForm = (): boolean => {
     setError(null);
-    console.log("🔍 Validating form...");
 
     // Email is required
     if (!formData.email) {
-      console.log("❌ Email is required");
+
       setError("Email address is required");
       return false;
     }
 
     // Validate email format
     if (!validateEmail(formData.email)) {
-      console.log("❌ Invalid email format:", formData.email);
+
       setError("Please enter a valid email address");
       return false;
     }
 
     // Validate phone if provided
     if (formData.phone && !validateEgyptianPhone(formData.phone)) {
-      console.log("❌ Invalid phone format:", formData.phone);
+
       setError(
         "Please enter a valid Egyptian phone number (010, 011, 012, or 015 followed by 8 digits)"
       );
@@ -143,32 +142,22 @@ export default function ManualUserCreation({
       (formData.surveyIds?.length || 0) > 0 ||
       (formData.happinessSurveyIds?.length || 0) > 0;
 
-    console.log("🏢 Has company:", hasCompany, formData.companyId);
-    console.log("📋 Has surveys:", hasSurveys, {
-      regular: formData.surveyIds?.length || 0,
-      happiness: formData.happinessSurveyIds?.length || 0,
-    });
-
     if (!hasCompany && !hasSurveys) {
-      console.log("❌ No assignments selected");
+
       setError(
         "Please select at least one of the following: Company, Regular Survey, or Happiness Survey."
       );
       return false;
     }
 
-    console.log("✅ Form validation passed");
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log("🚀 Form submission started");
-    console.log("📝 Form data:", formData);
-
     if (!validateForm()) {
-      console.log("❌ Form validation failed");
+
       return;
     }
 
@@ -186,8 +175,6 @@ export default function ManualUserCreation({
         happinessSurveyAssignments: formData.happinessSurveyIds || [],
       };
 
-      console.log("📤 Request body:", requestBody);
-
       const response = await fetch("/api/users", {
         method: "POST",
         headers: {
@@ -196,14 +183,10 @@ export default function ManualUserCreation({
         body: JSON.stringify(requestBody),
       });
 
-      console.log("📥 Response status:", response.status);
-
       const result = await response.json();
-      console.log("📥 Response data:", result);
 
       if (response.ok) {
         setSuccess(`User created successfully! ${result.message || ""}`);
-        console.log("✅ User created successfully");
 
         // Reset form
         setFormData({
@@ -217,14 +200,14 @@ export default function ManualUserCreation({
 
         // Call onSuccess callback if provided
         if (onSuccess) {
-          console.log("🔄 Calling onSuccess callback");
+
           setTimeout(() => {
             onSuccess();
           }, 1500); // Give time to show success message
         }
       } else {
         const errorMessage = result.error || "Failed to create user";
-        console.log("❌ API error:", errorMessage);
+
         setError(errorMessage);
       }
     } catch (error) {
@@ -232,7 +215,7 @@ export default function ManualUserCreation({
       setError("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
-      console.log("🏁 Form submission completed");
+
     }
   };
 

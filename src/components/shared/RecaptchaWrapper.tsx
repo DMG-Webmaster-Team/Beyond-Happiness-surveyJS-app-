@@ -78,7 +78,7 @@ export default function RecaptchaWrapper({
           size: size,
           theme: theme,
           callback: (token: string) => {
-            console.log("🔐 reCAPTCHA verified successfully");
+
             onVerify(token);
           },
           "error-callback": () => {
@@ -137,13 +137,6 @@ export async function verifyRecaptchaToken(token: string): Promise<boolean> {
     );
 
     const result = await response.json();
-
-    console.log("🔐 reCAPTCHA verification result:", {
-      success: result.success,
-      score: result.score,
-      action: result.action,
-      hostname: result.hostname,
-    });
 
     return result.success && (result.score === undefined || result.score > 0.5);
   } catch (error) {

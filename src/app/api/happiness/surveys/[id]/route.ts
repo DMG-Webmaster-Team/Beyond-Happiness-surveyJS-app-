@@ -100,9 +100,7 @@ export async function PUT(
             updateData.retakeCooldownDays = 0;
           }
         } catch (e) {
-          console.log(
-            "accessMode column not yet available, using anonymous field"
-          );
+
           updateData.anonymous =
             accessMode === "anonymous" || accessMode === "collect_info";
           if (accessMode === "anonymous" || accessMode === "collect_info") {
@@ -178,8 +176,6 @@ export async function DELETE(
   try {
     const surveyId = params.id;
 
-    console.log(`🗑️ Soft deleting happiness survey: ${surveyId}`);
-
     // Soft delete by setting isPublished = false
     await db
       .update(happinessSurveys)
@@ -200,7 +196,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
-    console.log(`✅ Successfully soft deleted happiness survey: ${surveyId}`);
     return NextResponse.json({
       success: true,
       message: "Survey deleted successfully (soft delete - can be restored)",

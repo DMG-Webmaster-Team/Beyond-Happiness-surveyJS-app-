@@ -26,9 +26,7 @@ export async function calculateSubtypeScores(
 
   // If no answers provided, fall back to proportional distribution
   if (!answers || !Array.isArray(answers)) {
-    console.log(
-      "📊 No individual answers available, using proportional distribution"
-    );
+
     const subtypeScores: SubtypeScores = {};
     Object.entries(categoryTotals).forEach(([category, totalScore]) => {
       subtypeScores[category] = {
@@ -99,10 +97,6 @@ export async function calculateSubtypeScores(
       }
     }
 
-    console.log(
-      "📊 Calculated subtype scores from individual answers:",
-      subtypeScores
-    );
     return subtypeScores;
   } catch (error) {
     console.error("❌ Error calculating subtype scores:", error);

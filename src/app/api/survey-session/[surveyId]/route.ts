@@ -206,11 +206,7 @@ export async function GET(
         };
       } else {
         // ✅ SECURITY FIX: User is authenticated but not assigned to this non-anonymous survey
-        console.log("❌ User not assigned to survey:", {
-          userId: userData.id,
-          surveyId,
-          userEmail: userData.email,
-        });
+
         return NextResponse.json(
           {
             error: "You are not assigned to this survey",

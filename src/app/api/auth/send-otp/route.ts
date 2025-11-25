@@ -9,7 +9,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     // Debug: Log what we received
-    console.log(" /api/auth/send-otp received:", body);
 
     // Validate request body
     const { identifier, method, surveyId, surveyTitle, recaptchaToken } = body;
@@ -37,11 +36,9 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      console.log("✅ reCAPTCHA verification passed");
+
     } else {
-      console.log(
-        "ℹ️ No reCAPTCHA token provided - proceeding without verification"
-      );
+
     }
 
     // Send OTP with request object for rate limiting

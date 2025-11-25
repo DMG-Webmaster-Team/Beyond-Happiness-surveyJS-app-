@@ -71,14 +71,6 @@ export function createSurveySession(
     sessionStorage.setItem("currentSurveyId", surveyId);
     sessionStorage.setItem("currentSurveyType", surveyType);
 
-    console.log(`✅ Created survey session for ${surveyId}:`, {
-      userId: userData.userId,
-      email: userData.email,
-      surveyType,
-      expiresAt: expiryTime.toISOString(),
-      retakeExpiresAt: retakeExpiryTime.toISOString(),
-    });
-
     return session;
   } catch (error) {
     console.error("Error creating survey session:", error);
@@ -179,10 +171,6 @@ export function extendSessionForRetake(
     const sessionKey = `survey_session_${surveyId}`;
     sessionStorage.setItem(sessionKey, JSON.stringify(session));
 
-    console.log(
-      `🔄 Extended session for survey ${surveyId} until:`,
-      newExpiryTime.toISOString()
-    );
     return true;
   } catch (error) {
     console.error("Error extending session:", error);
@@ -200,7 +188,6 @@ export function clearSurveySession(surveyId: string): void {
     const sessionKey = `survey_session_${surveyId}`;
     sessionStorage.removeItem(sessionKey);
 
-    console.log(`🧹 Cleared session for survey: ${surveyId}`);
   } catch (error) {
     console.error("Error clearing survey session:", error);
   }
@@ -275,7 +262,7 @@ export function cleanupExpiredSessions(): void {
     });
 
     if (cleanedCount > 0) {
-      console.log(`🧹 Cleaned up ${cleanedCount} expired survey sessions`);
+
     }
   } catch (error) {
     console.error("Error cleaning up expired sessions:", error);
@@ -335,9 +322,6 @@ export function canAccessNewSurvey(requestedSurveyId: string): {
   // For now, we'll be more permissive and allow access to different surveys
   // This prevents breaking the multi-take survey functionality
   // In the future, we can enhance this by caching survey metadata in session storage
-  console.log(
-    `ℹ️ User has active session for ${activeSessions[0].surveyId} but accessing ${requestedSurveyId} - allowing access (permissive mode)`
-  );
 
   return { canAccess: true };
 }
@@ -388,5 +372,4 @@ export function setupAutoCleanup(): void {
     clearInterval(cleanupInterval);
   });
 
-  console.log("🔄 Survey session auto-cleanup initialized");
 }

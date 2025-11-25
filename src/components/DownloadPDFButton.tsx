@@ -110,8 +110,6 @@ export default function DownloadPDFButton({
       setIsGenerating(true);
       setError(null);
 
-      console.log("🔄 Generating PDF for character:", language === "ar" ? result.character.nameAr : result.character.nameEn);
-
       // Get answers from localStorage or result object for accurate subtype calculation
       const getStoredAnswers = () => {
         try {
@@ -178,8 +176,6 @@ export default function DownloadPDFButton({
       const filename = contentDisposition
         ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
         : getSafePdfFilename(language === "ar" ? result.character.nameAr : result.character.nameEn, language);
-
-      console.log("📄 PDF generated successfully, downloading as:", filename);
 
       // Create download link
       const url = window.URL.createObjectURL(pdfBlob);

@@ -180,16 +180,6 @@ export async function POST(request: NextRequest) {
           new Set([...finalHappinessAssignments, ...companyHappinessIds])
         );
 
-        console.log(
-          `🏢 Auto-assigned ${companySurveyIds.length} regular surveys and ${companyHappinessIds.length} happiness surveys from company ${validatedData.companyId}`
-        );
-        console.log(`📋 Company survey IDs:`, companySurveyIds);
-        console.log(`😊 Company happiness survey IDs:`, companyHappinessIds);
-        console.log(`📊 Final survey assignments:`, finalSurveyAssignments);
-        console.log(
-          `😊 Final happiness assignments:`,
-          finalHappinessAssignments
-        );
       } catch (error) {
         console.error("Error fetching company surveys:", error);
         // Continue with manual assignments if company survey fetch fails
@@ -206,9 +196,7 @@ export async function POST(request: NextRequest) {
         const company = await getCompanyById(validatedData.companyId);
         if (company) {
           companyName = company.name;
-          console.log(
-            `🏢 Found company: ${companyName} (${validatedData.companyId})`
-          );
+
         } else {
           console.warn(
             `⚠️ Company not found for ID: ${validatedData.companyId}`

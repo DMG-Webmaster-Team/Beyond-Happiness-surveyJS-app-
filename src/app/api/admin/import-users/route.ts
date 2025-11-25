@@ -120,7 +120,6 @@ const validateRow = async (
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  console.log("🚀 Import users API called at:", new Date().toISOString());
 
   try {
     // Parse form data with error handling
@@ -180,15 +179,6 @@ export async function POST(request: NextRequest) {
     const companyId = formData.get("companyId") as string;
     const dryRun = formData.get("dryRun") === "1";
 
-    console.log("📋 Import parameters:", {
-      surveyIds,
-      happinessSurveyIds,
-      companyId,
-      dryRun,
-      fileName: file?.name,
-      fileSize: file?.size,
-    });
-
     // Validate required parameters - must have at least one assignment method
     const hasCompany = !!companyId;
     const hasSurveys = surveyIds.length > 0 || happinessSurveyIds.length > 0;
@@ -204,8 +194,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    console.log(`📋 Processing import with mixed survey types`);
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -245,7 +233,7 @@ export async function POST(request: NextRequest) {
     try {
       arrayBuffer = await file.arrayBuffer();
       buffer = Buffer.from(arrayBuffer);
-      console.log(`📁 File converted to buffer: ${buffer.length} bytes`);
+
     } catch (error) {
       console.error("❌ Failed to convert file to buffer:", error);
       return NextResponse.json(
@@ -261,7 +249,6 @@ export async function POST(request: NextRequest) {
     // Parse Excel/CSV file with comprehensive error handling
     let workbook: XLSX.WorkBook;
     try {
-      console.log(`📊 Parsing file: ${file.name} (${file.type})`);
 
       if (file.type === "text/csv" || file.name.endsWith(".csv")) {
         // Handle CSV files
@@ -290,9 +277,6 @@ export async function POST(request: NextRequest) {
         workbook = XLSX.read(buffer, { type: "buffer" });
       }
 
-      console.log(
-        `✅ File parsed successfully. Sheets: ${workbook.SheetNames.join(", ")}`
-      );
     } catch (parseError) {
       console.error("❌ File parsing error:", parseError);
       return NextResponse.json(
@@ -340,9 +324,7 @@ export async function POST(request: NextRequest) {
         defval: "",
         raw: false,
       });
-      console.log(
-        `📊 Extracted ${rawData.length} rows from sheet '${sheetName}'`
-      );
+
     } catch (error) {
       console.error("❌ Failed to convert sheet to JSON:", error);
       return NextResponse.json(
@@ -377,10 +359,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📊 Processing ${rawData.length} rows from file: ${file.name}`);
-
-    console.log(`📊 Starting validation for ${rawData.length} rows...`);
-
     // Comprehensive row-by-row validation with detailed error reporting
     const validRows: any[] = [];
     const errors: Array<{
@@ -388,10 +366,6 @@ export async function POST(request: NextRequest) {
       data: any;
       errors: string[];
     }> = [];
-
-    console.log(
-      `🔍 Starting row-by-row validation for ${rawData.length} rows...`
-    );
 
     for (let i = 0; i < rawData.length; i++) {
       const row = rawData[i] as any;
@@ -406,7 +380,7 @@ export async function POST(request: NextRequest) {
             (val) => !val || val.toString().trim() === ""
           )
         ) {
-          console.log(`⏭️ Skipping empty row ${rowNumber}`);
+
           continue;
         }
 
@@ -456,9 +430,7 @@ export async function POST(request: NextRequest) {
             ...validation.cleanedRow,
             originalRowNumber: rowNumber,
           });
-          console.log(
-            `✅ Row ${rowNumber} validated: ${validation.cleanedRow.email}`
-          );
+
         } else {
           errors.push({
             row: rowNumber,
@@ -485,10 +457,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(
-      `📈 Validation complete: ${validRows.length} valid rows, ${errors.length} errors`
-    );
-
     // Prepare response structure
     const responseData = {
       success: true,
@@ -512,7 +480,6 @@ export async function POST(request: NextRequest) {
 
     // If dry run, return validation results without processing
     if (dryRun) {
-      console.log("🧪 Dry run mode - simulating import process...");
 
       // Simulate assignment creation for dry run
       const simulatedStats = {
@@ -528,22 +495,17 @@ export async function POST(request: NextRequest) {
       // Simulate processing each valid row
       for (let i = 0; i < validRows.length; i++) {
         const row = validRows[i];
-        console.log(`🧪 DRY RUN - Would process: ${row.email}`);
 
         if (companyId) {
-          console.log(`🧪 DRY RUN - Would assign to company: ${companyId}`);
+
         }
 
         if (surveyIds.length > 0) {
-          console.log(
-            `🧪 DRY RUN - Would assign to ${surveyIds.length} regular surveys`
-          );
+
         }
 
         if (happinessSurveyIds.length > 0) {
-          console.log(
-            `🧪 DRY RUN - Would assign to ${happinessSurveyIds.length} happiness surveys`
-          );
+
         }
 
         // Simulate user creation/update
@@ -565,16 +527,15 @@ export async function POST(request: NextRequest) {
     // Process the import with comprehensive error handling
     let importResults;
     try {
-      console.log("🔄 Starting import process...");
 
       // Handle different import scenarios
       if (hasCompany && !hasSurveys) {
         // Company-only import: assign all company surveys
-        console.log("🔄 Processing company-only import");
+
         importResults = await processCompanyImport(validRows, companyId);
       } else {
         // Mixed import: company surveys + manual surveys
-        console.log("🔄 Processing mixed import: company + surveys");
+
         importResults = await processMixedImport(
           validRows,
           companyId,
@@ -582,7 +543,7 @@ export async function POST(request: NextRequest) {
           happinessSurveyIds
         );
       }
-      console.log("✅ Import process completed successfully");
+
     } catch (importError) {
       console.error("❌ Import process failed:", importError);
       return NextResponse.json(
@@ -628,9 +589,6 @@ async function processImport(
   companyId?: string
 ) {
   const startTime = Date.now();
-  console.log(
-    `🔄 Processing import: ${validRows.length} rows for survey ${surveyId} (${surveyType})`
-  );
 
   // Enhanced statistics tracking
   const stats = {
@@ -652,12 +610,8 @@ async function processImport(
     // Extract unique emails for batch lookups
     const uniqueEmails = Array.from(new Set(validRows.map((row) => row.email)));
 
-    console.log(
-      `🔍 Batch lookup: ${uniqueEmails.length} unique emails, assigning to survey: ${surveyId}`
-    );
-
     // Validate that the survey exists first
-    console.log("🔍 Validating survey exists...");
+
     let survey: any;
     try {
       if (surveyType === "happiness") {
@@ -686,9 +640,7 @@ async function processImport(
         }
         survey = regularSurvey[0];
       }
-      console.log(
-        `✅ Survey validated: ${survey.title || survey.name || surveyId}`
-      );
+
     } catch (error) {
       console.error("❌ Survey validation failed:", error);
       throw new Error(
@@ -706,9 +658,7 @@ async function processImport(
       existingUsersMap = new Map(
         existingUsers.map((user) => [user.email, user])
       );
-      console.log(
-        `📊 Found ${existingUsers.length} existing users out of ${uniqueEmails.length} unique emails`
-      );
+
     } catch (error) {
       console.error("❌ Failed to lookup existing users:", error);
       throw new Error(
@@ -731,7 +681,7 @@ async function processImport(
 
         if (company.length > 0) {
           companyName = company[0].name;
-          console.log(`🏢 Company found: ${companyName} (${companyId})`);
+
         } else {
           console.warn(
             `⚠️ Company ID ${companyId} not found, proceeding without company`
@@ -743,37 +693,29 @@ async function processImport(
     }
 
     // Process rows with comprehensive error handling
-    console.log("🔄 Starting row-by-row processing...");
 
     // Process each row individually with full error isolation
     for (let i = 0; i < validRows.length; i++) {
       const row = validRows[i];
       const rowNumber = row.originalRowNumber || i + 1;
 
-      console.log(
-        `📋 Processing row ${i + 1}/${
-          validRows.length
-        } (original row ${rowNumber}): ${row.email} -> ${surveyId}`
-      );
-
       try {
         // Safe user upsert with comprehensive error handling
         let userResult: any;
         try {
-          console.log(`👤 Upserting user: ${row.email}`);
 
           // Check if user already exists first
           const existingUser = existingUsersMap.get(row.email);
 
           if (existingUser) {
-            console.log(`🔄 User exists, updating: ${existingUser.id}`);
+
             userResult = {
               user: existingUser,
               created: false,
             };
             stats.updatedUsers++;
           } else {
-            console.log(`👤 Creating new user: ${row.email}`);
+
             userResult = await upsertUser({
               email: row.email,
               name: row.name || undefined,
@@ -787,10 +729,10 @@ async function processImport(
               stats.insertedUsers++;
               // Add to existing users map to avoid duplicate lookups
               existingUsersMap.set(row.email, userResult.user);
-              console.log(`✅ User created: ${userResult.user.id}`);
+
             } else {
               stats.updatedUsers++;
-              console.log(`🔄 User updated: ${userResult.user.id}`);
+
             }
           }
         } catch (userError: any) {
@@ -808,9 +750,6 @@ async function processImport(
 
         // Safe assignment creation with duplicate checking
         try {
-          console.log(
-            `🔍 Checking existing assignment for user: ${userResult.user.id} -> survey: ${surveyId} (type: ${surveyType})`
-          );
 
           const existingAssignment = await checkExistingAssignment(
             userResult.user.id,
@@ -818,18 +757,7 @@ async function processImport(
             surveyType
           );
 
-          console.log(`🔍 Assignment check result:`, {
-            userId: userResult.user.id,
-            surveyId,
-            surveyType,
-            alreadyAssigned: existingAssignment.alreadyAssigned,
-            message: existingAssignment.message,
-          });
-
           if (existingAssignment.alreadyAssigned) {
-            console.log(
-              `ℹ️ User ${userResult.user.email} already assigned to survey ${surveyId}, skipping duplicate assignment`
-            );
 
             stats.duplicateAssignments++;
             stats.skippedAssignments++;
@@ -837,18 +765,9 @@ async function processImport(
           }
 
           // Create assignment based on survey type
-          console.log(
-            `🔗 Creating ${surveyType} assignment: ${userResult.user.id} -> ${surveyId}`
-          );
 
           if (surveyType === "happiness") {
             try {
-              console.log(`🎯 Inserting happiness assignment:`, {
-                surveyId,
-                userId: userResult.user.id,
-                assignedBy: "admin",
-                notes: "Imported via CSV",
-              });
 
               const assignmentId = nanoid();
               await db.insert(happinessAssignments).values({
@@ -861,12 +780,7 @@ async function processImport(
 
               // Assignment created successfully
               stats.insertedAssignments++;
-              console.log(`✅ Happiness assignment created successfully:`, {
-                assignmentId: assignmentId,
-                userId: userResult.user.id,
-                surveyId,
-                email: userResult.user.email,
-              });
+
             } catch (assignmentError: any) {
               console.error(`❌ Happiness assignment creation failed:`, {
                 error: assignmentError.message,
@@ -880,9 +794,7 @@ async function processImport(
                 assignmentError.message?.includes("UNIQUE constraint") ||
                 assignmentError.code === "SQLITE_CONSTRAINT_UNIQUE"
               ) {
-                console.log(
-                  `ℹ️ Happiness assignment already exists (constraint): ${userResult.user.id} -> ${surveyId}`
-                );
+
                 stats.duplicateAssignments++;
                 stats.skippedAssignments++;
               } else {
@@ -892,11 +804,6 @@ async function processImport(
           } else {
             // Regular survey assignment
             try {
-              console.log(`🎯 Inserting regular assignment:`, {
-                surveyId,
-                userId: userResult.user.id,
-                status: "pending",
-              });
 
               const { createUserAssignment } = await import(
                 "../../../../db/queries/users"
@@ -909,12 +816,7 @@ async function processImport(
 
               if (assignmentResult) {
                 stats.insertedAssignments++;
-                console.log(`✅ Regular assignment created successfully:`, {
-                  userId: assignmentResult.userId,
-                  surveyId: assignmentResult.surveyId,
-                  email: userResult.user.email,
-                  status: assignmentResult.status,
-                });
+
               } else {
                 console.warn(
                   `⚠️ Regular assignment creation returned empty result`
@@ -933,9 +835,7 @@ async function processImport(
                 assignmentError.message?.includes("UNIQUE constraint") ||
                 assignmentError.code === "SQLITE_CONSTRAINT_UNIQUE"
               ) {
-                console.log(
-                  `ℹ️ Regular assignment already exists (constraint): ${userResult.user.id} -> ${surveyId}`
-                );
+
                 stats.duplicateAssignments++;
                 stats.skippedAssignments++;
               } else {
@@ -976,18 +876,6 @@ async function processImport(
     // Calculate final statistics
     stats.processingTime = Date.now() - startTime;
 
-    console.log("✅ Import process completed successfully");
-    console.log(`📊 Final Statistics:`, {
-      totalProcessed: validRows.length,
-      insertedUsers: stats.insertedUsers,
-      updatedUsers: stats.updatedUsers,
-      insertedAssignments: stats.insertedAssignments,
-      skippedAssignments: stats.skippedAssignments,
-      duplicateAssignments: stats.duplicateAssignments,
-      errors: stats.errors.length,
-      processingTime: `${stats.processingTime}ms`,
-    });
-
     return stats;
   } catch (processError) {
     console.error("❌ Import process failed:", processError);
@@ -1002,9 +890,6 @@ async function processImport(
 // Process company-only import: create users and assign them to all company surveys
 async function processCompanyImport(validRows: any[], companyId: string) {
   const startTime = Date.now();
-  console.log(
-    `🏢 Processing company import: ${validRows.length} users for company ${companyId}`
-  );
 
   const stats = {
     insertedUsers: 0,
@@ -1045,10 +930,6 @@ async function processCompanyImport(validRows: any[], companyId: string) {
       getCompanyHappinessSurveys(companyId),
     ]);
 
-    console.log(
-      `📊 Found ${regularSurveys.length} regular surveys and ${happinessSurveysData.length} happiness surveys for company: ${companyName}`
-    );
-
     if (regularSurveys.length === 0 && happinessSurveysData.length === 0) {
       throw new Error(
         `No surveys found for company ${companyId}. Please assign surveys to the company first.`
@@ -1083,9 +964,7 @@ async function processCompanyImport(validRows: any[], companyId: string) {
             companyName: companyName,
           });
           stats.insertedUsers++;
-          console.log(
-            `✅ Created user: ${user.email} with company: ${companyName}`
-          );
+
         } else {
           // Update existing user with company if not already set
           if (!user.companyId) {
@@ -1095,9 +974,7 @@ async function processCompanyImport(validRows: any[], companyId: string) {
               companyName: companyName,
             });
             stats.updatedUsers++;
-            console.log(
-              `🔄 Updated user company: ${user.email} to ${companyName}`
-            );
+
           }
         }
 
@@ -1131,9 +1008,7 @@ async function processCompanyImport(validRows: any[], companyId: string) {
               error.cause?.message?.includes("Duplicate entry")
             ) {
               stats.duplicateAssignments++;
-              console.log(
-                `⚠️ User ${user.email} already assigned to survey ${survey.title}`
-              );
+
             } else {
               throw error;
             }
@@ -1161,9 +1036,7 @@ async function processCompanyImport(validRows: any[], companyId: string) {
               error.cause?.message?.includes("Duplicate entry")
             ) {
               stats.duplicateAssignments++;
-              console.log(
-                `⚠️ User ${user.email} already assigned to happiness survey ${survey.title}`
-              );
+
             } else {
               throw error;
             }
@@ -1181,15 +1054,6 @@ async function processCompanyImport(validRows: any[], companyId: string) {
     }
 
     stats.processingTime = Date.now() - startTime;
-
-    console.log(`✅ Company import completed:`, {
-      insertedUsers: stats.insertedUsers,
-      updatedUsers: stats.updatedUsers,
-      insertedAssignments: stats.insertedAssignments,
-      duplicateAssignments: stats.duplicateAssignments,
-      errors: stats.errors.length,
-      processingTime: stats.processingTime,
-    });
 
     return stats;
   } catch (error) {
@@ -1210,12 +1074,6 @@ async function processMixedImport(
   additionalHappinessSurveyIds: string[] = []
 ) {
   const startTime = Date.now();
-  console.log(`🔄 Processing mixed import: ${validRows.length} users`);
-  console.log(`📊 Company: ${companyId || "None"}`);
-  console.log(`📊 Additional regular surveys: ${additionalSurveyIds.length}`);
-  console.log(
-    `📊 Additional happiness surveys: ${additionalHappinessSurveyIds.length}`
-  );
 
   const stats = {
     insertedUsers: 0,
@@ -1267,9 +1125,6 @@ async function processMixedImport(
       companySurveys = companyRegularSurveys;
       companyHappinessSurveys = companyHappinessData;
 
-      console.log(
-        `📊 Found ${companySurveys.length} company regular surveys and ${companyHappinessSurveys.length} company happiness surveys for company: ${companyName}`
-      );
     }
 
     // Combine company surveys with additional surveys
@@ -1285,10 +1140,6 @@ async function processMixedImport(
     // Remove duplicates
     const finalRegularSurveyIds = Array.from(new Set(allRegularSurveyIds));
     const finalHappinessSurveyIds = Array.from(new Set(allHappinessSurveyIds));
-
-    console.log(
-      `📊 Final assignments: ${finalRegularSurveyIds.length} regular, ${finalHappinessSurveyIds.length} happiness`
-    );
 
     // Extract unique emails for batch lookups
     const uniqueEmails = Array.from(new Set(validRows.map((row) => row.email)));
@@ -1318,9 +1169,7 @@ async function processMixedImport(
             companyName: companyName,
           });
           stats.insertedUsers++;
-          console.log(
-            `✅ Created user: ${user.email} with company: ${companyName}`
-          );
+
         } else {
           // Update existing user with company if provided and not already set
           if (companyId && !user.companyId) {
@@ -1330,9 +1179,7 @@ async function processMixedImport(
               companyName: companyName,
             });
             stats.updatedUsers++;
-            console.log(
-              `🔄 Updated user company: ${user.email} to ${companyName}`
-            );
+
           }
         }
 
@@ -1366,9 +1213,7 @@ async function processMixedImport(
               error.cause?.message?.includes("Duplicate entry")
             ) {
               stats.duplicateAssignments++;
-              console.log(
-                `⚠️ User ${user.email} already assigned to regular survey ${surveyId}`
-              );
+
             } else {
               throw error;
             }
@@ -1396,9 +1241,7 @@ async function processMixedImport(
               error.cause?.message?.includes("Duplicate entry")
             ) {
               stats.duplicateAssignments++;
-              console.log(
-                `⚠️ User ${user.email} already assigned to happiness survey ${surveyId}`
-              );
+
             } else {
               throw error;
             }
@@ -1416,15 +1259,6 @@ async function processMixedImport(
     }
 
     stats.processingTime = Date.now() - startTime;
-
-    console.log(`✅ Mixed import completed:`, {
-      insertedUsers: stats.insertedUsers,
-      updatedUsers: stats.updatedUsers,
-      insertedAssignments: stats.insertedAssignments,
-      duplicateAssignments: stats.duplicateAssignments,
-      errors: stats.errors.length,
-      processingTime: stats.processingTime,
-    });
 
     return stats;
   } catch (error) {

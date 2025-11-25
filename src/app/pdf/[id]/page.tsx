@@ -91,14 +91,6 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
   // const isRTL = language === "ar";
   const isRTL = false; // Always use LTR for English
 
-  console.log("PDF Debug:", {
-    searchParamsLang: searchParams.lang,
-    resultLanguage: result.language,
-    finalLanguage: language,
-    categoryTotals: result.categoryTotals,
-    categoryKeys: Object.keys(result.categoryTotals || {}),
-  });
-
   // Calculate percentages
   const totalScore = Object.values(result.categoryTotals).reduce(
     (sum, score) => sum + score,

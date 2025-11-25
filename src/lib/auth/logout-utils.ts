@@ -25,8 +25,6 @@ export async function handleLogoutWithSurveyPreservation(
     redirectTo,
   } = options;
 
-  console.log("🔄 Starting logout process with options:", options);
-
   try {
     // 1. Determine surveyId from multiple sources
     let finalSurveyId = surveyId;
@@ -100,8 +98,6 @@ export async function handleLogoutWithSurveyPreservation(
         redirectUrl = "/error?message=Survey+ID+missing";
       }
     }
-
-    console.log("🔄 Logout successful, redirecting to:", redirectUrl);
 
     // 6. Redirect
     router.push(redirectUrl);
@@ -189,7 +185,6 @@ function clearSurveySession(surveyId: string) {
     // Use the comprehensive submission state clearing
     clearSurveySubmissionState(surveyId);
 
-    console.log(`🧹 Cleared comprehensive session for survey: ${surveyId}`);
   } catch (error) {
     console.warn("Error clearing survey session:", error);
   }
@@ -220,7 +215,6 @@ function clearAllSurveySessions() {
     // Use the comprehensive submission state clearing for all surveys
     clearAllSurveySubmissionStates();
 
-    console.log("🧹 Cleared all survey sessions and submission states");
   } catch (error) {
     console.warn("Error clearing all survey sessions:", error);
   }
@@ -243,9 +237,6 @@ function clearSurveyCaches(surveyId: string) {
 
     cacheKeys.forEach((key) => localStorage.removeItem(key));
 
-    console.log(
-      `🧹 Cleared ${cacheKeys.length} cache entries for survey: ${surveyId}`
-    );
   } catch (error) {
     console.warn("Error clearing survey caches:", error);
   }

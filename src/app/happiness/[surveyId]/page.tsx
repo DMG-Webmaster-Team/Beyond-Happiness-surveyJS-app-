@@ -83,7 +83,7 @@ export default function HappinessSurveyPage({
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
-      console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
+
     }
 
     // Check for language parameter in URL
@@ -108,7 +108,7 @@ export default function HappinessSurveyPage({
   useEffect(() => {
     // Prevent access check if we've already redirected
     if (hasRedirected) {
-      console.log("🚫 Skipping access check - redirect already initiated");
+
       return;
     }
 
@@ -118,16 +118,6 @@ export default function HappinessSurveyPage({
       try {
         setAccessLoading(true);
         setAccessCheckError(null);
-
-        console.log(
-          "🔍 CROSS-TAB TEST - Single access check starting for:",
-          params.surveyId,
-          {
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent.substring(0, 100),
-            tabId: Math.random().toString(36).substr(2, 9), // Random tab identifier
-          }
-        );
 
         // ✅ The access API already handles all authentication logic
         // No need for additional session validation here since the backend is authoritative
@@ -143,11 +133,11 @@ export default function HappinessSurveyPage({
             if (age < 120000) {
               // 120s TTL
               cachedData = parsed.data;
-              console.log("🔍 Using cached access data (age:", age, "ms)");
+
             }
           }
         } catch (e) {
-          console.log("🔍 Cache read error (ignoring):", e);
+
         }
 
         // Always make the API call for authoritative data
@@ -159,36 +149,35 @@ export default function HappinessSurveyPage({
         );
 
         if (!isMounted) {
-          console.log("🚫 Component unmounted during access check");
+
           return;
         }
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.log("🔍 Access check failed:", response.status, errorData);
 
           // Handle different error cases with redirects
           if (response.status === 401) {
-            console.log("🔍 Unauthorized - redirecting to login");
+
             setHasRedirected(true);
             setIsRedirecting(true);
             router.push("/user/login");
             return;
           } else if (response.status === 404) {
-            console.log("🔍 Survey not found - redirecting to 404");
+
             setHasRedirected(true);
             setIsRedirecting(true);
             router.push("/not-found");
             return;
           } else if (response.status === 403) {
-            console.log("🔍 Access forbidden - redirecting to home");
+
             setHasRedirected(true);
             setIsRedirecting(true);
             router.push("/user/login");
             return;
           } else {
             // Generic error - redirect to home
-            console.log("🔍 Generic error - redirecting to home");
+
             setHasRedirected(true);
             setIsRedirecting(true);
             router.push("/user/login");
@@ -197,11 +186,10 @@ export default function HappinessSurveyPage({
         }
 
         const data = await response.json();
-        console.log("🔍 CROSS-TAB TEST - Access check response:", data);
 
         // ✅ SECURITY FIX: Check if user is assigned and has access
         if (data.assigned === false || data.canAccess === false) {
-          console.log("❌ Access denied:", data.message);
+
           setHasRedirected(true);
           setIsRedirecting(true);
           // Show error message and redirect to login
@@ -220,12 +208,12 @@ export default function HappinessSurveyPage({
             })
           );
         } catch (e) {
-          console.log("🔍 Cache write error (ignoring):", e);
+
         }
 
         // Handle cooldown case
         if (data.cooldown === true && (data.cooldownRemaining ?? 0) > 0) {
-          console.log("🔍 Survey in cooldown - redirecting to results");
+
           setHasRedirected(true);
           setIsRedirecting(true);
           router.push(
@@ -236,7 +224,7 @@ export default function HappinessSurveyPage({
 
         // Handle retake case
         if (data.retake === true) {
-          console.log("🔍 Retake allowed - proceeding with survey");
+
           // Clear any previous submission state for retakes
           clearSurveySubmissionState(params.surveyId);
         }
@@ -317,7 +305,7 @@ export default function HappinessSurveyPage({
         );
         if (multilingualResponse.ok) {
           const multilingualData = await multilingualResponse.json();
-          console.log("🔍 Multilingual questions fetched:", multilingualData);
+
           setQuestionsData(multilingualData);
           setMultilingualChoices(multilingualData.choices || []);
         } else {
@@ -327,7 +315,7 @@ export default function HappinessSurveyPage({
             throw new Error("Failed to fetch questions");
           }
           const data = await response.json();
-          console.log("🔍 Questions fetched (fallback):", data);
+
           setQuestionsData(data);
         }
       } catch (error) {
@@ -394,19 +382,13 @@ export default function HappinessSurveyPage({
 
   const handleSubmit = async () => {
     if (isSubmitting || submissionCompletedRef.current) {
-      console.log("🚫 Submission already in progress or completed");
+
       return;
     }
 
     try {
       setIsSubmitting(true);
       submissionCompletedRef.current = true;
-
-      console.log("🔍 Submitting happiness survey:", {
-        surveyId: params.surveyId,
-        answers: answers.length,
-        timestamp: new Date().toISOString(),
-      });
 
       // Prepare submission data
       const accessMode =
@@ -438,7 +420,6 @@ export default function HappinessSurveyPage({
       }
 
       const result = await response.json();
-      console.log("✅ Survey submitted successfully:", result);
 
       // Store answers separately for subtype calculation
       localStorage.setItem(

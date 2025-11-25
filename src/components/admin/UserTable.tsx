@@ -106,7 +106,7 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
   // Refresh data when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger) {
-      console.log('🔄 Refreshing due to trigger change');
+
       // Clear current data first to show loading state
       setUsers([]);
       setPagination({
@@ -353,7 +353,7 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
             whileTap={{ scale: 0.98 }}
             type="button"
             onClick={() => {
-              console.log('🔄 Manual refresh triggered');
+
               // Clear current data first to show loading state
               setUsers([]);
               setPagination({

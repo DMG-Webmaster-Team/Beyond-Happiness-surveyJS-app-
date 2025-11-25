@@ -14,10 +14,6 @@ async function validateSurveyIds(
   const { happinessSurveys } = await import("../../../../db/schema/happiness");
   const { inArray } = await import("drizzle-orm");
 
-  console.log(
-    `🔍 Validating ${surveyIds.length} regular and ${happinessSurveyIds.length} happiness survey IDs`
-  );
-
   // Validate regular survey IDs
   if (surveyIds.length > 0) {
     const existingSurveys = await tx
@@ -56,7 +52,6 @@ async function validateSurveyIds(
     }
   }
 
-  console.log(`✅ All survey IDs validated successfully`);
 }
 
 // Helper function to update survey assignments within transaction
@@ -70,8 +65,6 @@ async function updateSurveyAssignmentsTransaction(
     await import("../../../../db/schema/survey-company-assignments");
   const { eq } = await import("drizzle-orm");
   const { createId } = await import("@paralleldrive/cuid2");
-
-  console.log(`🔄 Updating survey assignments for company ${companyId}`);
 
   // Remove existing assignments for this company
   await tx
@@ -91,9 +84,7 @@ async function updateSurveyAssignmentsTransaction(
     }));
 
     await tx.insert(surveyCompanyAssignments).values(regularAssignments);
-    console.log(
-      `✅ Added ${regularAssignments.length} regular survey assignments`
-    );
+
   }
 
   // Add new happiness survey assignments
@@ -108,9 +99,7 @@ async function updateSurveyAssignmentsTransaction(
     await tx
       .insert(happinessSurveyCompanyAssignments)
       .values(happinessAssignments);
-    console.log(
-      `✅ Added ${happinessAssignments.length} happiness survey assignments`
-    );
+
   }
 }
 
@@ -131,8 +120,6 @@ async function autoAssignSurveysToCompanyUsers(
   const { eq, and, inArray } = await import("drizzle-orm");
   const { nanoid } = await import("nanoid");
 
-  console.log(`👥 Auto-assigning surveys to users in company ${companyId}`);
-
   // Get all users in this company
   const companyUsers = await tx
     .select({ id: users.id, email: users.email })
@@ -140,11 +127,9 @@ async function autoAssignSurveysToCompanyUsers(
     .where(eq(users.companyId, companyId));
 
   if (companyUsers.length === 0) {
-    console.log(`ℹ️ No users found in company ${companyId}`);
+
     return;
   }
-
-  console.log(`👥 Found ${companyUsers.length} users in company`);
 
   const userIds = companyUsers.map((u: any) => u.id);
   const now = new Date();
@@ -205,19 +190,14 @@ async function autoAssignSurveysToCompanyUsers(
   // Insert new assignments
   if (regularAssignmentsList.length > 0) {
     await tx.insert(userAssignments).values(regularAssignmentsList);
-    console.log(
-      `✅ Created ${regularAssignmentsList.length} regular survey assignments for users`
-    );
+
   }
 
   if (happinessAssignmentsList.length > 0) {
     await tx.insert(happinessAssignments).values(happinessAssignmentsList);
-    console.log(
-      `✅ Created ${happinessAssignmentsList.length} happiness survey assignments for users`
-    );
+
   }
 
-  console.log(`🎉 Auto-assignment completed for company ${companyId}`);
 }
 
 // Helper function to update survey assignments using many-to-many relationships
@@ -241,9 +221,6 @@ async function updateSurveyAssignments(
       "system"
     );
 
-    console.log(
-      `✅ Updated survey assignments for company ${companyId}: ${surveyIds.length} regular, ${happinessSurveyIds.length} happiness`
-    );
   } catch (error) {
     console.error("Error updating survey assignments:", error);
     throw error;
@@ -344,9 +321,6 @@ async function syncUsersWithCompanySurveys(
       }
     }
 
-    console.log(
-      `✅ Synced ${userIds.length} users with company ${companyId} survey assignments`
-    );
   } catch (error) {
     console.error("Error syncing users with company surveys:", error);
     throw error;
@@ -389,12 +363,6 @@ export async function PUT(
     const body = await request.json();
     const { name, description, surveyIds = [], happinessSurveyIds = [] } = body;
 
-    console.log(`🔄 Updating company ${id} with:`, {
-      name,
-      surveyIds: surveyIds.length,
-      happinessSurveyIds: happinessSurveyIds.length,
-    });
-
     // Basic validation
     if (!name || typeof name !== "string") {
       return NextResponse.json(
@@ -419,7 +387,7 @@ export async function PUT(
     }
 
     // Update company basic info
-    console.log(`🔄 Starting company update for ${id}`);
+
     const updatedCompany = await updateCompany(id, {
       name,
       description: description || null,
@@ -429,10 +397,7 @@ export async function PUT(
       throw new Error("Company not found");
     }
 
-    console.log(`✅ Company updated successfully`);
-
     // Update survey assignments and sync with user assignments
-    console.log(`🔄 Updating survey assignments and syncing with users`);
 
     const {
       updateCompanySurveyAssignments,
@@ -440,7 +405,6 @@ export async function PUT(
     } = await import("../../../../db/queries/survey-company-assignments");
 
     // Auto-assign surveys to all users in the company
-    console.log(`🔄 Auto-assigning surveys to company users`);
 
     // Use the database connection directly for user assignments
     const { users } = await import("../../../../db/schema/users");
@@ -460,7 +424,6 @@ export async function PUT(
       .where(eq(users.companyId, id));
 
     if (companyUsers.length > 0) {
-      console.log(`👥 Found ${companyUsers.length} users in company`);
 
       const userIds = companyUsers.map((u: any) => u.id);
       const now = new Date();
@@ -504,9 +467,7 @@ export async function PUT(
               inArray(userAssignments.surveyId, allRegularSurveyIds)
             )
           );
-        console.log(
-          `🧹 Removed regular survey assignments for ${allRegularSurveyIds.length} surveys`
-        );
+
       }
 
       if (allHappinessSurveyIds.length > 0) {
@@ -518,9 +479,7 @@ export async function PUT(
               inArray(happinessAssignments.surveyId, allHappinessSurveyIds)
             )
           );
-        console.log(
-          `🧹 Removed happiness survey assignments for ${allHappinessSurveyIds.length} surveys`
-        );
+
       }
 
       // Create new assignments for currently selected surveys
@@ -556,21 +515,16 @@ export async function PUT(
       // Insert new assignments
       if (regularAssignmentsList.length > 0) {
         await db.insert(userAssignments).values(regularAssignmentsList);
-        console.log(
-          `✅ Created ${regularAssignmentsList.length} regular survey assignments for users`
-        );
+
       }
 
       if (happinessAssignmentsList.length > 0) {
         await db.insert(happinessAssignments).values(happinessAssignmentsList);
-        console.log(
-          `✅ Created ${happinessAssignmentsList.length} happiness survey assignments for users`
-        );
+
       }
 
-      console.log(`🎉 Auto-assignment completed for company ${id}`);
     } else {
-      console.log(`ℹ️ No users found in company ${id}`);
+
     }
 
     // Update company survey assignments AFTER user assignments are handled
@@ -581,11 +535,8 @@ export async function PUT(
       "system"
     );
 
-    console.log(`✅ Company survey assignments updated successfully`);
-
     const result = updatedCompany;
 
-    console.log(`✅ Successfully updated company ${id}`);
     return NextResponse.json(result);
   } catch (error) {
     console.error("❌ Error updating company:", error);

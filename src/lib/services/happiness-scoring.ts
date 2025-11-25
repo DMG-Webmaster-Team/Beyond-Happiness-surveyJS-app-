@@ -54,12 +54,6 @@ export async function getMultilingualCharacter(
   avatarUrl: string;
 }> {
   try {
-    console.log(
-      "🔍 Looking up character with code:",
-      code,
-      "language:",
-      language
-    );
 
     // Fetch character with multilingual fields
     const characters = await db
@@ -67,10 +61,6 @@ export async function getMultilingualCharacter(
       .from(happinessCharacters)
       .where(eq(happinessCharacters.match, code))
       .limit(1);
-
-    console.log("🔍 Character query result:", {
-      found: characters.length > 0,
-    });
 
     if (characters.length > 0) {
       const char = characters[0];
@@ -82,14 +72,6 @@ export async function getMultilingualCharacter(
         language === "ar"
           ? char.detailedDescriptionArHtml || ""
           : char.detailedDescriptionEnHtml || "";
-
-      console.log("🔍 Character data:", {
-        id: char.id,
-        nameEn: char.nameEn,
-        nameAr: char.nameAr,
-        description: description.substring(0, 50) + "...",
-        hasDetailedDescription: !!detailedDescription,
-      });
 
       return {
         id: char.id,

@@ -215,8 +215,6 @@ export async function POST(req: NextRequest) {
         existingResult: !canAccess && hasSubmitted ? existingResult[0] : null,
       };
 
-      console.log("✅ Successful happiness survey response:", responseData);
-
       const res = NextResponse.json(responseData);
 
       // Set session cookie (authenticated user)
@@ -243,16 +241,6 @@ export async function POST(req: NextRequest) {
     const normalizedIdentifier = identifier || email || phone || "";
     const looksLikeEmail = normalizedIdentifier.includes("@");
 
-    console.log("🔍 /api/users/otp received:", {
-      email,
-      phone,
-      identifier,
-      otp: otp ? `${String(otp).slice(0, 3)}***` : undefined,
-      surveyId,
-      skipOtpVerification,
-      idType: looksLikeEmail ? "email" : "phone",
-    });
-
     if (!normalizedIdentifier) {
       return NextResponse.json(
         { error: "Email, phone, or identifier is required" },
@@ -272,11 +260,9 @@ export async function POST(req: NextRequest) {
           status: 401,
         });
       }
-      console.log("✅ OTP verified successfully");
+
     } else {
-      console.log(
-        "⏭️ Skipping OTP verification (already verified client-side)"
-      );
+
     }
 
     // 2) Look up the user by email OR phone (bug fix)
@@ -371,19 +357,7 @@ export async function POST(req: NextRequest) {
         canTakeMultiple: Boolean(surveyDetails.survey.canTakeMultiple),
       };
 
-      console.log("🔍 Survey details:", {
-        id: surveySafe.id,
-        title: surveySafe.title,
-        canTakeMultiple: Boolean(surveySafe.canTakeMultiple),
-        rawCanTakeMultiple: surveyDetails.survey.canTakeMultiple,
-      });
-
       // Check assignment
-      console.log("🔍 Checking assignment for:", {
-        userId: userData.id,
-        surveyId: surveyId,
-        userEmail: userData.email,
-      });
 
       const assignment = await db
         .select()
@@ -396,15 +370,7 @@ export async function POST(req: NextRequest) {
         )
         .limit(1);
 
-      console.log("🔍 Assignment query result:", assignment);
       const assigned = assignment.length > 0;
-      console.log("🔍 User assigned:", assigned);
-      console.log("🔍 Assignment details:", {
-        found: assignment.length,
-        assignment: assignment[0] || null,
-        searchUserId: userData.id,
-        searchSurveyId: surveyId,
-      });
 
       // If not assigned → respond gracefully (200) so UI can show friendly message
       if (!assigned) {
@@ -453,17 +419,8 @@ export async function POST(req: NextRequest) {
 
       // Check if the user has already submitted (for single-take surveys)
       let hasSubmitted = false;
-      console.log(`🔍 /api/users/otp checking submission status:`, {
-        userId: userData.id,
-        userEmail: userData.email,
-        surveyId,
-        canTakeMultiple: Boolean(surveySafe.canTakeMultiple),
-      });
 
       if (!Boolean(surveySafe.canTakeMultiple)) {
-        console.log(
-          `🔍 Single-take survey - checking existing submissions for user ${userData.id}`
-        );
 
         const existing = await db
           .select()
@@ -475,16 +432,8 @@ export async function POST(req: NextRequest) {
 
         hasSubmitted = existing.length > 0;
 
-        console.log(`🔍 Submission check result:`, {
-          userId: userData.id,
-          surveyId,
-          existingCount: existing.length,
-          hasSubmitted,
-        });
       } else {
-        console.log(
-          `🔍 Multi-take survey - allowing submission regardless of history`
-        );
+
       }
 
       // ✅ ENHANCED: Comprehensive access status
@@ -518,8 +467,6 @@ export async function POST(req: NextRequest) {
             : "Access granted to survey.",
         },
       };
-
-      console.log("✅ Successful assignment response:", responseData);
 
       const res = NextResponse.json(responseData);
 

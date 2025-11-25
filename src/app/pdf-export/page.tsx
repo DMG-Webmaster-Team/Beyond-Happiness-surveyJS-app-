@@ -79,9 +79,6 @@ export default function PdfExport() {
   // Get the survey JSON structure
   const surveyJson = survey.definition || {};
 
-  console.log("Survey object:", survey);
-  console.log("Survey JSON for PDF:", surveyJson);
-
   return (
     <div className="flex min-h-screen flex-col items-center p-24">
       <h1 className="mb-8 text-3xl font-bold tracking-tight">

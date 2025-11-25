@@ -67,9 +67,7 @@ export async function PATCH(
         const company = await getCompanyById(updateData.companyId);
         if (company) {
           updateData.companyName = company.name;
-          console.log(
-            `🏢 Updated company name: ${company.name} (${updateData.companyId})`
-          );
+
         } else {
           console.warn(`⚠️ Company not found for ID: ${updateData.companyId}`);
           updateData.companyName = null;
@@ -95,9 +93,6 @@ export async function PATCH(
 
     // If company was changed, update survey assignments
     if (isCompanyChanged && updateData.companyId) {
-      console.log(
-        `🔄 Company changed for user ${id}, updating survey assignments`
-      );
 
       try {
         // Get company's surveys for auto-assignment
@@ -202,9 +197,6 @@ export async function PATCH(
             }
           }
 
-          console.log(
-            `✅ Auto-assigned ${companySurveyIds.length} regular surveys and ${companyHappinessIds.length} happiness surveys from new company`
-          );
         }
       } catch (error) {
         console.error(

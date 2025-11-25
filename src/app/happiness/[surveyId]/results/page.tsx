@@ -78,7 +78,7 @@ export default function HappinessResultsPage({
       if (response.ok) {
         const data = await response.json();
         setCurrentAccessData(data);
-        console.log("🔍 Current access data for retake button:", data);
+
       }
     } catch (error) {
       console.error("Error fetching current access data:", error);
@@ -88,13 +88,12 @@ export default function HappinessResultsPage({
   };
 
   useEffect(() => {
-    console.log("🔍 Results page loading...");
 
     // Store surveyId in sessionStorage for logout recovery
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
-      console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
+
     }
 
     // Fetch survey data to check if it's anonymous
@@ -121,29 +120,16 @@ export default function HappinessResultsPage({
     const urlParams = new URLSearchParams(window.location.search);
     const isCooldown = urlParams.get("cooldown") === "true";
     const isRetake = urlParams.get("retake") === "true";
-    console.log("🔍 Results page check:", {
-      isCooldown,
-      isRetake,
-      url: window.location.search,
-    });
 
     // Always try to get result from localStorage first (most reliable)
     const storedResult = localStorage.getItem(
       `happiness:lastResult:${params.surveyId}`
     );
-    console.log(
-      "🔍 Stored result from localStorage:",
-      storedResult ? "Found" : "Not found"
-    );
 
     if (storedResult) {
       try {
         const parsedResult = JSON.parse(storedResult);
-        console.log("🔍 Parsed result:", parsedResult);
-        console.log(
-          "🔍 Character data in stored result:",
-          parsedResult.character
-        );
+
         setResult(parsedResult);
 
         // Force English - Arabic language detection commented out
@@ -166,7 +152,6 @@ export default function HappinessResultsPage({
         document.body.dir = "ltr";
         document.documentElement.dir = "ltr";
 
-        console.log("🔍 Result set successfully");
       } catch (error) {
         console.error("❌ Error parsing stored result:", error);
         router.push(`/happiness/${params.surveyId}`);
@@ -174,7 +159,7 @@ export default function HappinessResultsPage({
       }
     } else {
       // No result found - redirect back to survey (no sessionStorage fallback)
-      console.log("🔍 No stored result found, redirecting to survey");
+
       router.push(`/happiness/${params.surveyId}`);
       return;
     }
@@ -183,7 +168,7 @@ export default function HappinessResultsPage({
 
     // Cleanup function - do NOT clear localStorage to prevent redirect loops
     return () => {
-      console.log("🔍 Results page unmounting - localStorage preserved");
+
     };
   }, [params.surveyId, router]);
 
@@ -354,10 +339,6 @@ export default function HappinessResultsPage({
       const calculateScores = async () => {
         try {
           setUnifiedScoreLoading(true);
-          console.log("🔄 Calling unified scoring API with:", {
-            answersCount: result.answers!.length,
-            language: selectedLanguage,
-          });
 
           const response = await fetch("/api/happiness/unified-scoring", {
             method: "POST",
@@ -373,11 +354,6 @@ export default function HappinessResultsPage({
           if (response.ok) {
             const data = await response.json();
             setUnifiedScore(data.data);
-            console.log("✅ Unified scores calculated successfully:", {
-              overallPercentage: data.data.overallPercentage,
-              categories: Object.keys(data.data.categoryPercentages).length,
-              subtypes: Object.keys(data.data.subtypePercentages),
-            });
 
             // Log any percentages > 100% for debugging
             Object.entries(data.data.subtypePercentages).forEach(
@@ -532,14 +508,6 @@ export default function HappinessResultsPage({
   }
 
   // Debug logging to confirm character data and categories
-  console.log("Happiness Result (render source):", result);
-  console.log("Character data:", {
-    nameEn: result.character.nameEn,
-    nameAr: result.character.nameAr,
-    avatarUrl: result.character.avatarUrl,
-    code: result.code,
-  });
-  console.log("Category totals:", result.categoryTotals);
 
   return (
     <div className="min-h-screen bg-gray-50">

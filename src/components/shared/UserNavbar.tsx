@@ -25,12 +25,7 @@ export default function UserNavbar({ hideLogout = false }: UserNavbarProps) {
           credentials: "include",
         });
         const data = await response.json();
-        console.log("🔍 Initial session check:", {
-          isAuthenticated: data.isAuthenticated,
-          hasUser: !!data.user,
-          timestamp: new Date().toISOString(),
-          currentPath: window.location.pathname,
-        });
+
         setIsLoggedIn(data.isAuthenticated);
       } catch (error) {
         console.error("Session check error:", error);

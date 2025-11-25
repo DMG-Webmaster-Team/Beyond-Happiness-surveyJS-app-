@@ -111,7 +111,7 @@ export default function AnalyticsModal({
           containerRef.current.innerHTML = "";
           panel.render(containerRef.current);
           panelRef.current = panel;
-          console.log("Analytics panel rendered successfully!");
+
         }
       } catch (error) {
         console.error("Error initializing analytics:", error);

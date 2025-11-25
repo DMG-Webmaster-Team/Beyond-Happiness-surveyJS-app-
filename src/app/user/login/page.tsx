@@ -73,13 +73,13 @@ export default function UserLogin() {
       );
       if (response.ok) {
         setSurveyType("happiness");
-        console.log("🎯 Happiness survey detected via API check");
+
       } else {
         setSurveyType("regular");
-        console.log("🎯 Regular survey detected via API check");
+
       }
     } catch (error) {
-      console.log("🎯 Defaulting to regular survey due to API error");
+
       setSurveyType("regular");
     }
   };
@@ -89,22 +89,16 @@ export default function UserLogin() {
     const multiTab = searchParams.get("multiTab");
     if (multiTab === "true") {
       setIsMultiTabRedirect(true);
-      console.log("🚫 Multi-tab redirect detected");
 
       // Clear all active sessions to force fresh login
       const activeSessions = getAllActiveSurveySessions();
       activeSessions.forEach((session) => {
         clearSurveySession(session.surveyId);
       });
-      console.log(
-        `🧹 Cleared ${activeSessions.length} active sessions for multi-tab protection`
-      );
 
       // Also clear all sessionStorage submission states
       clearAllSurveySubmissionStates();
-      console.log(
-        "🧹 Cleared all sessionStorage submission states for fresh session"
-      );
+
     }
   }, [searchParams]);
 
@@ -132,14 +126,6 @@ export default function UserLogin() {
       const storedSurveyType = sessionStorage.getItem("currentSurveyType");
 
       if (storedSurveyId) {
-        console.log(
-          "🔄 LOGOUT RECOVERY TEST - Restoring surveyId from sessionStorage:",
-          storedSurveyId,
-          {
-            storedType: storedSurveyType,
-            currentUrl: window.location.href,
-          }
-        );
 
         // Redirect to include surveyId in URL
         const newUrl = new URL(window.location.href);
@@ -148,19 +134,14 @@ export default function UserLogin() {
           newUrl.searchParams.set("type", "happiness");
         }
 
-        console.log("🔄 Redirecting to:", newUrl.toString());
         window.location.href = newUrl.toString();
         return; // Exit early, page will reload with correct URL
       }
     }
 
-    console.log("🔍 searchParams.get('type'):", searchParams.get("type"));
-    console.log("🔍 urlParams.get('type'):", urlParams.get("type"));
-    console.log("🔍 resolved type:", type);
-
     if (type === "happiness") {
       setSurveyType("happiness");
-      console.log("🎯 Happiness survey detected via URL parameter");
+
     } else {
       // Fallback: check if this surveyId exists in happiness surveys
       if (sid) {
@@ -172,29 +153,13 @@ export default function UserLogin() {
 
     if (sid) {
       setStableSurveyId(sid);
-      console.log("✅ Stable surveyId from URL:", sid);
+
     } else {
       console.warn("⚠️ No surveyId found in URL parameters or sessionStorage");
     }
 
     // Debug logging
-    console.log(
-      "🔍 URL search params (searchParams):",
-      Object.fromEntries(searchParams.entries())
-    );
-    console.log(
-      "🔍 URL search params (urlParams):",
-      Object.fromEntries(urlParams.entries())
-    );
-    console.log("🔍 stableSurveyId resolved:", sid);
-    console.log("🔍 surveyType:", type || "regular");
-    console.log("🔍 Raw type param (searchParams):", searchParams.get("type"));
-    console.log("🔍 Raw type param (urlParams):", urlParams.get("type"));
-    console.log("🔍 All search params:", Array.from(searchParams.entries()));
-    console.log(
-      "🔍 Full URL:",
-      typeof window !== "undefined" ? window.location.href : ""
-    );
+
   }, [searchParams]);
 
   // Validation regex patterns
@@ -316,8 +281,6 @@ export default function UserLogin() {
       const cleanRequestData = Object.fromEntries(
         Object.entries(requestData).filter(([, v]) => v != null)
       );
-
-      console.log("🔍 Sending to /api/auth/send-otp:", cleanRequestData);
 
       const response = await fetch("/api/auth/send-otp", {
         method: "POST",
@@ -465,18 +428,12 @@ export default function UserLogin() {
     setError("");
 
     try {
-      console.log("🔍 contactData:", contactData);
-      console.log("🔍 inputType:", contactData.inputType);
-      console.log("🔍 identifier:", contactData.identifier);
-      console.log("🔍 otp:", otpString);
-      console.log("🔍 stableSurveyId:", stableSurveyId);
 
       const requestBody = {
         [contactData.inputType]: contactData.identifier,
         otp: otpString,
         surveyId: stableSurveyId, // guaranteed by earlier guard
       };
-      console.log("🔍 Request body:", requestBody);
 
       // 1) Verify OTP
       const otpResponse = await fetch("/api/auth/verify-otp", {
@@ -522,10 +479,6 @@ export default function UserLogin() {
 
       // Initialize new user session in sessionStorage
       const sessionId = initializeUserSession(data.user.id);
-      console.log("🚀 Initialized user session:", sessionId);
-
-      console.log("🔍 API Response:", data);
-      console.log("🔍 Access verification complete:", data.access);
 
       // ✅ ENHANCED: Handle access status and redirect appropriately
       setAuthStep("redirecting");
@@ -551,7 +504,7 @@ export default function UserLogin() {
             retakeWindowMinutes: 60, // 1 hour for retake window
           }
         );
-        console.log("✅ Survey session created:", sessionData);
+
       } catch (sessionError) {
         console.error("⚠️ Failed to create survey session:", sessionError);
         // Continue with login flow even if session creation fails
@@ -568,7 +521,7 @@ export default function UserLogin() {
             key.includes(`access:denied:${targetSurveyId}`)
         );
         cacheKeys.forEach((key) => localStorage.removeItem(key));
-        console.log("🧹 Cleared stale access caches:", cacheKeys);
+
       }
 
       // Redirect based on access status and survey type
@@ -576,24 +529,13 @@ export default function UserLogin() {
         try {
           if (surveyType === "happiness") {
             // Call happiness access API to get canonical decision
-            console.log("📊 Calling happiness access API after OTP success");
+
             try {
               const accessResponse = await fetch(
                 `/api/happiness/surveys/${targetSurveyId}/access`,
                 { credentials: "include" } // Ensure cookies are sent
               );
               const accessData = await accessResponse.json();
-
-              console.log("📊 CROSS-TAB TEST - AccessCheck After OTP →", {
-                canAccess: accessData.canAccess,
-                cooldown: accessData.cooldown,
-                cooldownRemaining: accessData.cooldownRemaining,
-                assigned: accessData.assigned,
-                requiresAuth: accessData.requiresAuth,
-                surveyId: targetSurveyId,
-                userId: data.user.id,
-                timestamp: new Date().toISOString(),
-              });
 
               if (accessData.cooldown === true) {
                 // Store previousResult and redirect to results
@@ -626,7 +568,7 @@ export default function UserLogin() {
             }
           } else if (data.access.canAccess) {
             // Direct access to regular survey
-            console.log("✅ Access granted - redirecting to survey");
+
             router.push(`/user/survey/${targetSurveyId}`);
           } else {
             // Redirect to appropriate status page for regular surveys

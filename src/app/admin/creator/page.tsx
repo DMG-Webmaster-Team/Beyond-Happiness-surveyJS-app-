@@ -328,9 +328,6 @@ const addCustomLanguageFlow = (creator: any) => {
       addMultiLanguageStyles();
     }, 100);
 
-    console.log(
-      "Custom language flow added successfully with multiple pages support"
-    );
   } catch (error) {
     console.error("Error adding custom language flow:", error);
   }
@@ -383,10 +380,6 @@ export default function AdminCreator() {
         // Check if we're in the browser and component is mounted
         if (typeof window === "undefined" || !mounted) return;
 
-        // Set SurveyJS license
-        const { setSurveyJSLicense } = await import("@/lib/surveyjs-config");
-        setSurveyJSLicense();
-
         const { SurveyCreator } = await import("survey-creator-react");
 
         const creatorOptions = {
@@ -437,17 +430,13 @@ export default function AdminCreator() {
               });
             }
           } catch (error) {
-            console.log("Theme setting fallback - using CSS overrides");
+
           }
         }, 100);
 
         // Add Multi Language button to SurveyJS Creator toolbox
         setTimeout(() => {
           try {
-            console.log(
-              "🎯 Adding Multi Language button to Creator toolbox..."
-            );
-            console.log("Creator toolbox available:", !!newCreator.toolbox);
 
             if (newCreator && newCreator.toolbox) {
               // Add to toolbox using General category and force to top position
@@ -466,22 +455,10 @@ export default function AdminCreator() {
               };
 
               newCreator.toolbox.addItem(toolboxItem, 0); // 👈 This '0' ensures it's inserted at the first position
-              console.log(
-                "✅ Multi Language item added to toolbox at top position (General category, index 0)"
-              );
 
               // Debug: Check toolbox item positions
               setTimeout(() => {
-                console.log(
-                  "🔍 Toolbox items order:",
-                  newCreator.toolbox.items.map((i) => i.name)
-                );
-                console.log(
-                  "🔍 Multi Language position:",
-                  newCreator.toolbox.items.findIndex(
-                    (i) => i.name === "multilanguage"
-                  )
-                );
+
               }, 100);
 
               // Override behavior when this item is added to survey
@@ -491,9 +468,6 @@ export default function AdminCreator() {
                   options.question.name &&
                   options.question.name.includes("multilanguage_placeholder")
                 ) {
-                  console.log(
-                    "🎯 Multi Language item detected - replacing with custom flow"
-                  );
 
                   // Remove the placeholder question immediately
                   setTimeout(() => {
@@ -527,9 +501,8 @@ export default function AdminCreator() {
                 }
               });
 
-              console.log("✅ Multi Language behavior override registered");
             } else {
-              console.log("❌ Creator toolbox not available");
+
             }
           } catch (error) {
             console.error(
@@ -807,7 +780,6 @@ export default function AdminCreator() {
               }
             `;
 
-            console.log("✅ Custom primary color #0067E6 applied");
           };
 
           applyCustomColors();
@@ -832,7 +804,7 @@ export default function AdminCreator() {
           if (newCreator.survey) {
             setCreator(newCreator);
             setIsCreatorReady(true);
-            console.log("SurveyCreator initialized successfully");
+
           } else {
             console.error("Creator survey object not properly initialized");
             setError("Failed to initialize survey creator properly");
@@ -850,7 +822,7 @@ export default function AdminCreator() {
   // Initialize local survey state from SWR data (only once per survey)
   useEffect(() => {
     if (survey && (!localSurvey || localSurvey.id !== survey.id)) {
-      console.log("Setting local survey:", survey.title, survey.id);
+
       setLocalSurvey(survey);
 
       // Set company if survey has one
@@ -864,11 +836,6 @@ export default function AdminCreator() {
   useEffect(() => {
     if (survey && creator && isCreatorReady) {
       try {
-        console.log(
-          "Loading survey data into creator:",
-          survey.title,
-          survey.json
-        );
 
         // Use a small delay to ensure creator is ready for JSON updates
         setTimeout(() => {
@@ -892,7 +859,6 @@ export default function AdminCreator() {
               creator.text = JSON.stringify(validSurveyJson, null, 2);
             }
 
-            console.log("Survey data loaded successfully");
           } catch (error) {
             console.error("Error setting creator JSON:", error);
             setError("Failed to load survey data into creator");

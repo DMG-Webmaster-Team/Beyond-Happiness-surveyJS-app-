@@ -78,7 +78,6 @@ export function setSurveySubmitted(
     };
 
     sessionStorage.setItem(key, JSON.stringify(state));
-    console.log(`📝 Set survey submission state for ${surveyId}:`, state);
 
     // Also store in localStorage for cross-tab/refresh persistence
     if (submitted) {
@@ -90,7 +89,7 @@ export function setSurveySubmitted(
         retakeExpiryTime,
       };
       localStorage.setItem(localStorageKey, JSON.stringify(localStorageData));
-      console.log(`💾 Also stored submission in localStorage for ${surveyId}`);
+
     }
   } catch (error) {
     console.error("Error setting survey submission state:", error);
@@ -116,7 +115,7 @@ export function getSurveySubmissionState(
     }
 
     const state: SurveySessionState = JSON.parse(data);
-    console.log(`📖 Retrieved survey submission state for ${surveyId}:`, state);
+
     return state;
   } catch (error) {
     console.error("Error getting survey submission state:", error);
@@ -146,20 +145,11 @@ export function checkSurveySubmissionStatus(
   source: "sessionStorage" | "localStorage" | "none";
   reason?: string;
 } {
-  console.log(`🔍 Checking submission status for survey ${surveyId}:`, {
-    isAnonymous,
-    surveyCanTakeMultiple,
-  });
 
   // First check sessionStorage (current session)
   const sessionState = getSurveySubmissionState(surveyId);
   if (sessionState?.hasSubmitted) {
     const canRetake = canRetakeSurveyInSession(surveyId, surveyCanTakeMultiple);
-    console.log(`📱 Found sessionStorage submission for ${surveyId}:`, {
-      canRetake,
-      canTakeMultiple: sessionState.canTakeMultiple,
-      retakeExpiryTime: sessionState.retakeExpiryTime,
-    });
 
     return {
       isSubmitted: true,
@@ -192,14 +182,6 @@ export function checkSurveySubmissionStatus(
           storedCanTakeMultiple ||
           (parsed.retakeExpiryTime && now <= parsed.retakeExpiryTime);
 
-        console.log(`💾 Found localStorage submission for ${surveyId}:`, {
-          timestamp: parsed.timestamp,
-          timeWindow,
-          isWithinWindow,
-          canRetake,
-          storedCanTakeMultiple,
-        });
-
         return {
           isSubmitted: true,
           canRetake,
@@ -209,11 +191,7 @@ export function checkSurveySubmissionStatus(
             : "Single submission found in localStorage",
         };
       } else {
-        console.log(
-          `⏰ localStorage submission for ${surveyId} expired (${
-            now - parsed.timestamp
-          }ms ago)`
-        );
+
         // Clean up expired entry
         localStorage.removeItem(localStorageKey);
       }
@@ -222,7 +200,6 @@ export function checkSurveySubmissionStatus(
     console.warn(`⚠️ Error reading localStorage for ${surveyId}:`, error);
   }
 
-  console.log(`✅ No submission found for ${surveyId} - survey can be taken`);
   return {
     isSubmitted: false,
     canRetake: true,
@@ -269,7 +246,7 @@ export function clearSurveySubmissionState(surveyId: string): void {
     try {
       const key = getScopedKey(surveyId, "hasSubmitted");
       sessionStorage.removeItem(key);
-      console.log(`🧹 Cleared sessionStorage submission state for ${surveyId}`);
+
     } catch (error) {
       console.error("Error clearing sessionStorage submission state:", error);
     }
@@ -279,7 +256,7 @@ export function clearSurveySubmissionState(surveyId: string): void {
   try {
     const localStorageKey = `submitted_${surveyId}`;
     localStorage.removeItem(localStorageKey);
-    console.log(`🧹 Cleared localStorage submission state for ${surveyId}`);
+
   } catch (error) {
     console.error("Error clearing localStorage submission state:", error);
   }
@@ -319,7 +296,6 @@ export function clearAllSurveySubmissionStates(): void {
     console.error("Error clearing localStorage submission states:", error);
   }
 
-  console.log(`🧹 Cleared ${clearedCount} total survey submission states`);
 }
 
 /**
@@ -332,7 +308,7 @@ export function setUserSessionId(sessionId: string): void {
 
   try {
     sessionStorage.setItem("userSessionId", sessionId);
-    console.log(`👤 Set user session ID: ${sessionId}`);
+
   } catch (error) {
     console.error("Error setting user session ID:", error);
   }
@@ -363,7 +339,6 @@ export function initializeUserSession(userId: string): string {
     .substr(2, 9)}`;
   setUserSessionId(sessionId);
 
-  console.log(`🚀 Initialized new user session for ${userId}: ${sessionId}`);
   return sessionId;
 }
 
@@ -390,7 +365,7 @@ export function createFreshAnonymousSession(surveyId: string): string {
           key.startsWith("retake_expiry_"))
       ) {
         sessionStorage.removeItem(key);
-        console.log(`🧹 Cleared potentially conflicting key: ${key}`);
+
       }
     });
   } catch (error) {
@@ -401,14 +376,11 @@ export function createFreshAnonymousSession(surveyId: string): string {
   try {
     const localStorageKey = `submitted_${surveyId}`;
     localStorage.removeItem(localStorageKey);
-    console.log(`🧹 Cleared localStorage for anonymous survey ${surveyId}`);
+
   } catch (error) {
     console.warn(`⚠️ Error clearing localStorage for ${surveyId}:`, error);
   }
 
-  console.log(
-    `🌐 Created fresh anonymous session for ${surveyId}: ${sessionId}`
-  );
   return sessionId;
 }
 

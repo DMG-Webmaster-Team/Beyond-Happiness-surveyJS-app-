@@ -269,12 +269,6 @@ export async function POST(request: NextRequest) {
               .where(eq(happinessCharacters.id, lastSubmission.characterId))
               .limit(1);
 
-            console.log("🔍 Character fetch debug (results):", {
-              characterId: lastSubmission.characterId,
-              characterFound: character.length > 0,
-              character: character[0] || null,
-            });
-
             // Instead of rejecting, return the previous result for cooldown period
             // Use getMultilingualCharacter to get proper multilingual data
             const { getMultilingualCharacter } = await import(

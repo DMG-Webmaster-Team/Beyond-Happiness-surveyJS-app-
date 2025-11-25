@@ -118,7 +118,6 @@ export async function updateSurvey(
   id: string,
   surveyData: any
 ): Promise<Survey | undefined> {
-  console.log("Update data received:", surveyData);
 
   // Ensure we have valid data
   if (!surveyData || typeof surveyData !== "object") {
@@ -203,8 +202,6 @@ export async function updateSurvey(
 
   // Always update the updatedAt timestamp
   dataToUpdate.updatedAt = new Date();
-
-  console.log("Data to update:", dataToUpdate);
 
   await db.update(surveys).set(dataToUpdate).where(eq(surveys.id, id));
 

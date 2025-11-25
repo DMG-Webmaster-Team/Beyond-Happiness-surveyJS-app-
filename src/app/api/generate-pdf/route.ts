@@ -152,25 +152,8 @@ async function generatePDFHTML(result: any, language: string) {
   // Load avatar image as base64
   const avatarPath =
     result.character.avatarUrl || `/characters/${result.code}.png`;
-  console.log(`🖼️ Avatar path:`, avatarPath);
-  console.log(`📊 Character data:`, {
-    nameEn: result.character.nameEn,
-    nameAr: result.character.nameAr,
-    hasDescription: !!result.character.description,
-    hasDetailedDescription: !!result.character.detailedDescription,
-    detailedDescriptionLength:
-      result.character.detailedDescription?.length || 0,
-    avatarUrl: result.character.avatarUrl,
-    code: result.code,
-  });
 
   const avatarBase64 = await loadImageAsBase64(avatarPath);
-  console.log(`🖼️ Avatar loading result:`, {
-    path: avatarPath,
-    success: !!avatarBase64,
-    base64Length: avatarBase64?.length || 0,
-    base64Preview: avatarBase64?.substring(0, 50) || "none",
-  });
 
   // Load all truth icons as base64
   const truthIconsBase64: Record<string, string | null> = {};
@@ -187,18 +170,11 @@ async function generatePDFHTML(result: any, language: string) {
     const iconPath = getTruthIcon(category);
     const iconBase64 = await loadImageAsBase64(iconPath);
     truthIconsBase64[category] = iconBase64;
-    console.log(`🖼️ Truth icon loading result for ${category}:`, {
-      path: iconPath,
-      success: !!iconBase64,
-    });
 
     const essentialsPath = getEssentialsIcon(category);
     const essentialsBase64 = await loadImageAsBase64(essentialsPath);
     essentialsIconsBase64[category] = essentialsBase64;
-    console.log(`🖼️ Essentials icon loading result for ${category}:`, {
-      path: essentialsPath,
-      success: !!essentialsBase64,
-    });
+
   }
 
   // Generate chart bars HTML using unified scores
@@ -260,17 +236,9 @@ async function generatePDFHTML(result: any, language: string) {
 
   // Log detailed description status
   if (result.character.detailedDescription) {
-    console.log(
-      `📝 Including detailed description in PDF (length: ${result.character.detailedDescription.length} chars)`
-    );
+
   } else {
-    console.log(
-      `⚠️ No detailed description available for character ${
-        // Force English - Arabic name commented out
-        // language === "ar" ? result.character.nameAr : result.character.nameEn
-        result.character.nameEn
-      }`
-    );
+
   }
 
   // Split categories for multi-page layout
@@ -717,10 +685,10 @@ async function generatePDFHTML(result: any, language: string) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("🔥 NEW PDF API CALLED - Option 1 Implementation v2");
+
   try {
     const body = await request.json();
-    console.log("📦 Received body:", JSON.stringify(body, null, 2));
+
     const { result, lang = "en" } = body;
     const language = lang; // Use consistent variable name
 
@@ -734,11 +702,6 @@ export async function POST(request: NextRequest) {
     let browser;
 
     try {
-      console.log(
-        "🚀 Starting PDF generation for character:",
-        language === "ar" ? result.character.nameAr : result.character.nameEn
-      );
-      console.log("📊 Category totals:", result.categoryTotals);
 
       // Launch Puppeteer
       browser = await puppeteer.launch({
@@ -763,7 +726,6 @@ export async function POST(request: NextRequest) {
       await page.setViewport({ width: 1200, height: 1600 });
 
       // Generate HTML content directly instead of navigating to a page
-      console.log("📄 Generating HTML content directly");
 
       const htmlContent = await generatePDFHTML(result, lang);
 
@@ -777,15 +739,11 @@ export async function POST(request: NextRequest) {
         timeout: 10000,
       });
 
-      console.log("✅ HTML content set successfully");
-
       // Wait for fonts to load
       await page.evaluateHandle("document.fonts.ready");
 
       // Additional wait for rendering
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("🎨 Generating PDF...");
 
       // Generate PDF
       const pdfBuffer = await page.pdf({
@@ -799,8 +757,6 @@ export async function POST(request: NextRequest) {
         },
         preferCSSPageSize: true,
       });
-
-      console.log("✅ PDF generated successfully");
 
       // Use character name from result data for filename (ASCII only)
       const characterName =
@@ -833,7 +789,7 @@ export async function POST(request: NextRequest) {
     } finally {
       if (browser) {
         await browser.close();
-        console.log("🔒 Browser closed");
+
       }
     }
   } catch (error) {

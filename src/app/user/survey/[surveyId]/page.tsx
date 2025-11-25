@@ -267,9 +267,6 @@ export default function SurveyPage() {
           }
         });
 
-        console.log(
-          "🌐 Multi-language survey detected - Safe UI customizations applied"
-        );
       }
 
       // Handle survey completion

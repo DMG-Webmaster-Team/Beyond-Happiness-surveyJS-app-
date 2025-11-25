@@ -15,13 +15,6 @@ export async function loadImageAsBase64(
         : imagePath;
       const fullPath = path.join(process.cwd(), "public", cleanPath);
 
-      console.log(`🔍 Loading image:`, {
-        originalPath: imagePath,
-        cleanPath,
-        fullPath,
-        exists: fs.existsSync(fullPath),
-      });
-
       // Check if file exists
       if (!fs.existsSync(fullPath)) {
         console.warn(`⚠️ Image not found at: ${fullPath}`);
@@ -30,7 +23,7 @@ export async function loadImageAsBase64(
 
       const buffer = fs.readFileSync(fullPath);
       const base64 = `data:image/png;base64,${buffer.toString("base64")}`;
-      console.log(`✅ Image loaded successfully, size: ${buffer.length} bytes`);
+
       return base64;
     } else {
       // ☁️ Use fetch from BASE_URL in Vercel
@@ -40,7 +33,6 @@ export async function loadImageAsBase64(
         "http://localhost:3000";
       const url = `${baseUrl}${imagePath}`;
 
-      console.log(`🌐 Fetching image from: ${url}`);
       const response = await fetch(url);
 
       if (!response.ok) {

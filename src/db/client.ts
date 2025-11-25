@@ -89,7 +89,7 @@ export async function closeDatabase() {
     try {
       await connectionPool.end();
       connectionPool = null;
-      console.log("📊 Database connection pool closed gracefully");
+
     } catch (error) {
       console.error("❌ Error closing database pool:", error);
     }
@@ -110,7 +110,7 @@ if (typeof process !== "undefined") {
 // Enhanced health check function
 async function healthCheck(): Promise<boolean> {
   if (!connectionPool) {
-    console.log("🔍 Health check: No connection pool exists");
+
     return false;
   }
 
@@ -118,7 +118,7 @@ async function healthCheck(): Promise<boolean> {
     const connection = await connectionPool.getConnection();
     await connection.ping();
     connection.release();
-    console.log("✅ Database health check passed");
+
     return true;
   } catch (error) {
     console.error("❌ Database health check failed:", error);
@@ -130,7 +130,7 @@ async function healthCheck(): Promise<boolean> {
 export async function ensureHealthyConnection(): Promise<mysql.Pool> {
   // Prevent concurrent reconnection attempts
   if (isReconnecting) {
-    console.log("⏳ Reconnection already in progress, waiting...");
+
     // Wait for ongoing reconnection
     while (isReconnecting) {
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -146,13 +146,12 @@ export async function ensureHealthyConnection(): Promise<mysql.Pool> {
   isReconnecting = true;
 
   try {
-    console.log("🔄 Creating/recreating database connection pool...");
 
     // Close existing pool if it exists
     if (connectionPool) {
       try {
         await connectionPool.end();
-        console.log("🗑️ Old connection pool closed");
+
       } catch (error) {
         console.error("⚠️ Error closing old pool:", error);
       }
@@ -174,18 +173,6 @@ export async function ensureHealthyConnection(): Promise<mysql.Pool> {
     await testConnection.ping();
     testConnection.release();
 
-    console.log(
-      CONNECTION_CONFIG.socketPath
-        ? `✅ MySQL database connected via socket: ${CONNECTION_CONFIG.socketPath}`
-        : `✅ MySQL database connected to ${CONNECTION_CONFIG.host}:${CONNECTION_CONFIG.port}/${CONNECTION_CONFIG.database}`
-    );
-    console.log(
-      `🚀 Connection pool created with ${CONNECTION_CONFIG.connectionLimit} connections`
-    );
-    console.log(
-      `📊 Pool stats: Queue limit: ${CONNECTION_CONFIG.queueLimit}, Idle timeout: ${CONNECTION_CONFIG.idleTimeout}ms`
-    );
-
     // Reset connection attempts on success
     connectionAttempts = 0;
 
@@ -201,11 +188,11 @@ export async function ensureHealthyConnection(): Promise<mysql.Pool> {
 
 // Utility to manually reconnect (for scripts/cron jobs)
 export async function reconnect(): Promise<void> {
-  console.log("🔄 Manual reconnection requested");
+
   connectionPool = null;
   connectionAttempts = 0;
   await ensureHealthyConnection();
-  console.log("✅ Manual reconnection completed");
+
 }
 
 // Legacy createConnection function - now uses ensureHealthyConnection
@@ -233,7 +220,7 @@ export async function getDb() {
   if (!drizzleInstance) {
     const pool = await ensureHealthyConnection();
     drizzleInstance = drizzle(pool, { schema, mode: "default" }) as typeof db;
-    console.log("🔧 Drizzle ORM initialized with healthy connection pool");
+
   }
   return drizzleInstance;
 }
@@ -244,10 +231,10 @@ export async function withDb<T>(
   operationName: string = "database operation"
 ): Promise<T> {
   try {
-    console.log(`🔍 Starting ${operationName}...`);
+
     const dbInstance = await getDb();
     const result = await operation(dbInstance);
-    console.log(`✅ ${operationName} completed successfully`);
+
     return result;
   } catch (error) {
     console.error(`❌ ${operationName} failed:`, error);
@@ -259,7 +246,7 @@ export async function withDb<T>(
         error.message.includes("ECONNREFUSED") ||
         error.message.includes("PROTOCOL_CONNECTION_LOST"))
     ) {
-      console.log("🔄 Connection error detected, resetting Drizzle instance");
+
       drizzleInstance = null;
     }
 

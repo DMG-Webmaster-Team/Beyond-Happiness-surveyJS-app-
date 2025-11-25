@@ -7,7 +7,6 @@ export const runtime = "nodejs";
 // GET - Database health check endpoint
 export async function GET(request: NextRequest) {
   try {
-    console.log("🏥 Health check endpoint called");
 
     // Test database connection health
     const pool = await ensureHealthyConnection();
@@ -47,7 +46,6 @@ export async function GET(request: NextRequest) {
 // POST - Force database reconnection
 export async function POST(request: NextRequest) {
   try {
-    console.log("🔄 Manual reconnection requested via API");
 
     await reconnect();
 

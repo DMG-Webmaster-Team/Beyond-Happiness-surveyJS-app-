@@ -25,9 +25,6 @@ async function updateSurveyAssignments(
       "system"
     );
 
-    console.log(
-      `✅ Updated survey assignments for company ${companyId}: ${surveyIds.length} regular, ${happinessSurveyIds.length} happiness`
-    );
   } catch (error) {
     console.error("Error updating survey assignments:", error);
     throw error;
@@ -130,9 +127,6 @@ async function syncUsersWithCompanySurveys(
       }
     }
 
-    console.log(
-      `✅ Synced ${userIds.length} users with company ${companyId} survey assignments`
-    );
   } catch (error) {
     console.error("Error syncing users with company surveys:", error);
     throw error;
@@ -209,9 +203,7 @@ export async function POST(request: NextRequest) {
           surveyIds,
           happinessSurveyIds
         );
-        console.log(
-          `✅ Synced existing users with new company ${company.id} survey assignments`
-        );
+
       } catch (error) {
         console.warn(
           `⚠️ Failed to sync existing users with company ${company.id}:`,
