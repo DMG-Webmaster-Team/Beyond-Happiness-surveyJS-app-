@@ -109,12 +109,19 @@ export async function upsertUser(
 
 // Delete user (soft delete by setting status to inactive)
 export async function deleteUser(id: string): Promise<boolean> {
-  const result = await db
-    .update(users)
-    .set({ status: "inactive", updatedAt: new Date() })
-    .where(eq(users.id, id));
+  try {
+    await db
+      .update(users)
+      .set({ status: "inactive", updatedAt: new Date() })
+      .where(eq(users.id, id));
 
-  return ((result as any).affectedRows || 0) > 0;
+    // Verify the user was updated
+    const updatedUser = await getUserById(id);
+    return updatedUser?.status === "inactive";
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    throw error;
+  }
 }
 
 // List users with pagination and search

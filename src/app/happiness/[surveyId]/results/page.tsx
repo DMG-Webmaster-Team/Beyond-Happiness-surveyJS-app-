@@ -78,7 +78,6 @@ export default function HappinessResultsPage({
       if (response.ok) {
         const data = await response.json();
         setCurrentAccessData(data);
-
       }
     } catch (error) {
       console.error("Error fetching current access data:", error);
@@ -88,12 +87,10 @@ export default function HappinessResultsPage({
   };
 
   useEffect(() => {
-
     // Store surveyId in sessionStorage for logout recovery
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
-
     }
 
     // Fetch survey data to check if it's anonymous
@@ -151,7 +148,6 @@ export default function HappinessResultsPage({
         // Always set to LTR for English
         document.body.dir = "ltr";
         document.documentElement.dir = "ltr";
-
       } catch (error) {
         console.error("❌ Error parsing stored result:", error);
         router.push(`/happiness/${params.surveyId}`);
@@ -167,9 +163,7 @@ export default function HappinessResultsPage({
     setIsLoading(false);
 
     // Cleanup function - do NOT clear localStorage to prevent redirect loops
-    return () => {
-
-    };
+    return () => {};
   }, [params.surveyId, router]);
 
   // Multilingual text helper
@@ -735,7 +729,8 @@ export default function HappinessResultsPage({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={categoryPercentages}
-                margin={{ top: 80, right: 60, left: 0, bottom: 50 }}
+                margin={{ top: 80, right: 20, left: 0, bottom: 50 }}
+                barCategoryGap="20%"
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" tick={false} axisLine={false} />
@@ -758,30 +753,36 @@ export default function HappinessResultsPage({
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            {/* Truth photos positioned under each bar */}
+            {/* Truth photos positioned under each bar - centered alignment */}
             <div
-              className="absolute bottom-0 left-0 right-0 flex justify-between items-start px-4"
+              className="absolute bottom-0 left-0 right-0 flex items-start"
               style={{
-                paddingLeft: "calc(20px + 1rem)",
-                paddingRight: "calc(30px + 1rem)",
+                paddingLeft: "60px",
+                paddingRight: "20px",
                 paddingBottom: "0.5rem",
               }}
             >
-              {categoryPercentages.map((entry: any) => (
+              {categoryPercentages.map((entry: any, index: number) => (
                 <div
                   key={entry.name}
-                  className="flex flex-col items-center flex-1"
+                  className="flex flex-col items-center justify-center"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   <img
                     src={getTruthIcon(entry.name)}
                     alt={entry.name}
-                    className="w-10 h-10 object-contain"
+                    className="w-6 h-6 sm:w-10 sm:h-10 object-contain"
                     onError={(e) => {
                       // Hide icon if image fails to load
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
-                  <div className="text-sm font-medium text-gray-700 text-center mt-1">
+                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 text-center mt-1 px-0.5 whitespace-nowrap">
                     {getText(entry.name.toLowerCase())}
                   </div>
                 </div>
