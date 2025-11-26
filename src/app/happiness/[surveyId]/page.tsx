@@ -159,15 +159,10 @@ export default function HappinessSurveyPage({
           // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, don't redirect to login
           // Allow access even on error - they don't need authentication
           if (errorData.accessMode === "anonymous" || errorData.accessMode === "collect_info") {
-            // Allow access - will show user info collection for collect_info mode
+            // Allow access - will show language selection first, then user info collection
             setAccessData(errorData);
             setAccessCheckComplete(true);
-            
-            // Show user info collection if collect_info mode
-            if (errorData.accessMode === "collect_info") {
-              setShowUserInfoCollection(true);
-              setShowLanguageSelection(false);
-            }
+            // Don't set showUserInfoCollection here - let language selection happen first
             return;
           }
 
@@ -206,12 +201,7 @@ export default function HappinessSurveyPage({
         if (data.accessMode === "anonymous" || data.accessMode === "collect_info") {
           setAccessData(data);
           setAccessCheckComplete(true);
-          
-          // Show user info collection if collect_info mode
-          if (data.accessMode === "collect_info") {
-            setShowUserInfoCollection(true);
-            setShowLanguageSelection(false);
-          }
+          // Don't set showUserInfoCollection here - let language selection happen first
           return;
         }
 
