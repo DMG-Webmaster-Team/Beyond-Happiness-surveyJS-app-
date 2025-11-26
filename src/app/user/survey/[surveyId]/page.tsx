@@ -233,6 +233,27 @@ export default function SurveyPage() {
       model.showNavigationButtonsOnTop = false;
       model.showNavigationButtonsOnBottom = true;
 
+      // Explicitly set button texts
+      model.completeText = "Submit";
+      model.pageNextText = "Next";
+      model.pagePrevText = "Previous";
+
+      // Add handler to ensure footer visibility after survey renders
+      model.onAfterRenderSurvey.add((sender, options) => {
+        const surveyElement = options.htmlElement;
+        if (surveyElement) {
+          // Find all footer elements
+          const footers = surveyElement.querySelectorAll('.sv-footer');
+          
+          // Ensure they're visible with explicit styles
+          footers.forEach((footer) => {
+            (footer as HTMLElement).style.display = 'block';
+            (footer as HTMLElement).style.visibility = 'visible';
+            (footer as HTMLElement).style.opacity = '1';
+          });
+        }
+      });
+
       // Ensure footer buttons are always visible
       model.onAfterRenderPage.add((sender, options) => {
         const pageElement = options.htmlElement;
@@ -241,6 +262,8 @@ export default function SurveyPage() {
           const bottomFooter = pageElement.querySelector(".sv-footer.sv-footer-bottom");
           if (bottomFooter) {
             (bottomFooter as HTMLElement).style.display = "block";
+            (bottomFooter as HTMLElement).style.visibility = "visible";
+            (bottomFooter as HTMLElement).style.opacity = "1";
           }
           // Also check parent survey element
           const surveyElement = pageElement.closest(".sv-root");
@@ -248,6 +271,8 @@ export default function SurveyPage() {
             const surveyFooter = surveyElement.querySelector(".sv-footer.sv-footer-bottom");
             if (surveyFooter) {
               (surveyFooter as HTMLElement).style.display = "block";
+              (surveyFooter as HTMLElement).style.visibility = "visible";
+              (surveyFooter as HTMLElement).style.opacity = "1";
             }
           }
         }
