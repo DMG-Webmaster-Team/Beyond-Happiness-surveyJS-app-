@@ -13,10 +13,10 @@ export const runtime = "nodejs";
 // GET - Get single happiness survey
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
 
     const survey = await db
       .select()
@@ -53,10 +53,10 @@ export async function GET(
 // PUT - Update happiness survey
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
     const body = await request.json();
     const {
       title,
@@ -171,10 +171,10 @@ export async function PUT(
 // DELETE - Soft delete happiness survey (set isPublished = false)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
 
     // Soft delete by setting isPublished = false
     await db

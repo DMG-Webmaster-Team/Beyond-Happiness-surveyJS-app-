@@ -9,10 +9,11 @@ import { eq } from "drizzle-orm";
 export const runtime = "nodejs";
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const characterId = parseInt(params.id);
+    const { id } = await params;
+    const characterId = parseInt(id);
     if (isNaN(characterId)) {
       return NextResponse.json(
         { error: "Invalid character ID" },

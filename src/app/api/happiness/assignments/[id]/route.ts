@@ -9,10 +9,10 @@ import { eq } from "drizzle-orm";
 export const runtime = 'nodejs';
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const assignmentId = params.id;
+    const { id: assignmentId } = await params;
 
     // Delete the assignment
     // Check if assignment exists first
