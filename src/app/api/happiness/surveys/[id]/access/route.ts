@@ -13,10 +13,18 @@ export const runtime = "nodejs";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
+
+    // Validate survey ID
+    if (!surveyId || typeof surveyId !== "string" || surveyId.trim() === "") {
+      return NextResponse.json(
+        { error: "Invalid survey ID" },
+        { status: 400 }
+      );
+    }
 
     // Get survey details first
     const survey = await db
