@@ -34,7 +34,10 @@ export async function GET(
       .limit(1);
 
     if (survey.length === 0) {
-      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Survey not found", accessMode: null },
+        { status: 404 }
+      );
     }
 
     const surveyData = survey[0];
@@ -99,20 +102,23 @@ export async function GET(
     // Log session debugging info
 
     if (!userId) {
-      return NextResponse.json({
-        assigned: false,
-        requiresAuth: true,
-        canAccess: false,
-        cooldown: false,
-        cooldownRemaining: 0,
-        hasPreviousResult: false,
-        message: "Authentication required for this survey",
-        survey: {
-          ...surveyData,
+      return NextResponse.json(
+        {
+          assigned: false,
+          requiresAuth: true,
+          canAccess: false,
+          cooldown: false,
+          cooldownRemaining: 0,
+          hasPreviousResult: false,
+          message: "Authentication required for this survey",
+          survey: {
+            ...surveyData,
+            accessMode,
+          },
           accessMode,
         },
-        accessMode,
-      });
+        { status: 401 }
+      );
     }
 
     // Check if user is assigned to this survey (either directly or via company)
@@ -338,7 +344,7 @@ export async function GET(
   } catch (error) {
     console.error("Error checking survey access:", error);
     return NextResponse.json(
-      { error: "Failed to check survey access" },
+      { error: "Failed to check survey access", accessMode: null },
       { status: 500 }
     );
   }

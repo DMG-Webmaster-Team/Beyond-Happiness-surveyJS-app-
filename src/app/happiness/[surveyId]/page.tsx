@@ -156,12 +156,27 @@ export default function HappinessSurveyPage({
         if (!response.ok) {
           const errorData = await response.json();
 
-          // Handle different error cases with redirects
+          // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, don't redirect to login
+          // Allow access even on error - they don't need authentication
+          if (errorData.accessMode === "anonymous" || errorData.accessMode === "collect_info") {
+            // Allow access - will show user info collection for collect_info mode
+            setAccessData(errorData);
+            setAccessCheckComplete(true);
+            
+            // Show user info collection if collect_info mode
+            if (errorData.accessMode === "collect_info") {
+              setShowUserInfoCollection(true);
+              setShowLanguageSelection(false);
+            }
+            return;
+          }
+
+          // Handle different error cases with redirects for NON-ANONYMOUS surveys
           if (response.status === 401) {
 
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/login");
+            router.push(`/user/login?redirect=${params.surveyId}`);
             return;
           } else if (response.status === 404) {
 
@@ -173,7 +188,7 @@ export default function HappinessSurveyPage({
 
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/login");
+            router.push(`/user/login?redirect=${params.surveyId}`);
             return;
           } else {
             // Generic error - redirect to home
@@ -187,7 +202,20 @@ export default function HappinessSurveyPage({
 
         const data = await response.json();
 
-        // ✅ SECURITY FIX: Check if user is assigned and has access
+        // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, skip assignment checks
+        if (data.accessMode === "anonymous" || data.accessMode === "collect_info") {
+          setAccessData(data);
+          setAccessCheckComplete(true);
+          
+          // Show user info collection if collect_info mode
+          if (data.accessMode === "collect_info") {
+            setShowUserInfoCollection(true);
+            setShowLanguageSelection(false);
+          }
+          return;
+        }
+
+        // ✅ SECURITY FIX: Check if user is assigned and has access (NON-ANONYMOUS only)
         if (data.assigned === false || data.canAccess === false) {
 
           setHasRedirected(true);
@@ -508,10 +536,14 @@ export default function HappinessSurveyPage({
 
   // Show loading state while access check is in progress or data is loading
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
+    const isAnonymousSurvey = 
+      accessData?.survey?.anonymous || 
+      accessData?.accessMode === "anonymous" || 
+      accessData?.accessMode === "collect_info";
     return (
       <>
         {/* Show navbar based on survey type */}
-        {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+        {isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />}
         <LoadingScreen message="Loading survey..." />
       </>
     );
@@ -543,10 +575,14 @@ export default function HappinessSurveyPage({
 
   // Show language selection if not selected yet
   if (showLanguageSelection) {
+    const isAnonymousSurvey = 
+      accessData?.survey?.anonymous || 
+      accessData?.accessMode === "anonymous" || 
+      accessData?.accessMode === "collect_info";
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Conditional Navbar based on survey type */}
-        {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+        {isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />}
 
         {/* Header */}
         <div className="bg-white shadow-sm">
@@ -844,10 +880,15 @@ export default function HappinessSurveyPage({
     );
   }
 
+  const isAnonymousSurvey = 
+    accessData?.survey?.anonymous || 
+    accessData?.accessMode === "anonymous" || 
+    accessData?.accessMode === "collect_info";
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Conditional Navbar based on survey type */}
-      {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+      {isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />}
 
       {/* Header */}
       <div className="bg-white shadow-sm">
