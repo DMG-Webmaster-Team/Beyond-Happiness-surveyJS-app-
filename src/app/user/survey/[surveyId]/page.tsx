@@ -228,6 +228,31 @@ export default function SurveyPage() {
       // Remove progress bar from all regular surveys
       model.showProgressBar = "off";
 
+      // Ensure navigation buttons are visible for all surveys
+      model.showNavigationButtons = true;
+      model.showNavigationButtonsOnTop = false;
+      model.showNavigationButtonsOnBottom = true;
+
+      // Ensure footer buttons are always visible
+      model.onAfterRenderPage.add((sender, options) => {
+        const pageElement = options.htmlElement;
+        if (pageElement) {
+          // Ensure bottom footer is visible
+          const bottomFooter = pageElement.querySelector(".sv-footer.sv-footer-bottom");
+          if (bottomFooter) {
+            (bottomFooter as HTMLElement).style.display = "block";
+          }
+          // Also check parent survey element
+          const surveyElement = pageElement.closest(".sv-root");
+          if (surveyElement) {
+            const surveyFooter = surveyElement.querySelector(".sv-footer.sv-footer-bottom");
+            if (surveyFooter) {
+              (surveyFooter as HTMLElement).style.display = "block";
+            }
+          }
+        }
+      });
+
       // Check if this is a multi-language survey and apply UI customizations
       const isMultiLanguageSurvey =
         model.getVariable("isMultiLanguageSurvey") === true ||
