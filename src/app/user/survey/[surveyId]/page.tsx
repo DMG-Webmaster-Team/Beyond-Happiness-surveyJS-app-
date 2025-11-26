@@ -238,43 +238,78 @@ export default function SurveyPage() {
       model.pageNextText = "Next";
       model.pagePrevText = "Previous";
 
-      // Add handler to ensure footer visibility after survey renders
+      // Enable validation to control button state
+      model.checkErrorsMode = "onValueChanged"; // Check errors as user types
+
+      // Add handler to ensure footer visibility and make it sticky
       model.onAfterRenderSurvey.add((sender, options) => {
         const surveyElement = options.htmlElement;
         if (surveyElement) {
           // Find all footer elements
           const footers = surveyElement.querySelectorAll('.sv-footer');
           
-          // Ensure they're visible with explicit styles
+          // Make footer sticky and always visible at bottom
           footers.forEach((footer) => {
-            (footer as HTMLElement).style.display = 'block';
-            (footer as HTMLElement).style.visibility = 'visible';
-            (footer as HTMLElement).style.opacity = '1';
+            const footerEl = footer as HTMLElement;
+            footerEl.style.display = 'block';
+            footerEl.style.visibility = 'visible';
+            footerEl.style.opacity = '1';
+            footerEl.style.position = 'sticky';
+            footerEl.style.bottom = '0';
+            footerEl.style.backgroundColor = '#ffffff';
+            footerEl.style.borderTop = '1px solid #e5e7eb';
+            footerEl.style.padding = '1rem';
+            footerEl.style.zIndex = '10';
+            footerEl.style.boxShadow = '0 -2px 10px rgba(0,0,0,0.1)';
           });
         }
       });
 
-      // Ensure footer buttons are always visible
+      // Ensure footer buttons are always visible and add visual feedback
       model.onAfterRenderPage.add((sender, options) => {
         const pageElement = options.htmlElement;
         if (pageElement) {
-          // Ensure bottom footer is visible
+          // Ensure bottom footer is visible and sticky
           const bottomFooter = pageElement.querySelector(".sv-footer.sv-footer-bottom");
           if (bottomFooter) {
-            (bottomFooter as HTMLElement).style.display = "block";
-            (bottomFooter as HTMLElement).style.visibility = "visible";
-            (bottomFooter as HTMLElement).style.opacity = "1";
+            const footerEl = bottomFooter as HTMLElement;
+            footerEl.style.display = "block";
+            footerEl.style.visibility = "visible";
+            footerEl.style.opacity = "1";
+            footerEl.style.position = "sticky";
+            footerEl.style.bottom = "0";
+            footerEl.style.backgroundColor = "#ffffff";
+            footerEl.style.borderTop = "1px solid #e5e7eb";
+            footerEl.style.padding = "1rem";
+            footerEl.style.zIndex = "10";
+            footerEl.style.boxShadow = "0 -2px 10px rgba(0,0,0,0.1)";
           }
+          
           // Also check parent survey element
           const surveyElement = pageElement.closest(".sv-root");
           if (surveyElement) {
             const surveyFooter = surveyElement.querySelector(".sv-footer.sv-footer-bottom");
             if (surveyFooter) {
-              (surveyFooter as HTMLElement).style.display = "block";
-              (surveyFooter as HTMLElement).style.visibility = "visible";
-              (surveyFooter as HTMLElement).style.opacity = "1";
+              const footerEl = surveyFooter as HTMLElement;
+              footerEl.style.display = "block";
+              footerEl.style.visibility = "visible";
+              footerEl.style.opacity = "1";
+              footerEl.style.position = "sticky";
+              footerEl.style.bottom = "0";
+              footerEl.style.backgroundColor = "#ffffff";
+              footerEl.style.borderTop = "1px solid #e5e7eb";
+              footerEl.style.padding = "1rem";
+              footerEl.style.zIndex = "10";
+              footerEl.style.boxShadow = "0 -2px 10px rgba(0,0,0,0.1)";
             }
           }
+
+          // Add smooth transitions to navigation buttons for state changes
+          const buttons = pageElement.querySelectorAll('.sv-btn');
+          buttons.forEach((btn) => {
+            const button = btn as HTMLElement;
+            button.style.transition = 'all 0.3s ease';
+          });
         }
       });
 
