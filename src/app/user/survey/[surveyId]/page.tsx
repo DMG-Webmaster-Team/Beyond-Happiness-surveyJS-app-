@@ -241,27 +241,38 @@ export default function SurveyPage() {
       // Enable validation to control button state
       model.checkErrorsMode = "onValueChanged"; // Check errors as user types
 
-      // Add handler to ensure footer visibility and make it sticky
+      // Add handler to ensure footer visibility and make it fixed at bottom
       model.onAfterRenderSurvey.add((sender, options) => {
         const surveyElement = options.htmlElement;
         if (surveyElement) {
           // Find all footer elements
           const footers = surveyElement.querySelectorAll('.sv-footer');
           
-          // Make footer sticky and always visible at bottom
+          // Make footer fixed and always visible at bottom with !important styles
           footers.forEach((footer) => {
             const footerEl = footer as HTMLElement;
-            footerEl.style.display = 'block';
-            footerEl.style.visibility = 'visible';
-            footerEl.style.opacity = '1';
-            footerEl.style.position = 'sticky';
-            footerEl.style.bottom = '0';
-            footerEl.style.backgroundColor = '#ffffff';
-            footerEl.style.borderTop = '1px solid #e5e7eb';
-            footerEl.style.padding = '1rem';
-            footerEl.style.zIndex = '10';
-            footerEl.style.boxShadow = '0 -2px 10px rgba(0,0,0,0.1)';
+            footerEl.style.cssText = `
+              display: block !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+              position: fixed !important;
+              bottom: 0 !important;
+              left: 0 !important;
+              right: 0 !important;
+              width: 100% !important;
+              background-color: #ffffff !important;
+              border-top: 1px solid #e5e7eb !important;
+              padding: 1rem !important;
+              z-index: 9999 !important;
+              box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+            `;
           });
+          
+          // Add padding to survey body so content doesn't hide behind footer
+          const surveyBody = surveyElement.querySelector('.sv-body');
+          if (surveyBody) {
+            (surveyBody as HTMLElement).style.paddingBottom = '80px';
+          }
         }
       });
 
@@ -269,39 +280,36 @@ export default function SurveyPage() {
       model.onAfterRenderPage.add((sender, options) => {
         const pageElement = options.htmlElement;
         if (pageElement) {
-          // Ensure bottom footer is visible and sticky
-          const bottomFooter = pageElement.querySelector(".sv-footer.sv-footer-bottom");
-          if (bottomFooter) {
-            const footerEl = bottomFooter as HTMLElement;
-            footerEl.style.display = "block";
-            footerEl.style.visibility = "visible";
-            footerEl.style.opacity = "1";
-            footerEl.style.position = "sticky";
-            footerEl.style.bottom = "0";
-            footerEl.style.backgroundColor = "#ffffff";
-            footerEl.style.borderTop = "1px solid #e5e7eb";
-            footerEl.style.padding = "1rem";
-            footerEl.style.zIndex = "10";
-            footerEl.style.boxShadow = "0 -2px 10px rgba(0,0,0,0.1)";
-          }
+          // Find footer in page or parent
+          const findAndStyleFooter = (element: Element) => {
+            const footer = element.querySelector(".sv-footer");
+            if (footer) {
+              const footerEl = footer as HTMLElement;
+              footerEl.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                background-color: #ffffff !important;
+                border-top: 1px solid #e5e7eb !important;
+                padding: 1rem !important;
+                z-index: 9999 !important;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+              `;
+            }
+          };
+          
+          // Try to find footer in page element
+          findAndStyleFooter(pageElement);
           
           // Also check parent survey element
           const surveyElement = pageElement.closest(".sv-root");
           if (surveyElement) {
-            const surveyFooter = surveyElement.querySelector(".sv-footer.sv-footer-bottom");
-            if (surveyFooter) {
-              const footerEl = surveyFooter as HTMLElement;
-              footerEl.style.display = "block";
-              footerEl.style.visibility = "visible";
-              footerEl.style.opacity = "1";
-              footerEl.style.position = "sticky";
-              footerEl.style.bottom = "0";
-              footerEl.style.backgroundColor = "#ffffff";
-              footerEl.style.borderTop = "1px solid #e5e7eb";
-              footerEl.style.padding = "1rem";
-              footerEl.style.zIndex = "10";
-              footerEl.style.boxShadow = "0 -2px 10px rgba(0,0,0,0.1)";
-            }
+            findAndStyleFooter(surveyElement);
           }
 
           // Add smooth transitions to navigation buttons for state changes
@@ -310,6 +318,9 @@ export default function SurveyPage() {
             const button = btn as HTMLElement;
             button.style.transition = 'all 0.3s ease';
           });
+          
+          // Add padding to page so content doesn't hide behind fixed footer
+          (pageElement as HTMLElement).style.paddingBottom = '80px';
         }
       });
 
