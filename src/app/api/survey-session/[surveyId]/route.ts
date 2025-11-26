@@ -184,8 +184,10 @@ export async function GET(
 
     // 4. Check for survey assignment (if user is authenticated and survey is not anonymous)
     // ✅ SECURITY FIX: Block access if user is not assigned to non-anonymous survey
+    // ✅ ANONYMOUS FIX: Skip assignment check entirely for anonymous surveys
     let assignmentData = null;
-    if (userData && !surveyData.isAnonymous) {
+    if (!surveyData.isAnonymous && userData) {
+      // Only check assignments for non-anonymous surveys with authenticated users
       const [assignment] = await db
         .select()
         .from(userAssignments)
