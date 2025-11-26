@@ -164,7 +164,10 @@ export async function GET(
       submissionStatus.canRetake =
         Boolean(surveyData.canTakeMultiple) ||
         submissionStatus.submissionCount === 0;
-    } else if (surveyData.isAnonymous) {
+    } else if (
+      surveyData.isAnonymous === true ||
+      (surveyData.isAnonymous as any) === 1
+    ) {
       // For anonymous surveys, we can't track submissions server-side
       // The client may use temporary cookies/storage, but we always allow submission
       submissionStatus.canRetake = true;
@@ -185,8 +188,11 @@ export async function GET(
     // 4. Check for survey assignment (if user is authenticated and survey is not anonymous)
     // ✅ SECURITY FIX: Block access if user is not assigned to non-anonymous survey
     // ✅ ANONYMOUS FIX: Skip assignment check entirely for anonymous surveys
+    // ✅ PRODUCTION FIX: Handle MySQL boolean (1/0) and JavaScript boolean (true/false)
+    const isAnonymous =
+      surveyData.isAnonymous === true || (surveyData.isAnonymous as any) === 1;
     let assignmentData = null;
-    if (!surveyData.isAnonymous && userData) {
+    if (!isAnonymous && userData) {
       // Only check assignments for non-anonymous surveys with authenticated users
       const [assignment] = await db
         .select()
@@ -233,7 +239,10 @@ export async function GET(
             ? surveyData.definition
             : undefined,
         canTakeMultiple: Boolean(surveyData.canTakeMultiple),
-        isAnonymous: Boolean(surveyData.isAnonymous),
+        isAnonymous: Boolean(
+          surveyData.isAnonymous === true ||
+            (surveyData.isAnonymous as any) === 1
+        ),
         adminId: surveyData.createdBy,
       },
       submissionStatus,
