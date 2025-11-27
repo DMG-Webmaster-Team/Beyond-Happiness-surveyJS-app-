@@ -164,7 +164,7 @@ export default function UserLogin() {
 
   // Session management is now handled by the backend - no automatic logout
 
-  // Capture/normalize surveyId from URL or restore from sessionStorage
+  // Capture/normalize surveyId from URL (no sessionStorage fallback to avoid loops)
   useEffect(() => {
     // Setup auto-cleanup for survey sessions
     setupAutoCleanup();
@@ -175,43 +175,25 @@ export default function UserLogin() {
       return;
     }
 
-    // Get surveyId from searchParams (more reliable than window.location)
+    // Get surveyId from searchParams only (no sessionStorage fallback)
     const surveyIdParam =
       searchParams.get("surveyId") || searchParams.get("redirect");
     const typeParam = searchParams.get("type");
 
-    // Fallback to sessionStorage if not in URL
-    let sid = surveyIdParam || sessionStorage.getItem("currentSurveyId");
-    let type = typeParam || sessionStorage.getItem("currentSurveyType");
-
-    // If we have a stored surveyId but it's not in URL, redirect to include it
-    if (!surveyIdParam && sid) {
-      const storedSurveyType = sessionStorage.getItem("currentSurveyType");
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set("redirect", sid);
-      if (storedSurveyType === "happiness") {
-        newUrl.searchParams.set("type", "happiness");
-      }
+    // Guard: Don't proceed if no surveyId in URL
+    if (!surveyIdParam) {
+      // No surveyId in URL - this is a normal login page visit
       console.log(
-        `[LoginPage] 🔄 Redirecting to include surveyId in URL: ${sid}`
-      );
-      window.location.href = newUrl.toString();
-      return; // Exit early, page will reload with correct URL
-    }
-
-    // Guard: Don't proceed if no surveyId
-    if (!sid) {
-      console.warn(
-        "[LoginPage] ⚠️ No surveyId found in URL or sessionStorage. Staying on login page."
+        "[LoginPage] ℹ️ No surveyId in URL - showing regular login form"
       );
       setSurveyType("regular");
       return;
     }
 
-    console.log("[LoginPage] 🔍 SurveyId extracted:", sid);
-    setStableSurveyId(sid);
+    console.log("[LoginPage] 🔍 SurveyId extracted from URL:", surveyIdParam);
+    setStableSurveyId(surveyIdParam);
 
-    if (type === "happiness") {
+    if (typeParam === "happiness") {
       console.log("[LoginPage] 🎯 Happiness survey type detected from URL");
       setSurveyType("happiness");
     } else {
@@ -219,7 +201,7 @@ export default function UserLogin() {
       console.log(
         "[LoginPage] 🔍 Survey type unknown, checking if anonymous..."
       );
-      checkSurveyType(sid);
+      checkSurveyType(surveyIdParam);
     }
   }, [searchParams]);
 

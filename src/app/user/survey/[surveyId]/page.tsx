@@ -133,10 +133,8 @@ export default function SurveyPage() {
             console.log(
               `[SurveyPage] 🔒 Authentication required, redirecting to login...`
             );
-            // Redirect to login for non-anonymous surveys
-            router.push(
-              apiError.redirectUrl || `/user/login?redirect=${surveyId}`
-            );
+            // Redirect to login page (survey page will handle redirect back)
+            router.push(`/user/login`);
             return;
           }
 

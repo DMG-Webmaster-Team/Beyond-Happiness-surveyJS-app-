@@ -106,9 +106,9 @@ export default function SurveyStatusPage({
     sessionStorage.removeItem("authResponse");
     sessionStorage.removeItem("userContact");
 
-    // Redirect back to login with survey ID preserved
+    // Redirect back to survey page (will handle auth check)
     if (survey?.id) {
-      router.push(`/user/login?redirect=${encodeURIComponent(survey.id)}`);
+      router.push(`/user/survey/${survey.id}`);
     } else {
       router.push("/user/login");
     }
@@ -129,9 +129,9 @@ export default function SurveyStatusPage({
     sessionStorage.removeItem("authResponse");
     sessionStorage.removeItem("userContact");
 
-    // Redirect to login
+    // Redirect to survey page (will handle auth check)
     if (survey?.id) {
-      router.push(`/user/login?redirect=${encodeURIComponent(survey.id)}`);
+      router.push(`/user/survey/${survey.id}`);
     } else {
       router.push("/user/login");
     }

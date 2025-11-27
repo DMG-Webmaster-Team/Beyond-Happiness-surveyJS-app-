@@ -62,7 +62,7 @@ export default function UserNavbar({ hideLogout = false }: UserNavbarProps) {
       const surveyId = surveyIdMatch ? surveyIdMatch[1] : null;
 
       if (surveyId) {
-        router.push(`/user/login?redirect=${encodeURIComponent(surveyId)}`);
+        router.push(`/user/survey/${surveyId}`);
       } else {
         router.push("/user/login");
       }

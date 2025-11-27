@@ -82,13 +82,9 @@ export async function handleLogoutWithSurveyPreservation(
     if (!redirectUrl) {
       if (finalSurveyId) {
         if (finalSurveyType === "happiness") {
-          redirectUrl = `/user/login?redirect=${encodeURIComponent(
-            finalSurveyId
-          )}&type=happiness`;
+          redirectUrl = `/happiness/${finalSurveyId}`;
         } else {
-          redirectUrl = `/user/login?redirect=${encodeURIComponent(
-            finalSurveyId
-          )}`;
+          redirectUrl = `/user/survey/${finalSurveyId}`;
         }
       } else {
         // Fallback: redirect to survey selection or error page
@@ -110,8 +106,12 @@ export async function handleLogoutWithSurveyPreservation(
       getSurveyIdFromCurrentURL() ||
       sessionStorage.getItem("currentSurveyId");
 
+    // Determine survey type from URL for fallback redirect
+    const fallbackSurveyType = getSurveyTypeFromCurrentURL();
     const fallbackUrl = fallbackSurveyId
-      ? `/user/login?redirect=${encodeURIComponent(fallbackSurveyId)}`
+      ? fallbackSurveyType === "happiness"
+        ? `/happiness/${fallbackSurveyId}`
+        : `/user/survey/${fallbackSurveyId}`
       : "/error?message=Logout+failed";
 
     router.push(fallbackUrl);
@@ -257,11 +257,14 @@ export function emergencyLogout(
   // Try to get surveyId for redirect
   const surveyId =
     getSurveyIdFromCurrentURL() || sessionStorage.getItem("currentSurveyId");
+  const surveyType = getSurveyTypeFromCurrentURL();
 
   if (surveyId) {
-    router.push(
-      `/user/login?redirect=${encodeURIComponent(surveyId)}&emergency=true`
-    );
+    const redirectUrl =
+      surveyType === "happiness"
+        ? `/happiness/${surveyId}`
+        : `/user/survey/${surveyId}`;
+    router.push(redirectUrl);
   } else {
     router.push("/error?message=Emergency+logout");
   }

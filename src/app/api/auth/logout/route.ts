@@ -35,13 +35,9 @@ export async function POST(request: NextRequest) {
     // If surveyId provided, suggest redirect URL with proper type
     if (surveyId) {
       if (surveyType === "happiness") {
-        responseData.redirect = `/user/login?redirect=${encodeURIComponent(
-          surveyId
-        )}&type=happiness`;
+        responseData.redirect = `/happiness/${surveyId}`;
       } else {
-        responseData.redirect = `/user/login?redirect=${encodeURIComponent(
-          surveyId
-        )}`;
+        responseData.redirect = `/user/survey/${surveyId}`;
       }
 
     } else {
