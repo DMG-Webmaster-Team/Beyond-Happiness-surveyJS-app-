@@ -1,29 +1,12 @@
 # مرحلة البناء
 FROM node:20-slim AS builder
 
-# Install Chromium and dependencies
+# Install Chromium and dependencies (minimal set)
 RUN apt-get update && apt-get install -y \
   chromium \
-  fonts-liberation \
-  libappindicator3-1 \
-  libasound2 \
-  libatk-bridge2.0-0 \
-  libatk1.0-0 \
-  libcups2 \
-  libdbus-1-3 \
-  libgbm1 \
-  libgtk-3-0 \
-  libnss3 \
-  libx11-xcb1 \
-  libxcomposite1 \
-  libxdamage1 \
-  libxrandr2 \
-  xdg-utils \
-  wget \
-  ca-certificates \
-  fonts-noto-core \
   --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Set Puppeteer environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -41,29 +24,12 @@ RUN npm run build
 
 FROM node:20-slim
 
-# Install Chromium and dependencies in production stage
+# Install Chromium and dependencies in production stage (minimal set)
 RUN apt-get update && apt-get install -y \
   chromium \
-  fonts-liberation \
-  libappindicator3-1 \
-  libasound2 \
-  libatk-bridge2.0-0 \
-  libatk1.0-0 \
-  libcups2 \
-  libdbus-1-3 \
-  libgbm1 \
-  libgtk-3-0 \
-  libnss3 \
-  libx11-xcb1 \
-  libxcomposite1 \
-  libxdamage1 \
-  libxrandr2 \
-  xdg-utils \
-  wget \
-  ca-certificates \
-  fonts-noto-core \
   --no-install-recommends \
-  && rm -rf /var/lib/apt/lists/*
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 WORKDIR /app
 ENV NODE_ENV=production
