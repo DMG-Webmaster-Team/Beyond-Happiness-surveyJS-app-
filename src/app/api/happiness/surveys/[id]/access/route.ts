@@ -19,12 +19,20 @@ export async function GET(
   try {
     const { id: surveyId } = await params;
 
+    console.log(
+      `[happiness-access] 🔍 Starting access check for surveyId: ${surveyId}`
+    );
+
     // Validate survey ID
     if (!surveyId || typeof surveyId !== "string" || surveyId.trim() === "") {
+      console.log(`[happiness-access] ❌ Invalid survey ID`);
       return NextResponse.json({ error: "Invalid survey ID" }, { status: 400 });
     }
 
     // Get survey details first - check happiness_surveys table
+    console.log(
+      `[happiness-access] 📊 Looking up survey in happiness_surveys table...`
+    );
     let survey = await db
       .select()
       .from(happinessSurveys)
@@ -36,6 +44,9 @@ export async function GET(
 
     // If not found in happiness_surveys, check surveys table as fallback
     if (survey.length === 0) {
+      console.log(
+        `[happiness-access] ⚠️ Survey ${surveyId} not found in happiness_surveys, checking surveys table...`
+      );
       const regularSurvey = await db
         .select()
         .from(surveys)
@@ -44,7 +55,7 @@ export async function GET(
 
       if (regularSurvey.length === 0) {
         console.log(
-          `Survey ${surveyId} not found in either happiness_surveys or surveys table`
+          `[happiness-access] ❌ Survey ${surveyId} not found in either happiness_surveys or surveys table`
         );
         return NextResponse.json(
           { error: "Survey not found", accessMode: null },
@@ -54,14 +65,29 @@ export async function GET(
 
       // Found in surveys table - validate it's anonymous
       const regularSurveyData = regularSurvey[0];
+      console.log(
+        `[happiness-access] ✅ Survey found in surveys table: ${regularSurveyData.id} - "${regularSurveyData.title}"`
+      );
+      console.log(
+        `[happiness-access] 📋 Raw isAnonymous value from DB:`,
+        regularSurveyData.isAnonymous,
+        `(type: ${typeof regularSurveyData.isAnonymous})`
+      );
+
       // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
       const isAnonymous =
         regularSurveyData.isAnonymous === true ||
         (regularSurveyData.isAnonymous as any) === 1;
 
+      console.log(
+        `[happiness-access] 🔐 isAnonymous check result: ${isAnonymous} (${
+          regularSurveyData.isAnonymous === true ? "true match" : ""
+        } ${(regularSurveyData.isAnonymous as any) === 1 ? "1 match" : ""})`
+      );
+
       if (!isAnonymous) {
         console.log(
-          `Survey ${surveyId} found in surveys table but is not anonymous`
+          `[happiness-access] ❌ Survey ${surveyId} found in surveys table but is not anonymous - returning 404`
         );
         return NextResponse.json(
           { error: "Survey not found", accessMode: null },
@@ -85,22 +111,36 @@ export async function GET(
       };
       foundInTable = "surveys";
       console.log(
-        `Survey ${surveyId} found in surveys table (anonymous survey)`
+        `[happiness-access] ✅ Survey ${surveyId} found in surveys table (anonymous survey)`
       );
     } else {
       surveyData = survey[0];
-      console.log(`Survey ${surveyId} found in happiness_surveys table`);
+      console.log(
+        `[happiness-access] ✅ Survey ${surveyId} found in happiness_surveys table`
+      );
     }
 
     // Fallback for missing accessMode column (before migration)
     const accessMode =
       surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
 
+    console.log(
+      `[happiness-access] 🔐 Access mode determined: ${accessMode} (from ${
+        surveyData.accessMode ? "accessMode field" : "anonymous field"
+      })`
+    );
+
     // For anonymous and collect_info modes, always allow access (subject to cooldown if configured)
     if (accessMode === "anonymous" || accessMode === "collect_info") {
+      console.log(
+        `[happiness-access] 🎭 Anonymous/collect_info mode detected - allowing access`
+      );
       // For anonymous and collect_info surveys, we could still enforce cooldown based on IP or other identifier
       // But for now, we'll allow unlimited access
-      return NextResponse.json({
+      console.log(
+        `[happiness-access] ✅ Returning success response for anonymous/collect_info survey`
+      );
+      const response = {
         assigned: true,
         requiresAuth: false,
         canAccess: true,
@@ -116,7 +156,12 @@ export async function GET(
           accessMode,
         },
         accessMode,
-      });
+      };
+      console.log(
+        `[happiness-access] 📦 Response:`,
+        JSON.stringify(response, null, 2)
+      );
+      return NextResponse.json(response);
     }
 
     // For non-anonymous surveys, get userId from session cookie
@@ -372,6 +417,9 @@ export async function GET(
       });
     }
 
+    console.log(
+      `[happiness-access] ✅ Returning success response for authenticated survey`
+    );
     return NextResponse.json({
       assigned: true,
       requiresAuth: true,
@@ -387,7 +435,11 @@ export async function GET(
       accessMode,
     });
   } catch (error) {
-    console.error("Error checking survey access:", error);
+    console.error("[happiness-access] ❌ Error checking survey access:", error);
+    console.error(
+      "[happiness-access] ❌ Error stack:",
+      error instanceof Error ? error.stack : "No stack trace"
+    );
     return NextResponse.json(
       { error: "Failed to check survey access", accessMode: null },
       { status: 500 }

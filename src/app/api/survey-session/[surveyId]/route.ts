@@ -55,7 +55,10 @@ export async function GET(
   try {
     const { surveyId } = params;
 
+    console.log(`[survey-session] 🔍 Starting survey session lookup for surveyId: ${surveyId}`);
+
     if (!surveyId) {
+      console.log(`[survey-session] ❌ No surveyId provided`);
       return NextResponse.json(
         { error: "Survey ID is required" },
         { status: 400 }
@@ -63,6 +66,7 @@ export async function GET(
     }
 
     // 1. Fetch the survey details first
+    console.log(`[survey-session] 📊 Looking up survey in surveys table...`);
     const [surveyData] = await db
       .select()
       .from(surveys)
@@ -70,6 +74,7 @@ export async function GET(
       .limit(1);
 
     if (!surveyData) {
+      console.log(`[survey-session] ⚠️ Survey ${surveyId} not found in surveys table, checking happiness_surveys...`);
       // Check if it's a happiness survey
       try {
         const { happinessSurveys } = await import("@/db/schema/happiness");
@@ -80,6 +85,7 @@ export async function GET(
           .limit(1);
 
         if (happinessSurvey) {
+          console.log(`[survey-session] ✅ Found survey ${surveyId} in happiness_surveys table, redirecting...`);
           return NextResponse.json(
             {
               error: "This is a happiness survey",
@@ -91,17 +97,34 @@ export async function GET(
           );
         }
       } catch (error) {
-        console.error("Error checking happiness survey:", error);
+        console.error("[survey-session] ❌ Error checking happiness survey:", error);
       }
 
+      console.log(`[survey-session] ❌ Survey ${surveyId} not found in any table`);
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
+
+    // Log survey found and check isAnonymous value
+    console.log(`[survey-session] ✅ Survey found: ${surveyData.id} - "${surveyData.title}"`);
+    console.log(`[survey-session] 📋 Raw isAnonymous value from DB:`, surveyData.isAnonymous, `(type: ${typeof surveyData.isAnonymous})`);
+    
+    // Check isAnonymous early for logging
+    const isAnonymousEarly =
+      surveyData.isAnonymous === true || (surveyData.isAnonymous as any) === 1;
+    console.log(`[survey-session] 🔐 isAnonymous check result: ${isAnonymousEarly} (${surveyData.isAnonymous === true ? 'true match' : ''} ${(surveyData.isAnonymous as any) === 1 ? '1 match' : ''})`);
 
     // 2. Check for user authentication from cookie
     let userData: UserSession | null = null;
     const userSessionCookie = request.cookies.get("user_session");
+    
+    console.log(`[survey-session] 🍪 User session cookie present: ${!!userSessionCookie}`);
+    
+    if (isAnonymousEarly) {
+      console.log(`[survey-session] 🎭 Anonymous survey detected - skipping session parsing`);
+    }
 
-    if (userSessionCookie) {
+    if (userSessionCookie && !isAnonymousEarly) {
+      console.log(`[survey-session] 🔑 Parsing user session cookie (non-anonymous survey)...`);
       try {
         const sessionData = JSON.parse(userSessionCookie.value);
 
@@ -111,6 +134,7 @@ export async function GET(
         const thirtyMinutes = 30 * 60 * 1000;
 
         if (sessionAge <= thirtyMinutes) {
+          console.log(`[survey-session] ✅ Session valid, verifying user in database...`);
           // Verify user still exists in database
           const [dbUser] = await db
             .select()
@@ -125,18 +149,25 @@ export async function GET(
               name: dbUser.name || undefined,
               loginTime: sessionData.loginTime,
             };
+            console.log(`[survey-session] ✅ User authenticated: ${userData.email}`);
           } else {
+            console.log(`[survey-session] ⚠️ User ${sessionData.id} not found in database`);
           }
         } else {
+          console.log(`[survey-session] ⚠️ Session expired (age: ${Math.round(sessionAge / 1000 / 60)} minutes)`);
         }
       } catch (error) {
-        console.error("Error parsing user session:", error);
+        console.error("[survey-session] ❌ Error parsing user session:", error);
         // Invalid session, continue as anonymous
       }
+    } else if (userSessionCookie && isAnonymousEarly) {
+      console.log(`[survey-session] 🎭 Anonymous survey - session cookie present but skipping parsing`);
     } else {
+      console.log(`[survey-session] 👤 No session cookie - proceeding as anonymous`);
     }
 
     // 3. Determine submission status
+    console.log(`[survey-session] 📝 Determining submission status...`);
     let submissionStatus = {
       hasSubmitted: false,
       canRetake: false,
@@ -145,6 +176,7 @@ export async function GET(
 
     // For authenticated users, check their submission history
     if (userData) {
+      console.log(`[survey-session] 👤 Checking submission history for authenticated user...`);
       const userResults = await db
         .select({
           id: results.id,
@@ -170,9 +202,11 @@ export async function GET(
     ) {
       // For anonymous surveys, we can't track submissions server-side
       // The client may use temporary cookies/storage, but we always allow submission
+      console.log(`[survey-session] 🎭 Anonymous survey - allowing submission (no tracking)`);
       submissionStatus.canRetake = true;
       submissionStatus.hasSubmitted = false;
     } else {
+      console.log(`[survey-session] 🔒 Non-anonymous survey without authentication - requiring auth`);
       // Non-anonymous survey without authentication
       // This shouldn't happen due to middleware, but handle it gracefully
       return NextResponse.json(
@@ -191,8 +225,11 @@ export async function GET(
     // ✅ PRODUCTION FIX: Handle MySQL boolean (1/0) and JavaScript boolean (true/false)
     const isAnonymous =
       surveyData.isAnonymous === true || (surveyData.isAnonymous as any) === 1;
+    console.log(`[survey-session] 🔐 Final isAnonymous check: ${isAnonymous}`);
+    
     let assignmentData = null;
     if (!isAnonymous && userData) {
+      console.log(`[survey-session] 📋 Checking assignment for authenticated user...`);
       // Only check assignments for non-anonymous surveys with authenticated users
       const [assignment] = await db
         .select()
@@ -229,6 +266,7 @@ export async function GET(
     }
 
     // 5. Build the response
+    console.log(`[survey-session] 📦 Building response...`);
     const response: SurveySessionResponse = {
       survey: {
         id: surveyData.id,
@@ -256,12 +294,18 @@ export async function GET(
         phone: userData.phone,
         name: userData.name,
       };
+      console.log(`[survey-session] 👤 Including user data in response`);
+    } else {
+      console.log(`[survey-session] 👤 No user data in response (anonymous)`);
     }
 
     // Include assignment data if exists
     if (assignmentData) {
       response.assignment = assignmentData;
+      console.log(`[survey-session] 📋 Including assignment data in response`);
     }
+
+    console.log(`[survey-session] ✅ Response built successfully - isAnonymous: ${response.survey.isAnonymous}, hasUser: ${!!response.user}`);
 
     // Set cache headers to prevent stale data
     const apiResponse = NextResponse.json(response);
@@ -274,7 +318,8 @@ export async function GET(
 
     return apiResponse;
   } catch (error) {
-    console.error("Error in survey-session API:", error);
+    console.error("[survey-session] ❌ Error in survey-session API:", error);
+    console.error("[survey-session] ❌ Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

@@ -94,7 +94,10 @@ export default function SurveyPage() {
 
   // Fetch survey session data on mount
   useEffect(() => {
+    console.log(`[SurveyPage] 🔍 Component mounted, surveyId: ${surveyId}`);
+
     if (!surveyId) {
+      console.log(`[SurveyPage] ❌ No surveyId provided`);
       setError("Survey ID is required");
       setIsLoading(false);
       return;
@@ -102,6 +105,9 @@ export default function SurveyPage() {
 
     const fetchSurveySession = async () => {
       try {
+        console.log(
+          `[SurveyPage] 📡 Fetching survey session for ${surveyId}...`
+        );
         setIsLoading(true);
         setError(null);
 
@@ -113,12 +119,20 @@ export default function SurveyPage() {
           },
         });
 
+        console.log(
+          `[SurveyPage] 📡 Response status: ${response.status} ${response.statusText}`
+        );
+
         if (!response.ok) {
           const data = await response.json();
           const apiError = data as ApiError;
+          console.log(`[SurveyPage] ❌ API error:`, apiError);
 
           // Handle specific error cases
           if (apiError.requiresAuth) {
+            console.log(
+              `[SurveyPage] 🔒 Authentication required, redirecting to login...`
+            );
             // Redirect to login for non-anonymous surveys
             router.push(
               apiError.redirectUrl || `/user/login?redirect=${surveyId}`
@@ -127,6 +141,9 @@ export default function SurveyPage() {
           }
 
           if (apiError.redirect && apiError.surveyType === "happiness") {
+            console.log(
+              `[SurveyPage] 🎭 Happiness survey detected, redirecting...`
+            );
             // Redirect to happiness survey page
             router.push(apiError.redirectUrl || `/happiness/${surveyId}`);
             return;
@@ -136,9 +153,16 @@ export default function SurveyPage() {
         }
 
         const data = await response.json();
+        console.log(`[SurveyPage] ✅ Session data received:`, {
+          surveyId: data.survey?.id,
+          title: data.survey?.title,
+          isAnonymous: data.survey?.isAnonymous,
+          hasUser: !!data.user,
+          submissionStatus: data.submissionStatus,
+        });
         setSessionData(data);
       } catch (err) {
-        console.error("❌ Error fetching survey session:", err);
+        console.error("[SurveyPage] ❌ Error fetching survey session:", err);
         setError(err instanceof Error ? err.message : "Failed to load survey");
       } finally {
         setIsLoading(false);
@@ -151,15 +175,28 @@ export default function SurveyPage() {
   // Check if we need to show user info collection (separate from model creation)
   useEffect(() => {
     if (!sessionData) {
+      console.log(`[SurveyPage] ⏳ Waiting for session data...`);
       return;
     }
+
+    console.log(`[SurveyPage] 🔍 Checking if user info collection needed...`);
+    console.log(
+      `[SurveyPage] 📋 Session data survey isAnonymous:`,
+      sessionData.survey.isAnonymous,
+      `(type: ${typeof sessionData.survey.isAnonymous})`
+    );
 
     // For anonymous surveys, check if we need to show user info collection
     const isAnonymous =
       sessionData.survey.isAnonymous === true ||
       (sessionData.survey.isAnonymous as any) === 1;
 
+    console.log(`[SurveyPage] 🔐 isAnonymous check result: ${isAnonymous}`);
+
     if (isAnonymous) {
+      console.log(
+        `[SurveyPage] 🎭 Anonymous survey detected - checking for collected user data...`
+      );
       // Check both state and sessionStorage for collected data
       let storedData = collectedUserData;
       if (typeof window !== "undefined") {
@@ -167,42 +204,78 @@ export default function SurveyPage() {
           const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
           if (stored) {
             storedData = JSON.parse(stored);
+            console.log(
+              `[SurveyPage] 💾 Found stored user data in sessionStorage:`,
+              storedData
+            );
             // Update state if we found stored data and state is empty
             if (
               storedData.name &&
               storedData.email &&
               !collectedUserData.name
             ) {
+              console.log(
+                `[SurveyPage] ✅ Updating state with stored user data`
+              );
               setCollectedUserData(storedData);
             }
+          } else {
+            console.log(
+              `[SurveyPage] 💾 No stored user data in sessionStorage`
+            );
           }
         } catch (e) {
-          // Ignore errors
+          console.error(`[SurveyPage] ❌ Error reading sessionStorage:`, e);
         }
       }
 
       // Show user info collection if data not collected yet
       const hasCollectedData = storedData.name && storedData.email;
+      console.log(
+        `[SurveyPage] 📝 Has collected data: ${hasCollectedData} (name: ${!!storedData.name}, email: ${!!storedData.email})`
+      );
       setShowUserInfoCollection(!hasCollectedData);
+      console.log(
+        `[SurveyPage] 📝 Setting showUserInfoCollection to: ${!hasCollectedData}`
+      );
     } else {
+      console.log(
+        `[SurveyPage] 🔒 Non-anonymous survey - skipping user info collection`
+      );
       setShowUserInfoCollection(false);
     }
   }, [sessionData, surveyId, collectedUserData]);
 
   // Create survey model when session data is available AND user info is collected (if needed)
   useEffect(() => {
+    console.log(
+      `[SurveyPage] 🔍 Checking if survey model should be created...`
+    );
+    console.log(
+      `[SurveyPage] 📋 Has sessionData: ${!!sessionData}, Has JSON: ${!!sessionData
+        ?.survey?.json}, showUserInfoCollection: ${showUserInfoCollection}`
+    );
+
     if (!sessionData?.survey?.json) {
+      console.log(`[SurveyPage] ⏳ Waiting for survey JSON...`);
       return;
     }
 
     // Don't create model if we need to show user info collection first
     if (showUserInfoCollection) {
+      console.log(`[SurveyPage] ⏳ Waiting for user info collection...`);
       return;
     }
 
+    console.log(`[SurveyPage] 🏗️ Creating survey model...`);
     try {
       const originalSurveyJson = JSON.parse(sessionData.survey.json);
       let surveyJson = { ...originalSurveyJson };
+      console.log(
+        `[SurveyPage] 📋 Survey JSON parsed, pages: ${
+          surveyJson.pages?.length || 0
+        }`
+      );
 
       // For anonymous surveys, filter out personal info fields that are already collected via ParticipantInformationForm
       // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
@@ -210,7 +283,14 @@ export default function SurveyPage() {
         sessionData.survey.isAnonymous === true ||
         (sessionData.survey.isAnonymous as any) === 1;
 
+      console.log(
+        `[SurveyPage] 🔐 Filtering check - isAnonymous: ${isAnonymous}`
+      );
+
       if (isAnonymous) {
+        console.log(
+          `[SurveyPage] 🎭 Anonymous survey - filtering personal info fields...`
+        );
         // List of personal info field names to filter out
         // Simple field names (exact match)
         const simplePersonalInfoFields = [
@@ -421,8 +501,9 @@ export default function SurveyPage() {
 
       setSurveyModel(model);
       setIsLoading(false);
+      console.log(`[SurveyPage] ✅ Survey model set and loading complete`);
     } catch (err) {
-      console.error("❌ Error creating survey model:", err);
+      console.error("[SurveyPage] ❌ Error creating survey model:", err);
       setError("Invalid survey configuration");
       setIsLoading(false);
     }
@@ -542,6 +623,10 @@ export default function SurveyPage() {
         <ParticipantInformationForm
           language="en"
           onSubmit={(data: ParticipantData) => {
+            console.log(
+              `[SurveyPage] 📝 ParticipantInformationForm submitted:`,
+              data
+            );
             // Persist collected data to sessionStorage (like happiness survey)
             if (typeof window !== "undefined") {
               try {
@@ -549,12 +634,19 @@ export default function SurveyPage() {
                   `survey:userData:${surveyId}`,
                   JSON.stringify(data)
                 );
+                console.log(
+                  `[SurveyPage] 💾 Saved user data to sessionStorage`
+                );
               } catch (e) {
-                console.error("Failed to save user data to sessionStorage:", e);
+                console.error(
+                  "[SurveyPage] ❌ Failed to save user data to sessionStorage:",
+                  e
+                );
               }
             }
             // Update collected user data
             setCollectedUserData(data);
+            console.log(`[SurveyPage] ✅ Updated collectedUserData state`);
             // This will trigger the useEffect that checks if we need to show user info collection
             // Since data is now collected, showUserInfoCollection will be set to false
             // which will then trigger the survey model creation useEffect
