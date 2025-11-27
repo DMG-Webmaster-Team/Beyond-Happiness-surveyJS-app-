@@ -21,10 +21,7 @@ export async function GET(
 
     // Validate survey ID
     if (!surveyId || typeof surveyId !== "string" || surveyId.trim() === "") {
-      return NextResponse.json(
-        { error: "Invalid survey ID" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid survey ID" }, { status: 400 });
     }
 
     // Get survey details first - check happiness_surveys table
@@ -46,7 +43,9 @@ export async function GET(
         .limit(1);
 
       if (regularSurvey.length === 0) {
-        console.log(`Survey ${surveyId} not found in either happiness_surveys or surveys table`);
+        console.log(
+          `Survey ${surveyId} not found in either happiness_surveys or surveys table`
+        );
         return NextResponse.json(
           { error: "Survey not found", accessMode: null },
           { status: 404 }
@@ -59,9 +58,11 @@ export async function GET(
       const isAnonymous =
         regularSurveyData.isAnonymous === true ||
         (regularSurveyData.isAnonymous as any) === 1;
-      
+
       if (!isAnonymous) {
-        console.log(`Survey ${surveyId} found in surveys table but is not anonymous`);
+        console.log(
+          `Survey ${surveyId} found in surveys table but is not anonymous`
+        );
         return NextResponse.json(
           { error: "Survey not found", accessMode: null },
           { status: 404 }
@@ -83,7 +84,9 @@ export async function GET(
         updatedAt: regularSurveyData.updatedAt,
       };
       foundInTable = "surveys";
-      console.log(`Survey ${surveyId} found in surveys table (anonymous survey)`);
+      console.log(
+        `Survey ${surveyId} found in surveys table (anonymous survey)`
+      );
     } else {
       surveyData = survey[0];
       console.log(`Survey ${surveyId} found in happiness_surveys table`);
@@ -137,10 +140,8 @@ export async function GET(
           if (sessionAge <= thirtyMinutes) {
             userId = sessionData.id;
           } else {
-
           }
         } else {
-
         }
       } catch (error) {
         console.error("Error parsing session cookie:", error);
@@ -185,7 +186,6 @@ export async function GET(
 
     // If no direct assignment, check if user's company matches survey's company
     if (assignment.length === 0 && surveyData.companyId) {
-
       // Import users schema
       const { users } = await import("@/db/schema/users");
 
@@ -197,11 +197,9 @@ export async function GET(
         .limit(1);
 
       if (user.length > 0 && user[0].companyId === surveyData.companyId) {
-
         // Grant access via company membership
         // Continue to cooldown check below
       } else {
-
         return NextResponse.json({
           assigned: false,
           requiresAuth: false, // User is authenticated, but not assigned
@@ -218,7 +216,6 @@ export async function GET(
         });
       }
     } else if (assignment.length === 0) {
-
       return NextResponse.json({
         assigned: false,
         requiresAuth: false, // User is authenticated, but not assigned

@@ -74,13 +74,23 @@ export default function SurveyPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
   const [showUserInfoCollection, setShowUserInfoCollection] = useState(false);
-  const [collectedUserData, setCollectedUserData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    gender: "",
-    ageRange: "",
-  });
+  // Initialize collectedUserData from sessionStorage if available (persist across re-renders)
+  const getStoredUserData = () => {
+    if (typeof window === "undefined") {
+      return { name: "", email: "", phone: "", gender: "", ageRange: "" };
+    }
+    try {
+      const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    return { name: "", email: "", phone: "", gender: "", ageRange: "" };
+  };
+
+  const [collectedUserData, setCollectedUserData] = useState(getStoredUserData);
 
   // Fetch survey session data on mount
   useEffect(() => {
@@ -138,30 +148,69 @@ export default function SurveyPage() {
     fetchSurveySession();
   }, [surveyId, router]);
 
-  // Create survey model when session data is available
+  // Check if we need to show user info collection (separate from model creation)
+  useEffect(() => {
+    if (!sessionData) {
+      return;
+    }
+
+    // For anonymous surveys, check if we need to show user info collection
+    const isAnonymous =
+      sessionData.survey.isAnonymous === true ||
+      (sessionData.survey.isAnonymous as any) === 1;
+
+    if (isAnonymous) {
+      // Check both state and sessionStorage for collected data
+      let storedData = collectedUserData;
+      if (typeof window !== "undefined") {
+        try {
+          const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
+          if (stored) {
+            storedData = JSON.parse(stored);
+            // Update state if we found stored data and state is empty
+            if (
+              storedData.name &&
+              storedData.email &&
+              !collectedUserData.name
+            ) {
+              setCollectedUserData(storedData);
+            }
+          }
+        } catch (e) {
+          // Ignore errors
+        }
+      }
+
+      // Show user info collection if data not collected yet
+      const hasCollectedData = storedData.name && storedData.email;
+      setShowUserInfoCollection(!hasCollectedData);
+    } else {
+      setShowUserInfoCollection(false);
+    }
+  }, [sessionData, surveyId, collectedUserData]);
+
+  // Create survey model when session data is available AND user info is collected (if needed)
   useEffect(() => {
     if (!sessionData?.survey?.json) {
       return;
     }
 
+    // Don't create model if we need to show user info collection first
+    if (showUserInfoCollection) {
+      return;
+    }
+
     try {
-      // For anonymous surveys, show user info collection first
-      if (sessionData.survey.isAnonymous && !collectedUserData.name) {
-        setShowUserInfoCollection(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // If user info collection is shown, don't create model yet
-      if (showUserInfoCollection) {
-        return;
-      }
-
       const originalSurveyJson = JSON.parse(sessionData.survey.json);
       let surveyJson = { ...originalSurveyJson };
 
       // For anonymous surveys, filter out personal info fields that are already collected via ParticipantInformationForm
-      if (sessionData.survey.isAnonymous) {
+      // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
+      const isAnonymous =
+        sessionData.survey.isAnonymous === true ||
+        (sessionData.survey.isAnonymous as any) === 1;
+
+      if (isAnonymous) {
         // List of personal info field names to filter out
         // Simple field names (exact match)
         const simplePersonalInfoFields = [
@@ -377,7 +426,7 @@ export default function SurveyPage() {
       setError("Invalid survey configuration");
       setIsLoading(false);
     }
-  }, [sessionData, collectedUserData, showUserInfoCollection]);
+  }, [sessionData, showUserInfoCollection]);
 
   // Handle survey submission
   const handleSurveySubmission = async (surveyData: any) => {
@@ -387,8 +436,13 @@ export default function SurveyPage() {
       setIsSubmitting(true);
 
       // Include collected user data for anonymous surveys
+      // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
+      const isAnonymous =
+        sessionData.survey.isAnonymous === true ||
+        (sessionData.survey.isAnonymous as any) === 1;
+
       let finalSurveyData = surveyData;
-      if (sessionData.survey.isAnonymous && collectedUserData.name) {
+      if (isAnonymous && collectedUserData.name) {
         finalSurveyData = {
           ...surveyData,
           "anonymousInfo.name": collectedUserData.name,
@@ -403,7 +457,7 @@ export default function SurveyPage() {
         surveyId: sessionData.survey.id,
         userId: sessionData.user?.id || null,
         data: finalSurveyData,
-        isAnonymous: sessionData.survey.isAnonymous,
+        isAnonymous: Boolean(isAnonymous), // Ensure we send a proper boolean
       };
 
       const response = await fetch("/api/results", {
@@ -421,7 +475,7 @@ export default function SurveyPage() {
       }
 
       // Redirect to success page or status page
-      if (sessionData.survey.isAnonymous) {
+      if (isAnonymous) {
         // For anonymous surveys, redirect to a thank you page
         router.push(`/survey/thank-you?surveyId=${sessionData.survey.id}`);
       } else {
@@ -488,12 +542,22 @@ export default function SurveyPage() {
         <ParticipantInformationForm
           language="en"
           onSubmit={(data: ParticipantData) => {
-            setCollectedUserData(data);
-            setShowUserInfoCollection(false);
-            // Trigger survey model creation by ensuring loading state is reset
-            if (sessionData?.survey?.json) {
-              setIsLoading(true);
+            // Persist collected data to sessionStorage (like happiness survey)
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem(
+                  `survey:userData:${surveyId}`,
+                  JSON.stringify(data)
+                );
+              } catch (e) {
+                console.error("Failed to save user data to sessionStorage:", e);
+              }
             }
+            // Update collected user data
+            setCollectedUserData(data);
+            // This will trigger the useEffect that checks if we need to show user info collection
+            // Since data is now collected, showUserInfoCollection will be set to false
+            // which will then trigger the survey model creation useEffect
           }}
           initialData={collectedUserData}
           showHeader={false}
