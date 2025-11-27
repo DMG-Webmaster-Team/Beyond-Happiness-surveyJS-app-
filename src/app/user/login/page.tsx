@@ -62,89 +62,6 @@ export default function UserLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Function to check if a survey is a happiness survey and handle anonymous surveys
-  const checkSurveyType = async (surveyId: string) => {
-    try {
-      console.log(`[LoginPage] 🔍 Checking survey type for: ${surveyId}`);
-
-      // First, check if it's a regular survey to determine the correct redirect
-      const regularResponse = await fetch(`/api/survey-session/${surveyId}`, {
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (regularResponse.ok) {
-        const regularData = await regularResponse.json();
-        console.log(`[LoginPage] ✅ Regular survey check:`, {
-          isAnonymous: regularData.survey?.isAnonymous,
-          surveyType: regularData.surveyType,
-        });
-
-        // Check if this is a regular anonymous survey
-        const isAnonymous =
-          regularData.survey?.isAnonymous === true ||
-          (regularData.survey?.isAnonymous as any) === 1;
-
-        if (isAnonymous) {
-          console.log(
-            `[LoginPage] 🎭 Anonymous regular survey detected - redirecting to /user/survey/...`
-          );
-          window.location.href = `/user/survey/${surveyId}`;
-          return;
-        }
-
-        // Not anonymous, show login form for regular survey
-        console.log(
-          `[LoginPage] 🔒 Regular survey requires authentication - showing login form`
-        );
-        setSurveyType("regular");
-        return;
-      }
-
-      // If not a regular survey, check if it's a happiness survey
-      console.log(
-        `[LoginPage] ⚠️ Not a regular survey, checking happiness survey...`
-      );
-      const happinessResponse = await fetch(
-        `/api/happiness/surveys/${surveyId}/access`,
-        {
-          credentials: "include",
-        }
-      );
-
-      if (happinessResponse.ok) {
-        const happinessData = await happinessResponse.json();
-        console.log(`[LoginPage] ✅ Happiness access response:`, {
-          requiresAuth: happinessData.requiresAuth,
-          canAccess: happinessData.canAccess,
-          accessMode: happinessData.accessMode,
-        });
-
-        // Check if this is an anonymous happiness survey
-        if (
-          happinessData.requiresAuth === false &&
-          happinessData.canAccess === true
-        ) {
-          console.log(
-            `[LoginPage] 🎭 Anonymous happiness survey detected - redirecting to /happiness/...`
-          );
-          window.location.href = `/happiness/${surveyId}`;
-          return;
-        }
-
-        // Happiness survey that requires auth
-        setSurveyType("happiness");
-      } else {
-        // Survey not found in either table
-        console.log(`[LoginPage] ❌ Survey not found in any table`);
-        setSurveyType("regular");
-      }
-    } catch (error) {
-      console.error(`[LoginPage] ❌ Error checking survey:`, error);
-      setSurveyType("regular");
-    }
-  };
-
   // Check for multi-tab redirect
   useEffect(() => {
     const multiTab = searchParams.get("multiTab");
@@ -164,44 +81,30 @@ export default function UserLogin() {
 
   // Session management is now handled by the backend - no automatic logout
 
-  // Capture/normalize surveyId from URL (no sessionStorage fallback to avoid loops)
+  // Capture surveyId from URL (if any) – no more anonymous detection here
   useEffect(() => {
     // Setup auto-cleanup for survey sessions
     setupAutoCleanup();
 
-    // Wait for searchParams to be ready (hydration)
     if (!searchParams) {
-      console.log("[LoginPage] ⏳ Waiting for searchParams to hydrate...");
       return;
     }
 
-    // Get surveyId from searchParams only (no sessionStorage fallback)
     const surveyIdParam =
       searchParams.get("surveyId") || searchParams.get("redirect");
     const typeParam = searchParams.get("type");
 
-    // Guard: Don't proceed if no surveyId in URL
-    if (!surveyIdParam) {
-      // No surveyId in URL - this is a normal login page visit
-      console.log(
-        "[LoginPage] ℹ️ No surveyId in URL - showing regular login form"
-      );
-      setSurveyType("regular");
-      return;
+    if (surveyIdParam) {
+      console.log("[LoginPage] 🔍 SurveyId extracted from URL:", surveyIdParam);
+      setStableSurveyId(surveyIdParam);
     }
-
-    console.log("[LoginPage] 🔍 SurveyId extracted from URL:", surveyIdParam);
-    setStableSurveyId(surveyIdParam);
 
     if (typeParam === "happiness") {
       console.log("[LoginPage] 🎯 Happiness survey type detected from URL");
       setSurveyType("happiness");
     } else {
-      // Check survey type and handle anonymous surveys
-      console.log(
-        "[LoginPage] 🔍 Survey type unknown, checking if anonymous..."
-      );
-      checkSurveyType(surveyIdParam);
+      // Just treat as regular – no API calls from the login page
+      setSurveyType("regular");
     }
   }, [searchParams]);
 
