@@ -40,6 +40,7 @@ export default function ParticipantInformationForm({
     gender: initialData.gender || "",
     ageRange: initialData.ageRange || "",
   });
+  const [errors, setErrors] = useState<Partial<Record<keyof ParticipantData, string>>>({});
 
   // Update form data when initialData changes
   useEffect(() => {
@@ -51,41 +52,73 @@ export default function ParticipantInformationForm({
     }
   }, [initialData]);
 
-  const handleSubmit = () => {
-    // Validate all required fields
-    const missingFields = requiredFields.filter(
-      (field) => !formData[field] || !String(formData[field]).trim()
-    );
-
-    if (missingFields.length > 0) {
-      alert(
-        language === "ar"
-          ? "يرجى ملء جميع الحقول المطلوبة"
-          : "Please fill in all required fields"
-      );
-      return;
-    }
-
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (requiredFields.includes("email") && !emailRegex.test(formData.email)) {
-      alert(
-        language === "ar"
-          ? "يرجى إدخال بريد إلكتروني صحيح"
-          : "Please enter a valid email address"
-      );
-      return;
-    }
-
-    // Call onSubmit callback
-    onSubmit(formData);
-  };
-
+  // Clear error when field is updated
   const updateField = (field: keyof ParticipantData, value: string) => {
     setFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
+    // Clear error for this field when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleSubmit = () => {
+    const newErrors: Partial<Record<keyof ParticipantData, string>> = {};
+
+    // Validate all required fields
+    requiredFields.forEach((field) => {
+      if (!formData[field] || !String(formData[field]).trim()) {
+        const fieldName =
+          language === "ar"
+            ? field === "name"
+              ? "الاسم الكامل"
+              : field === "email"
+              ? "البريد الإلكتروني"
+              : field === "phone"
+              ? "رقم الهاتف"
+              : field === "gender"
+              ? "الجنس"
+              : "الفئة العمرية"
+            : field === "name"
+            ? "Full Name"
+            : field === "email"
+            ? "Email"
+            : field === "phone"
+            ? "Phone Number"
+            : field === "gender"
+            ? "Gender"
+            : "Age Range";
+        newErrors[field] =
+          language === "ar"
+            ? `يرجى إدخال ${fieldName}`
+            : `Please enter ${fieldName}`;
+      }
+    });
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (requiredFields.includes("email") && formData.email && !emailRegex.test(formData.email)) {
+      newErrors.email =
+        language === "ar"
+          ? "يرجى إدخال بريد إلكتروني صحيح"
+          : "Please enter a valid email address";
+    }
+
+    // If there are errors, set them and return
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // Clear errors and submit
+    setErrors({});
+    onSubmit(formData);
   };
 
   const isRequired = (field: keyof ParticipantData) =>
@@ -120,13 +153,20 @@ export default function ParticipantInformationForm({
                 value={formData.name}
                 onChange={(e) => updateField("name", e.target.value)}
                 required={isRequired("name")}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                  errors.name
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-400"
+                }`}
                 placeholder={
                   language === "ar"
                     ? "أدخل اسمك الكامل"
                     : "Enter your full name"
                 }
               />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
             </div>
           )}
 
@@ -143,9 +183,16 @@ export default function ParticipantInformationForm({
                 value={formData.email}
                 onChange={(e) => updateField("email", e.target.value)}
                 required={isRequired("email")}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                  errors.email
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-400"
+                }`}
                 placeholder="example@email.com"
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
           )}
 
@@ -162,9 +209,16 @@ export default function ParticipantInformationForm({
                 value={formData.phone}
                 onChange={(e) => updateField("phone", e.target.value)}
                 required={isRequired("phone")}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                  errors.phone
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-400"
+                }`}
                 placeholder={language === "ar" ? "+20 123 456 7890" : "+20 123 456 7890"}
               />
+              {errors.phone && (
+                <p className="mt-1 text-sm text-red-600">{errors.phone}</p>
+              )}
             </div>
           )}
 
@@ -180,7 +234,11 @@ export default function ParticipantInformationForm({
                 value={formData.gender}
                 onChange={(e) => updateField("gender", e.target.value)}
                 required={isRequired("gender")}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                  errors.gender
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-400"
+                }`}
               >
                 <option value="">
                   {language === "ar" ? "اختر الجنس" : "Select Gender"}
@@ -192,6 +250,9 @@ export default function ParticipantInformationForm({
                   {language === "ar" ? "أنثى" : "Female"}
                 </option>
               </select>
+              {errors.gender && (
+                <p className="mt-1 text-sm text-red-600">{errors.gender}</p>
+              )}
             </div>
           )}
 
@@ -207,7 +268,11 @@ export default function ParticipantInformationForm({
                 value={formData.ageRange}
                 onChange={(e) => updateField("ageRange", e.target.value)}
                 required={isRequired("ageRange")}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                  errors.ageRange
+                    ? "border-red-500 focus:ring-red-400"
+                    : "border-gray-300 focus:ring-blue-400"
+                }`}
               >
                 <option value="">
                   {language === "ar"
@@ -221,6 +286,9 @@ export default function ParticipantInformationForm({
                 <option value="55-64">55-64</option>
                 <option value="65+">65+</option>
               </select>
+              {errors.ageRange && (
+                <p className="mt-1 text-sm text-red-600">{errors.ageRange}</p>
+              )}
             </div>
           )}
         </div>

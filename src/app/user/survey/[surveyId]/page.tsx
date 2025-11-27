@@ -11,6 +11,9 @@ import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import SurveySkeletonLoader from "@/components/shared/SurveySkeletonLoader";
 import SurveyStatusPage from "@/components/survey/SurveyStatusPage";
 import LoadingScreen from "@/components/shared/LoadingScreen";
+import ParticipantInformationForm, {
+  ParticipantData,
+} from "@/components/shared/ParticipantInformationForm";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -70,6 +73,14 @@ export default function SurveyPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
+  const [showUserInfoCollection, setShowUserInfoCollection] = useState(false);
+  const [collectedUserData, setCollectedUserData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    gender: "",
+    ageRange: "",
+  });
 
   // Fetch survey session data on mount
   useEffect(() => {
@@ -134,89 +145,20 @@ export default function SurveyPage() {
     }
 
     try {
+      // For anonymous surveys, show user info collection first
+      if (sessionData.survey.isAnonymous && !collectedUserData.name) {
+        setShowUserInfoCollection(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // If user info collection is shown, don't create model yet
+      if (showUserInfoCollection) {
+        return;
+      }
+
       const originalSurveyJson = JSON.parse(sessionData.survey.json);
       let surveyJson = { ...originalSurveyJson };
-
-      // If survey is anonymous, prepend intro page for user info collection
-      if (sessionData.survey.isAnonymous) {
-        const introPage = {
-          name: "anonymousInfoPage",
-          title: "Please provide your information",
-          description:
-            "This information helps us better understand our survey participants.",
-          elements: [
-            {
-              type: "text",
-              name: "anonymousInfo.name",
-              title: "Full Name",
-              isRequired: true,
-              placeholder: "Enter your full name",
-            },
-            {
-              type: "text",
-              name: "anonymousInfo.phone",
-              title: "Phone Number",
-              isRequired: true,
-              placeholder: "Enter your phone number",
-              inputType: "tel",
-              validators: [
-                {
-                  type: "regex",
-                  text: "Please enter a valid phone number",
-                  regex: "^[+]?[0-9\\s\\-\\(\\)]{10,}$",
-                },
-              ],
-            },
-            {
-              type: "text",
-              name: "anonymousInfo.email",
-              title: "Email Address",
-              isRequired: true,
-              placeholder: "Enter your email address",
-              inputType: "email",
-              validators: [
-                {
-                  type: "email",
-                  text: "Please enter a valid email address",
-                },
-              ],
-            },
-            {
-              type: "dropdown",
-              name: "anonymousInfo.gender",
-              title: "Gender",
-              isRequired: true,
-              choices: [
-                { value: "male", text: "Male" },
-                { value: "female", text: "Female" },
-              ],
-              placeholder: "Select your gender",
-            },
-            {
-              type: "dropdown",
-              name: "anonymousInfo.ageRange",
-              title: "Age Range",
-              isRequired: true,
-              choices: [
-                { value: "under_18", text: "Under 18" },
-                { value: "18_25", text: "18–25" },
-                { value: "26_35", text: "26–35" },
-                { value: "36_50", text: "36–50" },
-                { value: "51_plus", text: "51+" },
-              ],
-              placeholder: "Select your age range",
-            },
-          ],
-        };
-
-        // Prepend the intro page to existing pages
-        surveyJson.pages = [introPage, ...(surveyJson.pages || [])];
-
-        // Ensure we have a title if not set
-        if (!surveyJson.title) {
-          surveyJson.title = sessionData.survey.title;
-        }
-      }
 
       const model = new Model(surveyJson);
 
@@ -246,8 +188,8 @@ export default function SurveyPage() {
         const surveyElement = options.htmlElement;
         if (surveyElement) {
           // Find all footer elements
-          const footers = surveyElement.querySelectorAll('.sv-footer');
-          
+          const footers = surveyElement.querySelectorAll(".sv-footer");
+
           // Make footer fixed and always visible at bottom with !important styles
           footers.forEach((footer) => {
             const footerEl = footer as HTMLElement;
@@ -267,11 +209,11 @@ export default function SurveyPage() {
               box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
             `;
           });
-          
+
           // Add padding to survey body so content doesn't hide behind footer
-          const surveyBody = surveyElement.querySelector('.sv-body');
+          const surveyBody = surveyElement.querySelector(".sv-body");
           if (surveyBody) {
-            (surveyBody as HTMLElement).style.paddingBottom = '80px';
+            (surveyBody as HTMLElement).style.paddingBottom = "80px";
           }
         }
       });
@@ -302,10 +244,10 @@ export default function SurveyPage() {
               `;
             }
           };
-          
+
           // Try to find footer in page element
           findAndStyleFooter(pageElement);
-          
+
           // Also check parent survey element
           const surveyElement = pageElement.closest(".sv-root");
           if (surveyElement) {
@@ -313,14 +255,14 @@ export default function SurveyPage() {
           }
 
           // Add smooth transitions to navigation buttons for state changes
-          const buttons = pageElement.querySelectorAll('.sv-btn');
+          const buttons = pageElement.querySelectorAll(".sv-btn");
           buttons.forEach((btn) => {
             const button = btn as HTMLElement;
-            button.style.transition = 'all 0.3s ease';
+            button.style.transition = "all 0.3s ease";
           });
-          
+
           // Add padding to page so content doesn't hide behind fixed footer
-          (pageElement as HTMLElement).style.paddingBottom = '80px';
+          (pageElement as HTMLElement).style.paddingBottom = "80px";
         }
       });
 
@@ -362,7 +304,6 @@ export default function SurveyPage() {
             });
           }
         });
-
       }
 
       // Handle survey completion
@@ -371,11 +312,13 @@ export default function SurveyPage() {
       });
 
       setSurveyModel(model);
+      setIsLoading(false);
     } catch (err) {
       console.error("❌ Error creating survey model:", err);
       setError("Invalid survey configuration");
+      setIsLoading(false);
     }
-  }, [sessionData]);
+  }, [sessionData, collectedUserData, showUserInfoCollection]);
 
   // Handle survey submission
   const handleSurveySubmission = async (surveyData: any) => {
@@ -384,10 +327,23 @@ export default function SurveyPage() {
     try {
       setIsSubmitting(true);
 
+      // Include collected user data for anonymous surveys
+      let finalSurveyData = surveyData;
+      if (sessionData.survey.isAnonymous && collectedUserData.name) {
+        finalSurveyData = {
+          ...surveyData,
+          "anonymousInfo.name": collectedUserData.name,
+          "anonymousInfo.email": collectedUserData.email,
+          "anonymousInfo.phone": collectedUserData.phone,
+          "anonymousInfo.gender": collectedUserData.gender,
+          "anonymousInfo.ageRange": collectedUserData.ageRange,
+        };
+      }
+
       const submissionPayload = {
         surveyId: sessionData.survey.id,
         userId: sessionData.user?.id || null,
-        data: surveyData,
+        data: finalSurveyData,
         isAnonymous: sessionData.survey.isAnonymous,
       };
 
@@ -449,6 +405,40 @@ export default function SurveyPage() {
             <p className="text-gray-600 mb-6">{error}</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Show user info collection for anonymous surveys
+  if (showUserInfoCollection && sessionData?.survey?.isAnonymous) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AnonymousNavbar />
+
+        <div className="bg-white shadow-sm">
+          <div className="max-w-4xl text-center mx-auto px-4 py-6">
+            <h1 className="text-2xl font-bold text-blue-600">
+              Participant Information
+            </h1>
+            <p className="text-blue-500 mt-2">
+              Please fill in your information to continue to the survey
+            </p>
+          </div>
+        </div>
+
+        <ParticipantInformationForm
+          language="en"
+          onSubmit={(data: ParticipantData) => {
+            setCollectedUserData(data);
+            setShowUserInfoCollection(false);
+            // Trigger survey model creation by ensuring loading state is reset
+            if (sessionData?.survey?.json) {
+              setIsLoading(true);
+            }
+          }}
+          initialData={collectedUserData}
+          showHeader={false}
+        />
       </div>
     );
   }
