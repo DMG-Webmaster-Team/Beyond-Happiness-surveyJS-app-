@@ -66,80 +66,74 @@ export default function UserLogin() {
   const checkSurveyType = async (surveyId: string) => {
     try {
       console.log(`[LoginPage] 🔍 Checking survey type for: ${surveyId}`);
-      const response = await fetch(
-        `/api/happiness/surveys/${surveyId}/access`,
-        {
-          credentials: "include", // Ensure cookies are sent
-        }
-      );
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[LoginPage] ✅ Happiness access response:`, {
-          requiresAuth: data.requiresAuth,
-          canAccess: data.canAccess,
-          accessMode: data.accessMode,
-        });
-        
-        // Check if this is an anonymous survey that doesn't require authentication
-        if (data.requiresAuth === false && data.canAccess === true) {
-          console.log(`[LoginPage] 🎭 Anonymous happiness survey detected - redirecting directly...`);
-          // Redirect directly to happiness survey page
-          router.push(`/happiness/${surveyId}`);
-          return;
-        }
-        
-        setSurveyType("happiness");
-      } else {
-        // Not a happiness survey, check if it's a regular anonymous survey
-        console.log(`[LoginPage] ⚠️ Not a happiness survey, checking regular survey...`);
-        await checkRegularSurvey(surveyId);
-      }
-    } catch (error) {
-      console.error(`[LoginPage] ❌ Error checking happiness survey:`, error);
-      // On error, try checking regular survey
-      await checkRegularSurvey(surveyId);
-    }
-  };
-
-  // Function to check if a regular survey is anonymous
-  const checkRegularSurvey = async (surveyId: string) => {
-    try {
-      console.log(`[LoginPage] 🔍 Checking regular survey: ${surveyId}`);
-      const response = await fetch(`/api/survey-session/${surveyId}`, {
+      // First, check if it's a regular survey to determine the correct redirect
+      const regularResponse = await fetch(`/api/survey-session/${surveyId}`, {
         credentials: "include",
         cache: "no-store",
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[LoginPage] ✅ Regular survey response:`, {
-          isAnonymous: data.survey?.isAnonymous,
-          hasError: !!data.error,
+      if (regularResponse.ok) {
+        const regularData = await regularResponse.json();
+        console.log(`[LoginPage] ✅ Regular survey check:`, {
+          isAnonymous: regularData.survey?.isAnonymous,
+          surveyType: regularData.surveyType,
         });
         
-        // Check if this is an anonymous survey
+        // Check if this is a regular anonymous survey
         const isAnonymous =
-          data.survey?.isAnonymous === true ||
-          (data.survey?.isAnonymous as any) === 1;
+          regularData.survey?.isAnonymous === true ||
+          (regularData.survey?.isAnonymous as any) === 1;
         
         if (isAnonymous) {
-          console.log(`[LoginPage] 🎭 Anonymous regular survey detected - redirecting directly...`);
-          // Redirect directly to regular survey page
+          console.log(`[LoginPage] 🎭 Anonymous regular survey detected - redirecting to /user/survey/...`);
           router.push(`/user/survey/${surveyId}`);
           return;
         }
+        
+        // Not anonymous, show login form for regular survey
+        console.log(`[LoginPage] 🔒 Regular survey requires authentication - showing login form`);
+        setSurveyType("regular");
+        return;
       }
       
-      // Not anonymous, show login form
-      console.log(`[LoginPage] 🔒 Survey requires authentication - showing login form`);
-      setSurveyType("regular");
+      // If not a regular survey, check if it's a happiness survey
+      console.log(`[LoginPage] ⚠️ Not a regular survey, checking happiness survey...`);
+      const happinessResponse = await fetch(
+        `/api/happiness/surveys/${surveyId}/access`,
+        {
+          credentials: "include",
+        }
+      );
+      
+      if (happinessResponse.ok) {
+        const happinessData = await happinessResponse.json();
+        console.log(`[LoginPage] ✅ Happiness access response:`, {
+          requiresAuth: happinessData.requiresAuth,
+          canAccess: happinessData.canAccess,
+          accessMode: happinessData.accessMode,
+        });
+        
+        // Check if this is an anonymous happiness survey
+        if (happinessData.requiresAuth === false && happinessData.canAccess === true) {
+          console.log(`[LoginPage] 🎭 Anonymous happiness survey detected - redirecting to /happiness/...`);
+          router.push(`/happiness/${surveyId}`);
+          return;
+        }
+        
+        // Happiness survey that requires auth
+        setSurveyType("happiness");
+      } else {
+        // Survey not found in either table
+        console.log(`[LoginPage] ❌ Survey not found in any table`);
+        setSurveyType("regular");
+      }
     } catch (error) {
-      console.error(`[LoginPage] ❌ Error checking regular survey:`, error);
-      // On error, default to regular survey type
+      console.error(`[LoginPage] ❌ Error checking survey:`, error);
       setSurveyType("regular");
     }
   };
+
 
   // Check for multi-tab redirect
   useEffect(() => {
