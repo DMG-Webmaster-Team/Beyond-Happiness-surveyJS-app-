@@ -1,6 +1,6 @@
 "use client";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -66,46 +66,52 @@ export default function UserLogin() {
   const checkSurveyType = async (surveyId: string) => {
     try {
       console.log(`[LoginPage] 🔍 Checking survey type for: ${surveyId}`);
-      
+
       // First, check if it's a regular survey to determine the correct redirect
       const regularResponse = await fetch(`/api/survey-session/${surveyId}`, {
         credentials: "include",
         cache: "no-store",
       });
-      
+
       if (regularResponse.ok) {
         const regularData = await regularResponse.json();
         console.log(`[LoginPage] ✅ Regular survey check:`, {
           isAnonymous: regularData.survey?.isAnonymous,
           surveyType: regularData.surveyType,
         });
-        
+
         // Check if this is a regular anonymous survey
         const isAnonymous =
           regularData.survey?.isAnonymous === true ||
           (regularData.survey?.isAnonymous as any) === 1;
-        
+
         if (isAnonymous) {
-          console.log(`[LoginPage] 🎭 Anonymous regular survey detected - redirecting to /user/survey/...`);
-          router.push(`/user/survey/${surveyId}`);
+          console.log(
+            `[LoginPage] 🎭 Anonymous regular survey detected - redirecting to /user/survey/...`
+          );
+          window.location.href = `/user/survey/${surveyId}`;
           return;
         }
-        
+
         // Not anonymous, show login form for regular survey
-        console.log(`[LoginPage] 🔒 Regular survey requires authentication - showing login form`);
+        console.log(
+          `[LoginPage] 🔒 Regular survey requires authentication - showing login form`
+        );
         setSurveyType("regular");
         return;
       }
-      
+
       // If not a regular survey, check if it's a happiness survey
-      console.log(`[LoginPage] ⚠️ Not a regular survey, checking happiness survey...`);
+      console.log(
+        `[LoginPage] ⚠️ Not a regular survey, checking happiness survey...`
+      );
       const happinessResponse = await fetch(
         `/api/happiness/surveys/${surveyId}/access`,
         {
           credentials: "include",
         }
       );
-      
+
       if (happinessResponse.ok) {
         const happinessData = await happinessResponse.json();
         console.log(`[LoginPage] ✅ Happiness access response:`, {
@@ -113,14 +119,19 @@ export default function UserLogin() {
           canAccess: happinessData.canAccess,
           accessMode: happinessData.accessMode,
         });
-        
+
         // Check if this is an anonymous happiness survey
-        if (happinessData.requiresAuth === false && happinessData.canAccess === true) {
-          console.log(`[LoginPage] 🎭 Anonymous happiness survey detected - redirecting to /happiness/...`);
-          router.push(`/happiness/${surveyId}`);
+        if (
+          happinessData.requiresAuth === false &&
+          happinessData.canAccess === true
+        ) {
+          console.log(
+            `[LoginPage] 🎭 Anonymous happiness survey detected - redirecting to /happiness/...`
+          );
+          window.location.href = `/happiness/${surveyId}`;
           return;
         }
-        
+
         // Happiness survey that requires auth
         setSurveyType("happiness");
       } else {
@@ -133,7 +144,6 @@ export default function UserLogin() {
       setSurveyType("regular");
     }
   };
-
 
   // Check for multi-tab redirect
   useEffect(() => {
@@ -149,7 +159,6 @@ export default function UserLogin() {
 
       // Also clear all sessionStorage submission states
       clearAllSurveySubmissionStates();
-
     }
   }, [searchParams]);
 
@@ -177,7 +186,6 @@ export default function UserLogin() {
       const storedSurveyType = sessionStorage.getItem("currentSurveyType");
 
       if (storedSurveyId) {
-
         // Redirect to include surveyId in URL
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.set("redirect", storedSurveyId);
@@ -204,13 +212,11 @@ export default function UserLogin() {
 
     if (sid) {
       setStableSurveyId(sid);
-
     } else {
       console.warn("⚠️ No surveyId found in URL parameters or sessionStorage");
     }
 
     // Debug logging
-
   }, [searchParams]);
 
   // Validation regex patterns
@@ -479,7 +485,6 @@ export default function UserLogin() {
     setError("");
 
     try {
-
       const requestBody = {
         [contactData.inputType]: contactData.identifier,
         otp: otpString,
@@ -555,7 +560,6 @@ export default function UserLogin() {
             retakeWindowMinutes: 60, // 1 hour for retake window
           }
         );
-
       } catch (sessionError) {
         console.error("⚠️ Failed to create survey session:", sessionError);
         // Continue with login flow even if session creation fails
@@ -572,7 +576,6 @@ export default function UserLogin() {
             key.includes(`access:denied:${targetSurveyId}`)
         );
         cacheKeys.forEach((key) => localStorage.removeItem(key));
-
       }
 
       // Redirect based on access status and survey type
