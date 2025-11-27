@@ -6,6 +6,7 @@ import {
   happinessResults,
   happinessCharacters,
 } from "@/db/schema/happiness";
+import { surveys } from "@/db/schema/surveys";
 import { eq, and, desc } from "drizzle-orm";
 
 // Force Node.js runtime (disable Edge runtime)
@@ -26,21 +27,63 @@ export async function GET(
       );
     }
 
-    // Get survey details first
-    const survey = await db
+    // Get survey details first - check happiness_surveys table
+    let survey = await db
       .select()
       .from(happinessSurveys)
       .where(eq(happinessSurveys.id, surveyId))
       .limit(1);
 
+    let surveyData: any;
+    let foundInTable = "happiness_surveys";
+
+    // If not found in happiness_surveys, check surveys table as fallback
     if (survey.length === 0) {
-      return NextResponse.json(
-        { error: "Survey not found", accessMode: null },
-        { status: 404 }
-      );
+      const regularSurvey = await db
+        .select()
+        .from(surveys)
+        .where(eq(surveys.id, surveyId))
+        .limit(1);
+
+      if (regularSurvey.length === 0) {
+        console.log(`Survey ${surveyId} not found in either happiness_surveys or surveys table`);
+        return NextResponse.json(
+          { error: "Survey not found", accessMode: null },
+          { status: 404 }
+        );
+      }
+
+      // Found in surveys table - validate it's anonymous
+      const regularSurveyData = regularSurvey[0];
+      if (!regularSurveyData.isAnonymous) {
+        console.log(`Survey ${surveyId} found in surveys table but is not anonymous`);
+        return NextResponse.json(
+          { error: "Survey not found", accessMode: null },
+          { status: 404 }
+        );
+      }
+
+      // Map regular survey to happiness survey format
+      surveyData = {
+        id: regularSurveyData.id,
+        title: regularSurveyData.title,
+        anonymous: regularSurveyData.isAnonymous,
+        accessMode: regularSurveyData.isAnonymous ? "anonymous" : "login",
+        retakeCooldownDays: 0,
+        companyId: regularSurveyData.companyId || null,
+        companyName: regularSurveyData.companyName || null,
+        isActive: regularSurveyData.isActive,
+        isPublished: regularSurveyData.isPublished,
+        createdAt: regularSurveyData.createdAt,
+        updatedAt: regularSurveyData.updatedAt,
+      };
+      foundInTable = "surveys";
+      console.log(`Survey ${surveyId} found in surveys table (anonymous survey)`);
+    } else {
+      surveyData = survey[0];
+      console.log(`Survey ${surveyId} found in happiness_surveys table`);
     }
 
-    const surveyData = survey[0];
     // Fallback for missing accessMode column (before migration)
     const accessMode =
       surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
