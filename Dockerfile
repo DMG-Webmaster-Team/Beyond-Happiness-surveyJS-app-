@@ -4,7 +4,6 @@ FROM node:20-slim AS builder
 # Install Chromium and dependencies
 RUN apt-get update && apt-get install -y \
   chromium \
-  chromium-sandbox \
   fonts-liberation \
   libappindicator3-1 \
   libasound2 \
@@ -22,7 +21,8 @@ RUN apt-get update && apt-get install -y \
   xdg-utils \
   wget \
   ca-certificates \
-  fonts-noto \
+  fonts-noto-core \
+  --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 # Set Puppeteer environment variables
@@ -44,7 +44,6 @@ FROM node:20-slim
 # Install Chromium and dependencies in production stage
 RUN apt-get update && apt-get install -y \
   chromium \
-  chromium-sandbox \
   fonts-liberation \
   libappindicator3-1 \
   libasound2 \
@@ -62,7 +61,8 @@ RUN apt-get update && apt-get install -y \
   xdg-utils \
   wget \
   ca-certificates \
-  fonts-noto \
+  fonts-noto-core \
+  --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
