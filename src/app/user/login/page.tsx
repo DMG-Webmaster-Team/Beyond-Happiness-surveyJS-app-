@@ -169,54 +169,58 @@ export default function UserLogin() {
     // Setup auto-cleanup for survey sessions
     setupAutoCleanup();
 
-    // Get surveyId from URL parameters first
-    const urlParams = new URLSearchParams(window.location.search);
-    let sid =
-      searchParams.get("surveyId") ??
-      searchParams.get("redirect") ??
-      urlParams.get("surveyId") ??
-      urlParams.get("redirect");
-
-    // Check if this is a happiness survey
-    let type = searchParams.get("type") ?? urlParams.get("type");
-
-    // If no surveyId in URL, try to restore from sessionStorage (logout recovery)
-    if (!sid) {
-      const storedSurveyId = sessionStorage.getItem("currentSurveyId");
-      const storedSurveyType = sessionStorage.getItem("currentSurveyType");
-
-      if (storedSurveyId) {
-        // Redirect to include surveyId in URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.set("redirect", storedSurveyId);
-        if (storedSurveyType === "happiness") {
-          newUrl.searchParams.set("type", "happiness");
-        }
-
-        window.location.href = newUrl.toString();
-        return; // Exit early, page will reload with correct URL
-      }
+    // Wait for searchParams to be ready (hydration)
+    if (!searchParams) {
+      console.log("[LoginPage] ⏳ Waiting for searchParams to hydrate...");
+      return;
     }
 
+    // Get surveyId from searchParams (more reliable than window.location)
+    const surveyIdParam =
+      searchParams.get("surveyId") || searchParams.get("redirect");
+    const typeParam = searchParams.get("type");
+
+    // Fallback to sessionStorage if not in URL
+    let sid = surveyIdParam || sessionStorage.getItem("currentSurveyId");
+    let type = typeParam || sessionStorage.getItem("currentSurveyType");
+
+    // If we have a stored surveyId but it's not in URL, redirect to include it
+    if (!surveyIdParam && sid) {
+      const storedSurveyType = sessionStorage.getItem("currentSurveyType");
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set("redirect", sid);
+      if (storedSurveyType === "happiness") {
+        newUrl.searchParams.set("type", "happiness");
+      }
+      console.log(
+        `[LoginPage] 🔄 Redirecting to include surveyId in URL: ${sid}`
+      );
+      window.location.href = newUrl.toString();
+      return; // Exit early, page will reload with correct URL
+    }
+
+    // Guard: Don't proceed if no surveyId
+    if (!sid) {
+      console.warn(
+        "[LoginPage] ⚠️ No surveyId found in URL or sessionStorage. Staying on login page."
+      );
+      setSurveyType("regular");
+      return;
+    }
+
+    console.log("[LoginPage] 🔍 SurveyId extracted:", sid);
+    setStableSurveyId(sid);
+
     if (type === "happiness") {
+      console.log("[LoginPage] 🎯 Happiness survey type detected from URL");
       setSurveyType("happiness");
     } else {
       // Check survey type and handle anonymous surveys
-      if (sid) {
-        // This will check both happiness and regular surveys, and redirect if anonymous
-        checkSurveyType(sid);
-      } else {
-        setSurveyType("regular");
-      }
+      console.log(
+        "[LoginPage] 🔍 Survey type unknown, checking if anonymous..."
+      );
+      checkSurveyType(sid);
     }
-
-    if (sid) {
-      setStableSurveyId(sid);
-    } else {
-      console.warn("⚠️ No surveyId found in URL parameters or sessionStorage");
-    }
-
-    // Debug logging
   }, [searchParams]);
 
   // Validation regex patterns
