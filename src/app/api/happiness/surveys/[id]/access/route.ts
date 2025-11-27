@@ -55,7 +55,12 @@ export async function GET(
 
       // Found in surveys table - validate it's anonymous
       const regularSurveyData = regularSurvey[0];
-      if (!regularSurveyData.isAnonymous) {
+      // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
+      const isAnonymous =
+        regularSurveyData.isAnonymous === true ||
+        (regularSurveyData.isAnonymous as any) === 1;
+      
+      if (!isAnonymous) {
         console.log(`Survey ${surveyId} found in surveys table but is not anonymous`);
         return NextResponse.json(
           { error: "Survey not found", accessMode: null },
@@ -67,8 +72,8 @@ export async function GET(
       surveyData = {
         id: regularSurveyData.id,
         title: regularSurveyData.title,
-        anonymous: regularSurveyData.isAnonymous,
-        accessMode: regularSurveyData.isAnonymous ? "anonymous" : "login",
+        anonymous: isAnonymous,
+        accessMode: isAnonymous ? "anonymous" : "login",
         retakeCooldownDays: 0,
         companyId: regularSurveyData.companyId || null,
         companyName: regularSurveyData.companyName || null,

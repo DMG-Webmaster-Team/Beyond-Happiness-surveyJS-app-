@@ -160,6 +160,65 @@ export default function SurveyPage() {
       const originalSurveyJson = JSON.parse(sessionData.survey.json);
       let surveyJson = { ...originalSurveyJson };
 
+      // For anonymous surveys, filter out personal info fields that are already collected via ParticipantInformationForm
+      if (sessionData.survey.isAnonymous) {
+        // List of personal info field names to filter out
+        // Simple field names (exact match)
+        const simplePersonalInfoFields = [
+          "name",
+          "email",
+          "phone",
+          "gender",
+          "ageRange",
+          "fullName",
+        ];
+        // Nested field names (prefix match for nested structures)
+        const nestedPersonalInfoFields = [
+          "anonymousInfo.name",
+          "anonymousInfo.email",
+          "anonymousInfo.phone",
+          "anonymousInfo.gender",
+          "anonymousInfo.ageRange",
+        ];
+
+        // Filter out personal info fields from all pages
+        if (surveyJson.pages && Array.isArray(surveyJson.pages)) {
+          surveyJson.pages = surveyJson.pages.map((page: any) => {
+            if (page.elements && Array.isArray(page.elements)) {
+              return {
+                ...page,
+                elements: page.elements.filter((el: any) => {
+                  const elementName = el.name;
+                  if (!elementName) return true; // Keep elements without names
+
+                  // Check exact match for simple fields
+                  if (simplePersonalInfoFields.includes(elementName)) {
+                    return false;
+                  }
+
+                  // Check prefix match for nested fields
+                  if (
+                    nestedPersonalInfoFields.some((field) =>
+                      elementName.startsWith(field)
+                    )
+                  ) {
+                    return false;
+                  }
+
+                  return true;
+                }),
+              };
+            }
+            return page;
+          });
+
+          // Remove empty pages after filtering
+          surveyJson.pages = surveyJson.pages.filter(
+            (page: any) => !page.elements || page.elements.length > 0
+          );
+        }
+      }
+
       const model = new Model(surveyJson);
 
       // Configure survey model
