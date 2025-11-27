@@ -97,8 +97,25 @@ export default function UserLogin() {
     if (surveyIdParam) {
       console.log("[LoginPage] 🔍 SurveyId extracted from URL:", surveyIdParam);
       setStableSurveyId(surveyIdParam);
+
+      // If we have a surveyId, redirect to survey page immediately
+      // Survey page will handle: anonymous detection, happiness redirect, auth requirements
+      if (typeParam === "happiness") {
+        console.log(
+          "[LoginPage] 🎯 Happiness survey - redirecting to /happiness/..."
+        );
+        window.location.href = `/happiness/${surveyIdParam}`;
+        return;
+      } else {
+        console.log(
+          "[LoginPage] 🔄 Redirecting to survey page for type detection..."
+        );
+        window.location.href = `/user/survey/${surveyIdParam}`;
+        return;
+      }
     }
 
+    // No surveyId - this is a normal login page visit
     if (typeParam === "happiness") {
       console.log("[LoginPage] 🎯 Happiness survey type detected from URL");
       setSurveyType("happiness");
