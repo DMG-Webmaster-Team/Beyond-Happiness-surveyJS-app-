@@ -134,7 +134,7 @@ export default function SurveyPage() {
               `[SurveyPage] 🔒 Authentication required, redirecting to login...`
             );
             // Redirect to login page (survey page will handle redirect back)
-            router.push(`/user/login`);
+            router.push(`/user/login?redirect=${surveyId}`);
             return;
           }
 

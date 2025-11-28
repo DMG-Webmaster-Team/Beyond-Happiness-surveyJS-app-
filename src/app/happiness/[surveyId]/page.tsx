@@ -86,7 +86,6 @@ export default function HappinessSurveyPage({
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
-
     }
 
     // Check for language parameter in URL
@@ -111,7 +110,6 @@ export default function HappinessSurveyPage({
   useEffect(() => {
     // Prevent access check if we've already redirected
     if (hasRedirected) {
-
       return;
     }
 
@@ -136,12 +134,9 @@ export default function HappinessSurveyPage({
             if (age < 120000) {
               // 120s TTL
               cachedData = parsed.data;
-
             }
           }
-        } catch (e) {
-
-        }
+        } catch (e) {}
 
         // Always make the API call for authoritative data
         const response = await fetch(
@@ -152,7 +147,6 @@ export default function HappinessSurveyPage({
         );
 
         if (!isMounted) {
-
           return;
         }
 
@@ -161,7 +155,10 @@ export default function HappinessSurveyPage({
 
           // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, don't redirect to login
           // Allow access even on error - they don't need authentication
-          if (errorData.accessMode === "anonymous" || errorData.accessMode === "collect_info") {
+          if (
+            errorData.accessMode === "anonymous" ||
+            errorData.accessMode === "collect_info"
+          ) {
             // Allow access - will show language selection first, then user info collection
             setAccessData(errorData);
             setAccessCheckComplete(true);
@@ -171,29 +168,32 @@ export default function HappinessSurveyPage({
 
           // Handle different error cases with redirects for NON-ANONYMOUS surveys
           if (response.status === 401) {
-
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
+            router.push(
+              `/user/login?redirect=${params.surveyId}&type=happiness`
+            );
             return;
           } else if (response.status === 404) {
-
             setHasRedirected(true);
             setIsRedirecting(true);
             router.push("/not-found");
             return;
           } else if (response.status === 403) {
-
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
+            router.push(
+              `/user/login?redirect=${params.surveyId}&type=happiness`
+            );
             return;
           } else {
             // Generic error - redirect to home
 
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
+            router.push(
+              `/user/login?redirect=${params.surveyId}&type=happiness`
+            );
             return;
           }
         }
@@ -201,7 +201,10 @@ export default function HappinessSurveyPage({
         const data = await response.json();
 
         // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, skip assignment checks
-        if (data.accessMode === "anonymous" || data.accessMode === "collect_info") {
+        if (
+          data.accessMode === "anonymous" ||
+          data.accessMode === "collect_info"
+        ) {
           setAccessData(data);
           setAccessCheckComplete(true);
           // Don't set showUserInfoCollection here - let language selection happen first
@@ -210,7 +213,6 @@ export default function HappinessSurveyPage({
 
         // ✅ SECURITY FIX: Check if user is assigned and has access (NON-ANONYMOUS only)
         if (data.assigned === false || data.canAccess === false) {
-
           setHasRedirected(true);
           setIsRedirecting(true);
           // Show error message and redirect to login
@@ -228,13 +230,10 @@ export default function HappinessSurveyPage({
               timestamp: Date.now(),
             })
           );
-        } catch (e) {
-
-        }
+        } catch (e) {}
 
         // Handle cooldown case
         if (data.cooldown === true && (data.cooldownRemaining ?? 0) > 0) {
-
           setHasRedirected(true);
           setIsRedirecting(true);
           router.push(
@@ -245,7 +244,6 @@ export default function HappinessSurveyPage({
 
         // Handle retake case
         if (data.retake === true) {
-
           // Clear any previous submission state for retakes
           clearSurveySubmissionState(params.surveyId);
         }
@@ -403,7 +401,6 @@ export default function HappinessSurveyPage({
 
   const handleSubmit = async () => {
     if (isSubmitting || submissionCompletedRef.current) {
-
       return;
     }
 
@@ -529,9 +526,9 @@ export default function HappinessSurveyPage({
 
   // Show loading state while access check is in progress or data is loading
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
-    const isAnonymousSurvey = 
-      accessData?.survey?.anonymous || 
-      accessData?.accessMode === "anonymous" || 
+    const isAnonymousSurvey =
+      accessData?.survey?.anonymous ||
+      accessData?.accessMode === "anonymous" ||
       accessData?.accessMode === "collect_info";
     return (
       <>
@@ -568,9 +565,9 @@ export default function HappinessSurveyPage({
 
   // Show language selection if not selected yet
   if (showLanguageSelection) {
-    const isAnonymousSurvey = 
-      accessData?.survey?.anonymous || 
-      accessData?.accessMode === "anonymous" || 
+    const isAnonymousSurvey =
+      accessData?.survey?.anonymous ||
+      accessData?.accessMode === "anonymous" ||
       accessData?.accessMode === "collect_info";
     return (
       <div className="min-h-screen bg-gray-50">
@@ -705,9 +702,9 @@ export default function HappinessSurveyPage({
     );
   }
 
-  const isAnonymousSurvey = 
-    accessData?.survey?.anonymous || 
-    accessData?.accessMode === "anonymous" || 
+  const isAnonymousSurvey =
+    accessData?.survey?.anonymous ||
+    accessData?.accessMode === "anonymous" ||
     accessData?.accessMode === "collect_info";
 
   return (

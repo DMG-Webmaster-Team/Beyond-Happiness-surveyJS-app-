@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, redirect } from "next/navigation";
 import { Survey } from "survey-react-ui";
 import { Model } from "survey-core";
 import dynamic from "next/dynamic";
@@ -192,55 +192,57 @@ export default function SurveyPage() {
     console.log(`[SurveyPage] 🔐 isAnonymous check result: ${isAnonymous}`);
 
     if (isAnonymous) {
-      console.log(
-        `[SurveyPage] 🎭 Anonymous survey detected - checking for collected user data...`
-      );
-      // Check both state and sessionStorage for collected data
-      let storedData = collectedUserData;
-      if (typeof window !== "undefined") {
-        try {
-          const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
-          if (stored) {
-            storedData = JSON.parse(stored);
-            console.log(
-              `[SurveyPage] 💾 Found stored user data in sessionStorage:`,
-              storedData
-            );
-            // Update state if we found stored data and state is empty
-            if (
-              storedData.name &&
-              storedData.email &&
-              !collectedUserData.name
-            ) {
-              console.log(
-                `[SurveyPage] ✅ Updating state with stored user data`
-              );
-              setCollectedUserData(storedData);
-            }
-          } else {
-            console.log(
-              `[SurveyPage] 💾 No stored user data in sessionStorage`
-            );
-          }
-        } catch (e) {
-          console.error(`[SurveyPage] ❌ Error reading sessionStorage:`, e);
-        }
-      }
+      router.push(`/user/survey/${surveyId}`);
+      return;
+      //   console.log(
+      //     `[SurveyPage] 🎭 Anonymous survey detected - checking for collected user data...`
+      //   );
+      //   // Check both state and sessionStorage for collected data
+      //   let storedData = collectedUserData;
+      //   if (typeof window !== "undefined") {
+      //     try {
+      //       const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
+      //       if (stored) {
+      //         storedData = JSON.parse(stored);
+      //         console.log(
+      //           `[SurveyPage] 💾 Found stored user data in sessionStorage:`,
+      //           storedData
+      //         );
+      //         // Update state if we found stored data and state is empty
+      //         if (
+      //           storedData.name &&
+      //           storedData.email &&
+      //           !collectedUserData.name
+      //         ) {
+      //           console.log(
+      //             `[SurveyPage] ✅ Updating state with stored user data`
+      //           );
+      //           setCollectedUserData(storedData);
+      //         }
+      //       } else {
+      //         console.log(
+      //           `[SurveyPage] 💾 No stored user data in sessionStorage`
+      //         );
+      //       }
+      //     } catch (e) {
+      //       console.error(`[SurveyPage] ❌ Error reading sessionStorage:`, e);
+      //     }
+      //   }
 
-      // Show user info collection if data not collected yet
-      const hasCollectedData = storedData.name && storedData.email;
-      console.log(
-        `[SurveyPage] 📝 Has collected data: ${hasCollectedData} (name: ${!!storedData.name}, email: ${!!storedData.email})`
-      );
-      setShowUserInfoCollection(!hasCollectedData);
-      console.log(
-        `[SurveyPage] 📝 Setting showUserInfoCollection to: ${!hasCollectedData}`
-      );
-    } else {
-      console.log(
-        `[SurveyPage] 🔒 Non-anonymous survey - skipping user info collection`
-      );
-      setShowUserInfoCollection(false);
+      //   // Show user info collection if data not collected yet
+      //   const hasCollectedData = storedData.name && storedData.email;
+      //   console.log(
+      //     `[SurveyPage] 📝 Has collected data: ${hasCollectedData} (name: ${!!storedData.name}, email: ${!!storedData.email})`
+      //   );
+      //   setShowUserInfoCollection(!hasCollectedData);
+      //   console.log(
+      //     `[SurveyPage] 📝 Setting showUserInfoCollection to: ${!hasCollectedData}`
+      //   );
+      // } else {
+      //   console.log(
+      //     `[SurveyPage] 🔒 Non-anonymous survey - skipping user info collection`
+      //   );
+      //   setShowUserInfoCollection(false);
     }
   }, [sessionData, surveyId, collectedUserData]);
 
