@@ -7,19 +7,23 @@ interface QRCodeModalProps {
   surveyId: string;
   isOpen: boolean;
   onClose: () => void;
+  isAnonymous?: boolean;
 }
 
 export default function QRCodeModal({
   surveyId,
   isOpen,
   onClose,
+  isAnonymous = false,
 }: QRCodeModalProps) {
   const qrRef = useRef<HTMLDivElement>(null);
 
   if (!isOpen) return null;
 
-  // Generate the survey URL
-  const surveyUrl = `${window.location.origin}/user/survey/${surveyId}`;
+  // Generate the survey URL - use /survey/[id] for anonymous, /user/survey/[id] for authenticated
+  const surveyUrl = isAnonymous
+    ? `${window.location.origin}/survey/${surveyId}`
+    : `${window.location.origin}/user/survey/${surveyId}`;
 
   // Function to download QR code as SVG (simpler and more reliable)
   const downloadQRCode = () => {

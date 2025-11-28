@@ -158,6 +158,20 @@ export default function SurveyPage() {
           hasUser: !!data.user,
           submissionStatus: data.submissionStatus,
         });
+
+        // If anonymous survey, redirect to /survey/[id] (not /user/survey/[id])
+        const isAnonymous =
+          data.survey?.isAnonymous === true ||
+          (data.survey?.isAnonymous as any) === 1;
+
+        if (isAnonymous) {
+          console.log(
+            `[SurveyPage] 🎭 Anonymous survey detected - redirecting to /survey/...`
+          );
+          router.push(`/survey/${surveyId}`);
+          return;
+        }
+
         setSessionData(data);
       } catch (err) {
         console.error("[SurveyPage] ❌ Error fetching survey session:", err);
@@ -192,7 +206,7 @@ export default function SurveyPage() {
     console.log(`[SurveyPage] 🔐 isAnonymous check result: ${isAnonymous}`);
 
     if (isAnonymous) {
-      router.push(`/user/survey/${surveyId}`);
+      router.push(`/survey/${surveyId}`);
       return;
       //   console.log(
       //     `[SurveyPage] 🎭 Anonymous survey detected - checking for collected user data...`

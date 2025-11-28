@@ -180,7 +180,15 @@ export default function AdminDashboard() {
   };
 
   const copySurveyLink = async (surveyId: string) => {
-    const surveyLink = `${window.location.origin}/user/survey/${surveyId}`;
+    // Find the survey to check if it's anonymous
+    const survey = surveys?.find((s) => s.id === surveyId);
+    const isAnonymous = survey?.isAnonymous === true || (survey?.isAnonymous as any) === 1;
+    
+    // Use /survey/[id] for anonymous, /user/survey/[id] for authenticated
+    const surveyLink = isAnonymous
+      ? `${window.location.origin}/survey/${surveyId}`
+      : `${window.location.origin}/user/survey/${surveyId}`;
+    
     try {
       await navigator.clipboard.writeText(surveyLink);
       setCopiedSurveyId(surveyId);
@@ -519,6 +527,10 @@ export default function AdminDashboard() {
             setIsQRModalOpen(false);
             setSelectedSurveyId(null);
           }}
+          isAnonymous={
+            surveys?.find((s) => s.id === selectedSurveyId)?.isAnonymous === true ||
+            (surveys?.find((s) => s.id === selectedSurveyId)?.isAnonymous as any) === 1
+          }
         />
       )}
 
