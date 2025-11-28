@@ -174,7 +174,7 @@ export default function HappinessSurveyPage({
 
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push(`/user/login?redirect=${params.surveyId}`);
+            router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
             return;
           } else if (response.status === 404) {
 
@@ -186,14 +186,14 @@ export default function HappinessSurveyPage({
 
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push(`/user/login?redirect=${params.surveyId}`);
+            router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
             return;
           } else {
             // Generic error - redirect to home
 
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/login");
+            router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
             return;
           }
         }
@@ -215,7 +215,7 @@ export default function HappinessSurveyPage({
           setIsRedirecting(true);
           // Show error message and redirect to login
           alert(data.message || "You are not assigned to this survey");
-          router.push("/user/login");
+          router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
           return;
         }
 
@@ -256,10 +256,10 @@ export default function HappinessSurveyPage({
       } catch (error) {
         console.error("🔍 Access check error:", error);
         if (isMounted) {
-          // On network error, redirect to home
+          // On network error, redirect to login with type
           setHasRedirected(true);
           setIsRedirecting(true);
-          router.push("/user/login");
+          router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
         }
       } finally {
         if (isMounted) {
