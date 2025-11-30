@@ -271,12 +271,13 @@ export async function POST(request: NextRequest) {
 
             // Instead of rejecting, return the previous result for cooldown period
             // Use getMultilingualCharacter to get proper multilingual data
+            // Always use English for character data (user's language preference is still stored)
             const { getMultilingualCharacter } = await import(
               "@/lib/services/happiness-scoring"
             );
             const multilingualCharacter = await getMultilingualCharacter(
               lastSubmission.code,
-              selectedLanguage as "en" | "ar"
+              "en" as "en" | "ar"
             );
 
             return NextResponse.json({
@@ -298,10 +299,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Compute happiness score
+    // Compute happiness score - Always use English for character data
+    // (User's language preference is still stored in database for analytics)
     const scoreResult = await computeHappinessScore(
       answers as HappinessAnswer[],
-      selectedLanguage as "en" | "ar"
+      "en" as "en" | "ar"
     );
 
     // Store result

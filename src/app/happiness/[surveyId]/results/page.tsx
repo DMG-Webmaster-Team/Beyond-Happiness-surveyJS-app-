@@ -341,7 +341,7 @@ export default function HappinessResultsPage({
             },
             body: JSON.stringify({
               answers: result.answers || [],
-              language: selectedLanguage,
+              language: "en", // Always use English for results page
             }),
           });
 
@@ -865,10 +865,11 @@ export default function HappinessResultsPage({
                         ] || 0;
 
                       // Get Essential name instead of Type A/B/C/D
+                      // Always use English for essential names
                       const essentialName = getEssentialName(
                         category.name,
                         subtype,
-                        selectedLanguage
+                        "en" as "en" | "ar"
                       );
 
                       return (

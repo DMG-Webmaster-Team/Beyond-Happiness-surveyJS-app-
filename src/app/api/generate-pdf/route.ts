@@ -3,6 +3,7 @@ import puppeteer from "puppeteer";
 import { loadImageAsBase64 } from "../../../utils/pdf/loadImageAsBase64";
 import { calculateUnifiedHappinessScore } from "@/lib/services/unified-happiness-scoring";
 import { getEssentialName } from "@/lib/essential-mappings";
+import { getMultilingualCharacter } from "@/lib/services/happiness-scoring";
 
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = "nodejs";
@@ -12,6 +13,26 @@ async function generatePDFHTML(result: any, language: string) {
   const isRTL = false; // Always use LTR for English
   // Force English language (override parameter)
   language = "en";
+
+  // Ensure character data always uses English (safeguard for old results)
+  // If detailedDescription is missing, fetch English version from database
+  if (!result.character.detailedDescription && result.code) {
+    try {
+      const englishCharacter = await getMultilingualCharacter(
+        result.code,
+        "en"
+      );
+      result.character.detailedDescription =
+        englishCharacter.detailedDescription || "";
+      // Also ensure other character fields are in English
+      result.character.description = englishCharacter.description;
+      result.character.nameEn = englishCharacter.nameEn;
+      result.character.nameAr = englishCharacter.nameAr;
+    } catch (error) {
+      console.error("Error fetching English character data:", error);
+      // Continue with existing data if fetch fails
+    }
+  }
 
   // Translation objects
   const categoryTranslations = {
@@ -174,7 +195,6 @@ async function generatePDFHTML(result: any, language: string) {
     const essentialsPath = getEssentialsIcon(category);
     const essentialsBase64 = await loadImageAsBase64(essentialsPath);
     essentialsIconsBase64[category] = essentialsBase64;
-
   }
 
   // Generate chart bars HTML using unified scores
@@ -236,9 +256,7 @@ async function generatePDFHTML(result: any, language: string) {
 
   // Log detailed description status
   if (result.character.detailedDescription) {
-
   } else {
-
   }
 
   // Split categories for multi-page layout
@@ -583,8 +601,7 @@ async function generatePDFHTML(result: any, language: string) {
                    font-size: 1.5rem;
                    font-weight: bold;
                  ">
-                   ${result.character//   : result.character.nameEn //   ? result.character.nameAr // language === "ar" // Force English - Arabic name commented out
-                   .nameEn
+                   ${result.character.nameEn //   : result.character.nameEn //   ? result.character.nameAr // language === "ar" // Force English - Arabic name commented out
                      .charAt(0)
                      .toUpperCase()}
                  </div>`
@@ -685,7 +702,6 @@ async function generatePDFHTML(result: any, language: string) {
 }
 
 export async function POST(request: NextRequest) {
-
   try {
     const body = await request.json();
 
@@ -702,11 +718,11 @@ export async function POST(request: NextRequest) {
     let browser;
 
     try {
-
       // Launch Puppeteer
       browser = await puppeteer.launch({
         headless: true,
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
+        executablePath:
+          process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium",
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
@@ -760,13 +776,12 @@ export async function POST(request: NextRequest) {
       });
 
       // Use character name from result data for filename (ASCII only)
+      // Always use English name for filename
       const characterName =
-        language === "ar"
-          ? result.character.nameAr
-          : result.character.nameEn
-              .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
-              .replace(/\s+/g, "_")
-              .trim() || "Character";
+        (result.character.nameEn || "Character")
+          .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
+          .replace(/\s+/g, "_")
+          .trim() || "Character";
       const filename = `${characterName}_Happiness_Report.pdf`;
 
       // Return PDF as response
@@ -790,7 +805,6 @@ export async function POST(request: NextRequest) {
     } finally {
       if (browser) {
         await browser.close();
-
       }
     }
   } catch (error) {
