@@ -90,16 +90,52 @@ export async function GET(
 
         if (happinessSurvey) {
           console.log(
-            `[survey-session] ✅ Found survey ${surveyId} in happiness_surveys table, redirecting...`
+            `[survey-session] ✅ Found survey ${surveyId} in happiness_surveys table`
+          );
+
+          // Check accessMode to determine routing
+          const accessMode = happinessSurvey.accessMode || "login";
+          console.log(
+            `[survey-session] 🔐 Happiness survey accessMode: ${accessMode}`
+          );
+
+          // Only redirect anonymous and collect_info surveys to /happiness/[id]
+          // Login-required surveys should NOT be redirected - they stay at /user/survey/[id]
+          if (accessMode === "anonymous" || accessMode === "collect_info") {
+            console.log(
+              `[survey-session] 🎭 Anonymous/collect_info happiness survey - redirecting to /happiness/${surveyId}`
+            );
+            return NextResponse.json(
+              {
+                error: "This is an anonymous happiness survey",
+                redirect: true,
+                redirectUrl: `/happiness/${surveyId}`,
+                surveyType: "happiness",
+                accessMode,
+              },
+              { status: 302 }
+            );
+          }
+
+          // For login-required happiness surveys, return a special response
+          // indicating this is a happiness survey that requires auth
+          // The /user/survey/[id] page will detect this and render appropriately
+          console.log(
+            `[survey-session] 🔒 Login-required happiness survey - returning happiness survey indicator`
           );
           return NextResponse.json(
             {
-              error: "This is a happiness survey",
-              redirect: true,
-              redirectUrl: `/happiness/${surveyId}`,
+              isHappinessSurvey: true,
               surveyType: "happiness",
+              accessMode,
+              requiresAuth: true,
+              survey: {
+                id: happinessSurvey.id,
+                title: happinessSurvey.title,
+                accessMode: happinessSurvey.accessMode,
+              },
             },
-            { status: 302 }
+            { status: 200 }
           );
         }
       } catch (error) {

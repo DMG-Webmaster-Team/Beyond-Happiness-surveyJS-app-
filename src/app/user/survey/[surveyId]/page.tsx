@@ -157,7 +157,18 @@ export default function SurveyPage() {
           isAnonymous: data.survey?.isAnonymous,
           hasUser: !!data.user,
           submissionStatus: data.submissionStatus,
+          isHappinessSurvey: data.isHappinessSurvey,
         });
+
+        // Check if this is a happiness survey that requires authentication
+        if (data.isHappinessSurvey && data.surveyType === "happiness") {
+          console.log(
+            `[SurveyPage] 🎭 Authenticated happiness survey detected - redirecting to /happiness/${surveyId}`
+          );
+          // Redirect to happiness survey page which will handle authentication
+          router.push(`/happiness/${surveyId}`);
+          return;
+        }
 
         // If anonymous survey, redirect to /survey/[id] (not /user/survey/[id])
         const isAnonymous =
