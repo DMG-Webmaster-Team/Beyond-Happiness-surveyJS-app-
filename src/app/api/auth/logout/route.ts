@@ -32,16 +32,16 @@ export async function POST(request: NextRequest) {
       success: true,
     };
 
-    // If surveyId provided, suggest redirect URL with proper type
+    // If surveyId provided, redirect to login with survey context preserved
     if (surveyId) {
       if (surveyType === "happiness") {
-        responseData.redirect = `/happiness/${surveyId}`;
+        responseData.redirect = `/user/login?redirect=${surveyId}&type=happiness`;
       } else {
-        responseData.redirect = `/user/survey/${surveyId}`;
+        responseData.redirect = `/user/login?redirect=${surveyId}`;
       }
-
     } else {
-
+      // No survey context, redirect to login page
+      responseData.redirect = `/user/login`;
     }
 
     // Log logout details for debugging
