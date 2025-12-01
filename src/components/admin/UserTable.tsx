@@ -76,12 +76,12 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
       });
 
       const response = await fetch(`/api/users?${params}`, {
-        cache: 'no-store', // Disable caching
+        cache: "no-store", // Disable caching
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
       });
       const data = await response.json();
 
@@ -106,7 +106,6 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
   // Refresh data when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger) {
-
       // Clear current data first to show loading state
       setUsers([]);
       setPagination({
@@ -353,7 +352,6 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
             whileTap={{ scale: 0.98 }}
             type="button"
             onClick={() => {
-
               // Clear current data first to show loading state
               setUsers([]);
               setPagination({
@@ -366,8 +364,18 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
             }}
             className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-2"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
             Refresh
           </motion.button>
@@ -607,11 +615,18 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
                     allowNone={true}
                     placeholder="Choose a company (optional)"
                     className="w-full"
-                    disabled={true}
+                    disabled={
+                      (editingUser.assignments &&
+                        editingUser.assignments.length > 0) ||
+                      !!editingUser.companyId
+                    }
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    Select a company for this user. Leave empty if no company
-                    assignment is needed.
+                    {(editingUser.assignments &&
+                      editingUser.assignments.length > 0) ||
+                    editingUser.companyId
+                      ? "Company cannot be changed for users with existing survey assignments or company assignment."
+                      : "Select a company for this user. Leave empty if no company assignment is needed."}
                   </p>
                 </div>
 

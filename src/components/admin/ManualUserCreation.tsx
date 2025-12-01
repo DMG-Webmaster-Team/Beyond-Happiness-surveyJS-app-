@@ -115,35 +115,35 @@ export default function ManualUserCreation({
 
     // Email is required
     if (!formData.email) {
-
       setError("Email address is required");
       return false;
     }
 
     // Validate email format
     if (!validateEmail(formData.email)) {
-
       setError("Please enter a valid email address");
       return false;
     }
 
     // Validate phone if provided
     if (formData.phone && !validateEgyptianPhone(formData.phone)) {
-
       setError(
         "Please enter a valid Egyptian phone number (010, 011, 012, or 015 followed by 8 digits)"
       );
       return false;
     }
 
-    // Must have at least one assignment: company OR surveys
+    // Validation: Company is optional, but user must select at least one of:
+    // - Company (optional, but if selected, validation passes)
+    // - Regular Surveys (optional)
+    // - Happiness Surveys (optional)
     const hasCompany = !!formData.companyId;
     const hasSurveys =
       (formData.surveyIds?.length || 0) > 0 ||
       (formData.happinessSurveyIds?.length || 0) > 0;
 
+    // Require at least one of the three options: company, regular surveys, or happiness surveys
     if (!hasCompany && !hasSurveys) {
-
       setError(
         "Please select at least one of the following: Company, Regular Survey, or Happiness Survey."
       );
@@ -157,7 +157,6 @@ export default function ManualUserCreation({
     e.preventDefault();
 
     if (!validateForm()) {
-
       return;
     }
 
@@ -200,7 +199,6 @@ export default function ManualUserCreation({
 
         // Call onSuccess callback if provided
         if (onSuccess) {
-
           setTimeout(() => {
             onSuccess();
           }, 1500); // Give time to show success message
@@ -215,7 +213,6 @@ export default function ManualUserCreation({
       setError("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
-
     }
   };
 
@@ -323,6 +320,7 @@ export default function ManualUserCreation({
           <CompanySelect
             value={formData.companyId || null}
             onChange={handleCompanyChange}
+            allowNone={true}
             placeholder="Select a company..."
           />
           <p className="text-xs text-gray-500 mt-1">

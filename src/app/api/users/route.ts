@@ -126,12 +126,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Validation: Must have at least one assignment: company OR surveys
+    // Validation: Company is optional, but user must select at least one of:
+    // - Company (optional, but if selected, validation passes)
+    // - Regular Surveys (optional)
+    // - Happiness Surveys (optional)
     const hasCompany = !!validatedData.companyId;
     const hasSurveys =
       (validatedData.surveyAssignments?.length || 0) > 0 ||
       (validatedData.happinessSurveyAssignments?.length || 0) > 0;
 
+    // Require at least one of the three options: company, regular surveys, or happiness surveys
     if (!hasCompany && !hasSurveys) {
       return NextResponse.json(
         {
