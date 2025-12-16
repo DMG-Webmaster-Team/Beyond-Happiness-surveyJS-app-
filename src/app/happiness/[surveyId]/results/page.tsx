@@ -569,6 +569,7 @@ export default function HappinessResultsPage({
                 className={`text-2xl font-bold mb-0 ${getCharacterNameColor(
                   result
                 )}`}
+                data-character-code={result.code}
               >
                 {getText("youAre")}{" "}
                 {/* Force English - Arabic name commented out */}
@@ -803,7 +804,7 @@ export default function HappinessResultsPage({
               const percentage = category.value;
 
               return (
-                <div key={category.name} className="space-y-4">
+                <div key={category.name} className="space-y-4" data-category={category.name.toLowerCase()}>
                   {/* Main Category Header */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
@@ -847,6 +848,7 @@ export default function HappinessResultsPage({
                       // selectedLanguage === "ar" ? "mr-0" : "ml-6"
                       "ml-6"
                     } space-y-3 bg-gray-50 p-4 rounded-lg`}
+                    data-essentials
                   >
                     <h4 className="text-sm font-semibold text-gray-700 mb-3">
                       {getText("subtypeBreakdown")}

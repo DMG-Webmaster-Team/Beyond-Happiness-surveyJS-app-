@@ -460,7 +460,7 @@ export default function SurveyPage() {
       if (isMultiLanguageSurvey) {
         // Apply UI customizations for multi-language surveys only using proper SurveyJS settings
         model.showTitle = false; // Hide survey title
-        model.showPageTitles = false; // Hide page titles
+        model.showPageTitles = true; // Show page titles for multilingual surveys
         model.showNavigationButtons = true; // Enable navigation buttons
         model.showNavigationButtonsOnTop = false; // Hide top navigation buttons
         model.showNavigationButtonsOnBottom = true; // Show bottom navigation buttons
@@ -476,10 +476,26 @@ export default function SurveyPage() {
           }
         });
 
-        // Safe cleanup - only hide top footer if SurveyJS still renders it
+        // Ensure page titles are visible and styled properly for multilingual surveys
         model.onAfterRenderPage.add((sender, options) => {
           const pageElement = options.htmlElement;
           if (pageElement) {
+            // Find and style page title
+            const pageTitle = pageElement.querySelector(".sv-page__title");
+            if (pageTitle) {
+              const titleEl = pageTitle as HTMLElement;
+              titleEl.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                font-size: 1.5rem !important;
+                font-weight: 600 !important;
+                color: #111827 !important;
+                margin-bottom: 1.5rem !important;
+                padding-bottom: 0.75rem !important;
+                border-bottom: 2px solid #e5e7eb !important;
+              `;
+            }
+            
             // Only hide top footer elements that might still appear
             const topFooters = pageElement.querySelectorAll(
               ".sv-footer.sv-footer-top"
@@ -488,6 +504,31 @@ export default function SurveyPage() {
               const htmlEl = el as HTMLElement;
               htmlEl.style.display = "none";
             });
+          }
+        });
+      } else {
+        // For regular surveys, enable page titles if they exist in the survey JSON
+        model.showPageTitles = true;
+        
+        // Ensure page titles are visible and styled properly
+        model.onAfterRenderPage.add((sender, options) => {
+          const pageElement = options.htmlElement;
+          if (pageElement) {
+            // Find and style page title
+            const pageTitle = pageElement.querySelector(".sv-page__title");
+            if (pageTitle) {
+              const titleEl = pageTitle as HTMLElement;
+              titleEl.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                font-size: 1.5rem !important;
+                font-weight: 600 !important;
+                color: #111827 !important;
+                margin-bottom: 1.5rem !important;
+                padding-bottom: 0.75rem !important;
+                border-bottom: 2px solid #e5e7eb !important;
+              `;
+            }
           }
         });
       }

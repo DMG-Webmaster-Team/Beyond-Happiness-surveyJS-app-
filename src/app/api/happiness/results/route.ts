@@ -126,6 +126,8 @@ export async function GET(request: NextRequest) {
         typeof result.categoryTotals === "string"
           ? JSON.parse(result.categoryTotals)
           : result.categoryTotals,
+      characterName:
+        result.characterNameEn || result.characterNameAr || "Unknown",
     }));
 
     return NextResponse.json({

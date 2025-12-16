@@ -183,7 +183,6 @@ export async function POST(request: NextRequest) {
         finalHappinessAssignments = Array.from(
           new Set([...finalHappinessAssignments, ...companyHappinessIds])
         );
-
       } catch (error) {
         console.error("Error fetching company surveys:", error);
         // Continue with manual assignments if company survey fetch fails
@@ -200,7 +199,6 @@ export async function POST(request: NextRequest) {
         const company = await getCompanyById(validatedData.companyId);
         if (company) {
           companyName = company.name;
-
         } else {
           console.warn(
             `⚠️ Company not found for ID: ${validatedData.companyId}`

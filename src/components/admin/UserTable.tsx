@@ -414,9 +414,6 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Assigned Surveys
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
@@ -453,33 +450,6 @@ export default function UserTable({ refreshTrigger }: UserTableProps = {}) {
                     >
                       {user.status}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.assignments && user.assignments.length > 0 ? (
-                      <div className="space-y-1">
-                        {user.assignments.map((assignment, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center space-x-2"
-                          >
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                              {assignment.surveyTitle}
-                            </span>
-                            <span
-                              className={`text-xs px-2 py-1 rounded ${getStatusColor(
-                                assignment.status
-                              )}`}
-                            >
-                              {assignment.status}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 text-xs">
-                        No surveys assigned
-                      </span>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">

@@ -728,7 +728,7 @@ export default function HappinessSurveyPage({
 
       {/* Question */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="bg-white rounded-lg shadow-sm p-8 happiness-survey" data-happiness-survey>
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {getLocalizedText(
@@ -750,6 +750,7 @@ export default function HappinessSurveyPage({
                       <button
                         key={choice.value}
                         onClick={() => handleAnswer(choice.value)}
+                        data-value={choice.value}
                         className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
                           isSelected
                             ? "border-blue-400 bg-blue-50 text-blue-900"
@@ -815,6 +816,7 @@ export default function HappinessSurveyPage({
                       <button
                         key={choice.value}
                         onClick={() => handleAnswer(choice.value)}
+                        data-value={choice.value}
                         className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
                           isSelected
                             ? "border-blue-400 bg-blue-50 text-blue-900"

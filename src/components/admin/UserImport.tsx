@@ -629,10 +629,6 @@ user4@example.com,Bob Johnson,`;
                       <strong>Updated Users:</strong>{" "}
                       {result.importResults.updatedUsers || 0}
                     </p>
-                    <p>
-                      <strong>Inserted Assignments:</strong>{" "}
-                      {result.importResults.insertedAssignments || 0}
-                    </p>
                     {(result.importResults.skippedAssignments || 0) > 0 && (
                       <p>
                         <strong>Skipped Assignments:</strong>{" "}
