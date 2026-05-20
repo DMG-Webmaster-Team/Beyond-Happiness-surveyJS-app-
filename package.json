@@ -19,7 +19,10 @@
     "test:phone": "node scripts/test-twilio-phone.js",
     "test:table": "node scripts/test-table-view.js",
     "test:user-fetch": "node scripts/test-user-fetch.js",
-    "test:surveyjs-table": "node scripts/test-surveyjs-table.js"
+    "test:surveyjs-table": "node scripts/test-surveyjs-table.js",
+    "db:test": "tsx --env-file=.env.local scripts/test-connection.ts",
+    "deploy:docker": "bash scripts/deploy-docker.sh",
+    "deploy:verify": "bash scripts/verify-deployment.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

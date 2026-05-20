@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.production
 
 # vercel
 .vercel
@@ -35,3 +36,20 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 surveyjs.db
+
+# Documentation files
+*.md
+!README.md
+!DEPLOYMENT_GUIDE.md
+ANONYMOUS_*.md
+DATABASE_*.md
+DEPLOYMENT_*.md
+*_DOCUMENTATION.md
+*_IMPLEMENTATION.md
+*_TROUBLESHOOTING.md
+*_SUMMARY.md
+*_FIX.md
+*_CHECKLIST.md
+docs/
+documentation/
+!DEPLOYMENT_GUIDE.md
