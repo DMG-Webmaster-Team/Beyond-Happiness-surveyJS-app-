@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env.production
 
 # vercel
 .vercel
@@ -39,6 +40,7 @@ surveyjs.db
 # Documentation files
 *.md
 !README.md
+!DEPLOYMENT_GUIDE.md
 ANONYMOUS_*.md
 DATABASE_*.md
 DEPLOYMENT_*.md
@@ -50,3 +52,4 @@ DEPLOYMENT_*.md
 *_CHECKLIST.md
 docs/
 documentation/
+!DEPLOYMENT_GUIDE.md

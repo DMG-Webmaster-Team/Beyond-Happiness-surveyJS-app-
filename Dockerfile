@@ -26,6 +26,9 @@ USER root
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Database: set at runtime via docker compose --env-file .env.production
+# See DEPLOYMENT_GUIDE.md and .env.production.example (DATABASE_URL required in production)
+
 # Set Puppeteer environment variables
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser

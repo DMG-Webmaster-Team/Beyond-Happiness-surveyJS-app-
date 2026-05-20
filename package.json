@@ -13,15 +13,21 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:setup": "tsx scripts/setup-sqlite.ts",
     "db:update-characters": "tsx scripts/update-characters-from-json.ts",
+    "db:clean": "tsx --env-file=.env.local scripts/clean-production-db.ts",
     "seed:test": "tsx scripts/seed-test-data.ts",
     "seed:essentials": "tsx scripts/seed-essentials.ts",
+    "seed:reference": "tsx --env-file=.env.local scripts/seed-reference-data.ts",
+    "export:questions": "tsx --env-file=.env.local scripts/export-questions-data.ts",
     "test:sms": "node scripts/test-twilio.js",
     "test:sms:simple": "node scripts/test-sms-simple.js",
     "test:input": "node scripts/test-unified-input.js",
     "test:phone": "node scripts/test-twilio-phone.js",
     "test:table": "node scripts/test-table-view.js",
     "test:user-fetch": "node scripts/test-user-fetch.js",
-    "test:surveyjs-table": "node scripts/test-surveyjs-table.js"
+    "test:surveyjs-table": "node scripts/test-surveyjs-table.js",
+    "db:test": "tsx --env-file=.env.local scripts/test-connection.ts",
+    "deploy:docker": "bash scripts/deploy-docker.sh",
+    "deploy:verify": "bash scripts/verify-deployment.sh"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
