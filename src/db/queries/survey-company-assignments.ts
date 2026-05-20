@@ -53,8 +53,13 @@ export async function assignSurveyToCompanies(
     assignedBy,
   }));
 
-  const result = await db.insert(surveyCompanyAssignments).values(assignments);
-  return result;
+  await db.insert(surveyCompanyAssignments).values(assignments);
+
+  // Fetch and return all assignments for this survey
+  return await db
+    .select()
+    .from(surveyCompanyAssignments)
+    .where(eq(surveyCompanyAssignments.surveyId, surveyId));
 }
 
 /**
@@ -98,10 +103,13 @@ export async function assignHappinessSurveyToCompanies(
     assignedBy,
   }));
 
-  const result = await db
-    .insert(happinessSurveyCompanyAssignments)
-    .values(assignments);
-  return result;
+  await db.insert(happinessSurveyCompanyAssignments).values(assignments);
+
+  // Fetch and return all assignments for this survey
+  return await db
+    .select()
+    .from(happinessSurveyCompanyAssignments)
+    .where(eq(happinessSurveyCompanyAssignments.surveyId, surveyId));
 }
 
 /**
@@ -145,9 +153,13 @@ export async function getHappinessSurveyCompanies(
 
 /**
  * Get regular surveys assigned to a company
+ * Checks both:
+ * 1. Many-to-many assignments via surveyCompanyAssignments
+ * 2. Direct assignments via companyId field in surveys table
  */
 export async function getCompanySurveys(companyId: string): Promise<any[]> {
-  return db
+  // Get surveys from many-to-many table
+  const assignedSurveys = await db
     .select({
       id: surveys.id,
       title: surveys.title,
@@ -166,15 +178,54 @@ export async function getCompanySurveys(companyId: string): Promise<any[]> {
         eq(surveys.isPublished, true)
       )
     );
+
+  // Get surveys with direct companyId assignment
+  const directSurveysRaw = await db
+    .select({
+      id: surveys.id,
+      title: surveys.title,
+      description: surveys.description,
+      isActive: surveys.isActive,
+      isPublished: surveys.isPublished,
+      assignedAt: surveys.createdAt, // Use createdAt as assignedAt for direct assignments
+    })
+    .from(surveys)
+    .where(
+      and(
+        eq(surveys.companyId, companyId),
+        eq(surveys.isActive, true),
+        eq(surveys.isPublished, true)
+      )
+    );
+
+  // Add assignedBy field after fetching
+  const directSurveys = directSurveysRaw.map((survey) => ({
+    ...survey,
+    assignedBy: "direct_assignment" as string | null,
+  }));
+
+  // Merge both results, removing duplicates by id
+  const surveyMap = new Map();
+  [...assignedSurveys, ...directSurveys].forEach((survey) => {
+    if (!surveyMap.has(survey.id)) {
+      surveyMap.set(survey.id, survey);
+    }
+  });
+
+  return Array.from(surveyMap.values());
 }
 
 /**
  * Get happiness surveys assigned to a company
+ * Checks both:
+ * 1. Many-to-many assignments via happinessSurveyCompanyAssignments
+ * 2. Direct assignments via companyId field in happinessSurveys table
  */
 export async function getCompanyHappinessSurveys(
   companyId: string
 ): Promise<any[]> {
-  return db
+  // Get surveys from many-to-many table
+  const assignedSurveys = await db
     .select({
       id: happinessSurveys.id,
       title: happinessSurveys.title,
@@ -195,6 +246,40 @@ export async function getCompanyHappinessSurveys(
         eq(happinessSurveys.isPublished, true)
       )
     );
+
+  // Get surveys with direct companyId assignment
+  const directSurveysRaw = await db
+    .select({
+      id: happinessSurveys.id,
+      title: happinessSurveys.title,
+      isActive: happinessSurveys.isActive,
+      isPublished: happinessSurveys.isPublished,
+      assignedAt: happinessSurveys.createdAt, // Use createdAt as assignedAt for direct assignments
+    })
+    .from(happinessSurveys)
+    .where(
+      and(
+        eq(happinessSurveys.companyId, companyId),
+        eq(happinessSurveys.isActive, true),
+        eq(happinessSurveys.isPublished, true)
+      )
+    );
+
+  // Add assignedBy field after fetching
+  const directSurveys = directSurveysRaw.map((survey) => ({
+    ...survey,
+    assignedBy: "direct_assignment" as string | null,
+  }));
+
+  // Merge both results, removing duplicates by id
+  const surveyMap = new Map();
+  [...assignedSurveys, ...directSurveys].forEach((survey) => {
+    if (!surveyMap.has(survey.id)) {
+      surveyMap.set(survey.id, survey);
+    }
+  });
+
+  return Array.from(surveyMap.values());
 }
 
 /**

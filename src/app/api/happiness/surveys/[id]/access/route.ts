@@ -6,6 +6,7 @@ import {
   happinessResults,
   happinessCharacters,
 } from "@/db/schema/happiness";
+import { surveys } from "@/db/schema/surveys";
 import { eq, and, desc } from "drizzle-orm";
 
 // Force Node.js runtime (disable Edge runtime)
@@ -13,32 +14,133 @@ export const runtime = "nodejs";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
 
-    // Get survey details first
-    const survey = await db
+    console.log(
+      `[happiness-access] 🔍 Starting access check for surveyId: ${surveyId}`
+    );
+
+    // Validate survey ID
+    if (!surveyId || typeof surveyId !== "string" || surveyId.trim() === "") {
+      console.log(`[happiness-access] ❌ Invalid survey ID`);
+      return NextResponse.json({ error: "Invalid survey ID" }, { status: 400 });
+    }
+
+    // Get survey details first - check happiness_surveys table
+    console.log(
+      `[happiness-access] 📊 Looking up survey in happiness_surveys table...`
+    );
+    let survey = await db
       .select()
       .from(happinessSurveys)
       .where(eq(happinessSurveys.id, surveyId))
       .limit(1);
 
+    let surveyData: any;
+    let foundInTable = "happiness_surveys";
+
+    // If not found in happiness_surveys, check surveys table as fallback
     if (survey.length === 0) {
-      return NextResponse.json({ error: "Survey not found" }, { status: 404 });
+      console.log(
+        `[happiness-access] ⚠️ Survey ${surveyId} not found in happiness_surveys, checking surveys table...`
+      );
+      const regularSurvey = await db
+        .select()
+        .from(surveys)
+        .where(eq(surveys.id, surveyId))
+        .limit(1);
+
+      if (regularSurvey.length === 0) {
+        console.log(
+          `[happiness-access] ❌ Survey ${surveyId} not found in either happiness_surveys or surveys table`
+        );
+        return NextResponse.json(
+          { error: "Survey not found", accessMode: null },
+          { status: 404 }
+        );
+      }
+
+      // Found in surveys table - validate it's anonymous
+      const regularSurveyData = regularSurvey[0];
+      console.log(
+        `[happiness-access] ✅ Survey found in surveys table: ${regularSurveyData.id} - "${regularSurveyData.title}"`
+      );
+      console.log(
+        `[happiness-access] 📋 Raw isAnonymous value from DB:`,
+        regularSurveyData.isAnonymous,
+        `(type: ${typeof regularSurveyData.isAnonymous})`
+      );
+
+      // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
+      const isAnonymous =
+        regularSurveyData.isAnonymous === true ||
+        (regularSurveyData.isAnonymous as any) === 1;
+
+      console.log(
+        `[happiness-access] 🔐 isAnonymous check result: ${isAnonymous} (${
+          regularSurveyData.isAnonymous === true ? "true match" : ""
+        } ${(regularSurveyData.isAnonymous as any) === 1 ? "1 match" : ""})`
+      );
+
+      if (!isAnonymous) {
+        console.log(
+          `[happiness-access] ❌ Survey ${surveyId} found in surveys table but is not anonymous - returning 404`
+        );
+        return NextResponse.json(
+          { error: "Survey not found", accessMode: null },
+          { status: 404 }
+        );
+      }
+
+      // Map regular survey to happiness survey format
+      surveyData = {
+        id: regularSurveyData.id,
+        title: regularSurveyData.title,
+        anonymous: isAnonymous,
+        accessMode: isAnonymous ? "anonymous" : "login",
+        retakeCooldownDays: 0,
+        companyId: regularSurveyData.companyId || null,
+        companyName: regularSurveyData.companyName || null,
+        isActive: regularSurveyData.isActive,
+        isPublished: regularSurveyData.isPublished,
+        createdAt: regularSurveyData.createdAt,
+        updatedAt: regularSurveyData.updatedAt,
+      };
+      foundInTable = "surveys";
+      console.log(
+        `[happiness-access] ✅ Survey ${surveyId} found in surveys table (anonymous survey)`
+      );
+    } else {
+      surveyData = survey[0];
+      console.log(
+        `[happiness-access] ✅ Survey ${surveyId} found in happiness_surveys table`
+      );
     }
 
-    const surveyData = survey[0];
     // Fallback for missing accessMode column (before migration)
     const accessMode =
       surveyData.accessMode || (surveyData.anonymous ? "anonymous" : "login");
 
+    console.log(
+      `[happiness-access] 🔐 Access mode determined: ${accessMode} (from ${
+        surveyData.accessMode ? "accessMode field" : "anonymous field"
+      })`
+    );
+
     // For anonymous and collect_info modes, always allow access (subject to cooldown if configured)
     if (accessMode === "anonymous" || accessMode === "collect_info") {
+      console.log(
+        `[happiness-access] 🎭 Anonymous/collect_info mode detected - allowing access`
+      );
       // For anonymous and collect_info surveys, we could still enforce cooldown based on IP or other identifier
       // But for now, we'll allow unlimited access
-      return NextResponse.json({
+      console.log(
+        `[happiness-access] ✅ Returning success response for anonymous/collect_info survey`
+      );
+      const response = {
         assigned: true,
         requiresAuth: false,
         canAccess: true,
@@ -54,7 +156,12 @@ export async function GET(
           accessMode,
         },
         accessMode,
-      });
+      };
+      console.log(
+        `[happiness-access] 📦 Response:`,
+        JSON.stringify(response, null, 2)
+      );
+      return NextResponse.json(response);
     }
 
     // For non-anonymous surveys, get userId from session cookie
@@ -78,14 +185,8 @@ export async function GET(
           if (sessionAge <= thirtyMinutes) {
             userId = sessionData.id;
           } else {
-            console.log("🔍 Session expired:", {
-              sessionAge: Math.round(sessionAge / 1000 / 60),
-              maxAge: 30,
-              userId: sessionData.id,
-            });
           }
         } else {
-          console.log("🔍 Invalid session data structure:", sessionData);
         }
       } catch (error) {
         console.error("Error parsing session cookie:", error);
@@ -93,44 +194,28 @@ export async function GET(
     }
 
     // Log session debugging info
-    console.log("🔍 CROSS-TAB TEST - Happiness Access API Debug:", {
-      path: "/access",
-      method: "GET",
-      surveyId,
-      hasSessionCookie: !!userSession,
-      userIdFromSession: userId,
-      sessionCookieValue: userSession
-        ? userSession.value.substring(0, 50) + "..."
-        : null,
-      anonymous: surveyData.anonymous,
-      timestamp: new Date().toISOString(),
-      userAgent:
-        request.headers.get("user-agent")?.substring(0, 100) || "unknown",
-    });
 
     if (!userId) {
-      return NextResponse.json({
-        assigned: false,
-        requiresAuth: true,
-        canAccess: false,
-        cooldown: false,
-        cooldownRemaining: 0,
-        hasPreviousResult: false,
-        message: "Authentication required for this survey",
-        survey: {
-          ...surveyData,
+      return NextResponse.json(
+        {
+          assigned: false,
+          requiresAuth: true,
+          canAccess: false,
+          cooldown: false,
+          cooldownRemaining: 0,
+          hasPreviousResult: false,
+          message: "Authentication required for this survey",
+          survey: {
+            ...surveyData,
+            accessMode,
+          },
           accessMode,
         },
-        accessMode,
-      });
+        { status: 401 }
+      );
     }
 
-    // Check if user is assigned to this survey
-    console.log("🔍 Checking happiness assignment:", {
-      surveyId,
-      userId,
-      checkingTable: "happiness_assignments",
-    });
+    // Check if user is assigned to this survey (either directly or via company)
 
     const assignment = await db
       .select()
@@ -144,22 +229,38 @@ export async function GET(
       )
       .limit(1);
 
-    console.log("🔍 CROSS-TAB TEST - Assignment check result:", {
-      assignmentFound: assignment.length > 0,
-      assignmentCount: assignment.length,
-      assignment: assignment[0] || null,
-      surveyId,
-      userId,
-      timestamp: new Date().toISOString(),
-    });
+    // If no direct assignment, check if user's company matches survey's company
+    if (assignment.length === 0 && surveyData.companyId) {
+      // Import users schema
+      const { users } = await import("@/db/schema/users");
 
-    if (assignment.length === 0) {
-      console.log("❌ User not assigned to happiness survey:", {
-        surveyId,
-        userId,
-        message: "No active assignment found in happiness_assignments table",
-      });
+      // Get user's company
+      const user = await db
+        .select({ companyId: users.companyId })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
+      if (user.length > 0 && user[0].companyId === surveyData.companyId) {
+        // Grant access via company membership
+        // Continue to cooldown check below
+      } else {
+        return NextResponse.json({
+          assigned: false,
+          requiresAuth: false, // User is authenticated, but not assigned
+          canAccess: false,
+          cooldown: false,
+          cooldownRemaining: 0,
+          hasPreviousResult: false,
+          message: "You are not assigned to this survey",
+          survey: {
+            ...surveyData,
+            accessMode,
+          },
+          accessMode,
+        });
+      }
+    } else if (assignment.length === 0) {
       return NextResponse.json({
         assigned: false,
         requiresAuth: false, // User is authenticated, but not assigned
@@ -234,12 +335,6 @@ export async function GET(
             .where(eq(happinessCharacters.id, lastSubmission.characterId))
             .limit(1);
 
-          console.log("🔍 Character fetch debug:", {
-            characterId: lastSubmission.characterId,
-            characterFound: character.length > 0,
-            character: character[0] || null,
-          });
-
           // Return canonical decision object for cooldown period
           return NextResponse.json({
             assigned: true,
@@ -255,8 +350,9 @@ export async function GET(
               character: character[0]
                 ? {
                     id: character[0].id,
-                    name: character[0].name,
-                    description: character[0].description,
+                    nameEn: character[0].nameEn,
+                    nameAr: character[0].nameAr,
+                    description: character[0].descriptionEn,
                     avatarUrl: character[0].avatarUrl,
                   }
                 : null,
@@ -287,12 +383,6 @@ export async function GET(
         .where(eq(happinessCharacters.id, lastSubmission.characterId))
         .limit(1);
 
-      console.log("🔍 Character fetch debug (retake):", {
-        characterId: lastSubmission.characterId,
-        characterFound: character.length > 0,
-        character: character[0] || null,
-      });
-
       return NextResponse.json({
         assigned: true,
         requiresAuth: true,
@@ -307,8 +397,9 @@ export async function GET(
           character: character[0]
             ? {
                 id: character[0].id,
-                name: character[0].name,
-                description: character[0].description,
+                nameEn: character[0].nameEn,
+                nameAr: character[0].nameAr,
+                description: character[0].descriptionEn,
                 avatarUrl: character[0].avatarUrl,
               }
             : null,
@@ -326,6 +417,9 @@ export async function GET(
       });
     }
 
+    console.log(
+      `[happiness-access] ✅ Returning success response for authenticated survey`
+    );
     return NextResponse.json({
       assigned: true,
       requiresAuth: true,
@@ -341,9 +435,13 @@ export async function GET(
       accessMode,
     });
   } catch (error) {
-    console.error("Error checking survey access:", error);
+    console.error("[happiness-access] ❌ Error checking survey access:", error);
+    console.error(
+      "[happiness-access] ❌ Error stack:",
+      error instanceof Error ? error.stack : "No stack trace"
+    );
     return NextResponse.json(
-      { error: "Failed to check survey access" },
+      { error: "Failed to check survey access", accessMode: null },
       { status: 500 }
     );
   }

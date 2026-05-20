@@ -1,8 +1,16 @@
+/**
+ * @deprecated This PDF page is deprecated and should not be used.
+ * It contains hardcoded max scores (10000) that are incorrect.
+ * Use /api/generate-pdf instead, which uses the unified scoring service
+ * with dynamic max score calculation.
+ */
+
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { happinessResults } from "@/db/schema/happiness";
 import { eq } from "drizzle-orm";
 import { getMultilingualCharacter } from "@/lib/services/happiness-scoring";
+import { getTruthIcon, getEssentialsIcon } from "@/lib/truth-icons";
 
 interface PDFPageProps {
   params: { id: string };
@@ -22,8 +30,10 @@ interface HappinessResult {
   };
   character: {
     id: number;
-    name: string;
+    nameEn: string;
+    nameAr: string;
     description: string;
+    detailedDescription: string;
     avatarUrl: string;
   };
   language: string;
@@ -72,19 +82,14 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
     notFound();
   }
 
-  const language =
-    (searchParams.lang as "en" | "ar") ||
-    (result.language as "en" | "ar") ||
-    "en";
-  const isRTL = language === "ar";
-
-  console.log("PDF Debug:", {
-    searchParamsLang: searchParams.lang,
-    resultLanguage: result.language,
-    finalLanguage: language,
-    categoryTotals: result.categoryTotals,
-    categoryKeys: Object.keys(result.categoryTotals || {}),
-  });
+  // Force English - Arabic language detection commented out
+  // const language =
+  //   (searchParams.lang as "en" | "ar") ||
+  //   (result.language as "en" | "ar") ||
+  //   "en";
+  const language = "en";
+  // const isRTL = language === "ar";
+  const isRTL = false; // Always use LTR for English
 
   // Calculate percentages
   const totalScore = Object.values(result.categoryTotals).reduce(
@@ -99,15 +104,15 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Meaning":
-        return "#8B5CF6"; // Purple
+        return "#784C9F"; // rgb(120, 76, 159)
       case "Delight":
-        return "#EAB308"; // Yellow
+        return "#FEC010"; // rgb(254, 192, 16)
       case "Freedom":
-        return "#22C55E"; // Green
+        return "#F67E52"; // rgb(246, 126, 82)
       case "Engagement":
-        return "#3B82F6"; // Blue
+        return "#4972B8"; // rgb(73, 114, 184)
       case "Vitality":
-        return "#EF4444"; // Red
+        return "#71AD46"; // rgb(113, 173, 70)
       default:
         return "#6B7280"; // Gray
     }
@@ -178,11 +183,20 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
   };
 
   return (
-    <html lang={language} dir={isRTL ? "rtl" : "ltr"}>
+    // Force English - Arabic language/direction commented out
+    // <html lang={language} dir={isRTL ? "rtl" : "ltr"}>
+    <html lang="en" dir="ltr">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Happiness Survey Report - {result.character.name}</title>
+        <title>
+          Happiness Survey Report -{" "}
+          {/* Force English - Arabic name commented out */}
+          {/* {language === "ar"
+            ? result.character.nameAr
+            : result.character.nameEn} */}
+          {result.character.nameEn}
+        </title>
 
         {/* Google Fonts for Arabic support */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -282,7 +296,9 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
         `}</style>
       </head>
 
-      <body className={`bg-gray-50 ${isRTL ? "font-arabic" : "font-english"}`}>
+      {/* Force English - Arabic font class commented out */}
+      {/* <body className={`bg-gray-50 ${isRTL ? "font-arabic" : "font-english"}`}> */}
+      <body className="bg-gray-50 font-english">
         <div className="min-h-screen p-8 max-w-4xl mx-auto bg-white">
           {/* Header - Beyond Happiness Branding */}
           <div className="text-center mb-12">
@@ -304,9 +320,13 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
           <div className="text-center mb-8">
             <div className="inline-block px-8 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg shadow-sm">
               <h2 className="text-2xl font-bold text-blue-600">
-                {isRTL
-                  ? `${getText("youAre")} ${result.character.name}!`
-                  : `${getText("youAre")} ${result.character.name}!`}
+                {`${getText("youAre")} ${
+                  // Force English - Arabic name commented out
+                  // language === "ar"
+                  //   ? result.character.nameAr
+                  //   : result.character.nameEn
+                  result.character.nameEn
+                }!`}
               </h2>
             </div>
           </div>
@@ -318,7 +338,13 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
                 src={
                   result.character.avatarUrl || `/characters/${result.code}.png`
                 }
-                alt={result.character.name}
+                alt={
+                  // Force English - Arabic name commented out
+                  // language === "ar"
+                  //   ? result.character.nameAr
+                  //   : result.character.nameEn
+                  result.character.nameEn
+                }
                 className="w-48 h-48 mx-auto object-contain"
               />
             </div>
@@ -357,45 +383,66 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
 
             <div className="bg-gray-50 p-6 rounded-lg">
               <div className="flex justify-between items-end h-48 mb-4">
-                {Object.entries(result.categoryTotals || {}).map(
-                  ([category, score]) => {
-                    const percentage = Math.round(
-                      (score / maxPossibleScorePerCategory) * 100
-                    );
-                    const height = Math.max((percentage / 100) * 180, 8); // Min height of 8px
-                    const color = getCategoryColor(category);
+                {(() => {
+                  const chartHeight = 180;
+                  return Object.entries(result.categoryTotals || {}).map(
+                    ([category, score]) => {
+                      const percentage = Math.round(
+                        (score / maxPossibleScorePerCategory) * 100
+                      );
+                      const height = Math.max((percentage / 100) * 180, 8); // Min height of 8px
+                      const color = getCategoryColor(category);
+                      // FIXED label position: place all labels as if bar height were 60%
+                      const fixedPct = 60;
+                      const fixedHeight = Math.max(
+                        (fixedPct / 100) * chartHeight,
+                        8
+                      );
+                      const labelBottom = chartHeight - fixedHeight + 8;
 
-                    return (
-                      <div
-                        key={category}
-                        className="flex flex-col items-center flex-1 mx-1"
-                      >
+                      return (
                         <div
-                          className="w-full rounded-t-md flex items-end justify-center text-white text-sm font-semibold"
-                          style={{
-                            backgroundColor: color,
-                            height: `${height}px`,
-                            minHeight: "20px",
-                          }}
+                          key={category}
+                          className="flex flex-col items-center flex-1 mx-1 relative"
+                          style={{ height: "12rem" }}
                         >
-                          {percentage > 15 && `${percentage}%`}
-                        </div>
-                        <div className="mt-2 text-center">
-                          <div className="text-sm font-medium text-gray-700">
-                            {categoryTranslations[
-                              category as keyof typeof categoryTranslations
-                            ]?.[language as "en" | "ar"] || category}
+                          {/* Percentage above each bar (app style) */}
+                          <div
+                            className="absolute text-lg font-bold text-gray-900 whitespace-nowrap"
+                            style={{
+                              bottom: `${labelBottom}px`,
+                            }}
+                          >
+                            {percentage}%
                           </div>
-                          {percentage <= 15 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {percentage}%
+                          {/* Bar */}
+                          <div
+                            className="w-full rounded-t-md mt-auto"
+                            style={{
+                              backgroundColor: color,
+                              height: `${height}px`,
+                              minHeight: "20px",
+                            }}
+                          />
+                          {/* Truth photo and name at bottom */}
+                          <div className="mt-2 text-center">
+                            <img
+                              src={getTruthIcon(category)}
+                              alt={category}
+                              className="w-10 h-10 object-contain mx-auto"
+                              style={{ display: "block" }}
+                            />
+                            <div className="text-sm font-medium text-gray-700 mt-1">
+                              {categoryTranslations[
+                                category as keyof typeof categoryTranslations
+                              ]?.[language as "en" | "ar"] || category}
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }
-                )}
+                      );
+                    }
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -416,19 +463,25 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
                   const categoryName =
                     categoryTranslations[
                       category as keyof typeof categoryTranslations
-                    ]?.[language as "en" | "ar"] || category;
+                    ]?.en || category;
+                  // Force English - Arabic translation commented out
+                  // ]?.[language as "en" | "ar"] || category;
                   const description =
                     categoryDescriptions[
                       category as keyof typeof categoryDescriptions
-                    ]?.[language as "en" | "ar"] || "";
+                    ]?.en || "";
+                  // Force English - Arabic description commented out
+                  // ]?.[language as "en" | "ar"] || "";
 
                   return (
                     <div key={category} className="space-y-3">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-4 h-4 rounded"
-                            style={{ backgroundColor: color }}
+                          <img
+                            src={getTruthIcon(category)}
+                            alt={category}
+                            className="w-8 h-8 object-contain"
+                            style={{ display: "block" }}
                           />
                           <span className="font-bold text-lg" style={{ color }}>
                             {categoryName}
@@ -451,10 +504,11 @@ export default async function PDFPage({ params, searchParams }: PDFPageProps) {
 
           {/* Footer */}
           <div className="mt-12 text-center text-gray-500 text-sm">
-            <p>{getText("footer")}</p>
             <p className="mt-2">
               {new Date().toLocaleDateString(
-                language === "ar" ? "ar-EG" : "en-US"
+                // Force English - Arabic locale commented out
+                // language === "ar" ? "ar-EG" : "en-US"
+                "en-US"
               )}
             </p>
           </div>

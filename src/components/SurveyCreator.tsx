@@ -49,7 +49,7 @@ export default function SurveyCreatorWidget(props: {
           no: number,
           callback: (num: number, status: boolean) => void
         ) => {
-          console.log(JSON.stringify(newCreator?.JSON));
+
           callback(no, true);
         };
 

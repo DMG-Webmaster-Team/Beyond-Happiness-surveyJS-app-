@@ -49,9 +49,8 @@ export default function TableView({
         const resultsResponse = await fetchJSON(
           `/api/results?surveyId=${surveyId}`
         );
-        console.log("Results API response:", resultsResponse);
+
         const results = (resultsResponse as any).items || resultsResponse;
-        console.log("Extracted results:", results);
 
         if (!cancelled) {
           // Validate survey schema

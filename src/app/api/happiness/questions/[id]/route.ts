@@ -9,10 +9,11 @@ import { eq } from "drizzle-orm";
 export const runtime = "nodejs";
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const questionId = parseInt(params.id);
+    const { id } = await params;
+    const questionId = parseInt(id);
     if (isNaN(questionId)) {
       return NextResponse.json(
         { error: "Invalid question ID" },
@@ -131,10 +132,11 @@ export async function PUT(
 // DELETE - Delete happiness question (hard delete for inactive questions only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const questionId = parseInt(params.id);
+    const { id } = await params;
+    const questionId = parseInt(id);
     if (isNaN(questionId)) {
       return NextResponse.json(
         { error: "Invalid question ID" },

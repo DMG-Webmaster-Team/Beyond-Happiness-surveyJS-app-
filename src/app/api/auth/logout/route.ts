@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
@@ -33,31 +32,21 @@ export async function POST(request: NextRequest) {
       success: true,
     };
 
-    // If surveyId provided, suggest redirect URL with proper type
+    // If surveyId provided, redirect to login with survey context preserved
     if (surveyId) {
       if (surveyType === "happiness") {
-        responseData.redirect = `/user/login?redirect=${encodeURIComponent(
-          surveyId
-        )}&type=happiness`;
+        responseData.redirect = `/user/login?redirect=${surveyId}&type=happiness`;
       } else {
-        responseData.redirect = `/user/login?redirect=${encodeURIComponent(
-          surveyId
-        )}`;
+        responseData.redirect = `/user/login?redirect=${surveyId}`;
       }
-      console.log("🔄 Logout with survey redirect:", responseData.redirect);
     } else {
-      console.log("🔄 Standard logout without specific redirect");
+      // No survey context, redirect to login page
+      responseData.redirect = `/user/login`;
     }
 
     // Log logout details for debugging
     const referer = request.headers.get("referer") || "unknown";
     const userAgent = request.headers.get("user-agent") || "unknown";
-    console.log("🔍 Logout API called:", {
-      origin: referer,
-      userAgent: userAgent.substring(0, 100),
-      surveyId: surveyId,
-      timestamp: new Date().toISOString(),
-    });
 
     const response = NextResponse.json(responseData);
     response.cookies.delete("user_session");

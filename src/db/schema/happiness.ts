@@ -59,8 +59,12 @@ export const happinessCharacters = mysqlTable(
   "happiness_characters",
   {
     id: int("id").primaryKey().autoincrement(),
-    name: varchar("name", { length: 100 }).notNull(),
-    description: text("description").notNull(),
+    nameEn: varchar("name_en", { length: 255 }).notNull(),
+    nameAr: varchar("name_ar", { length: 255 }).notNull(),
+    descriptionEn: text("description_en").notNull(),
+    descriptionAr: text("description_ar").notNull(),
+    detailedDescriptionEnHtml: text("detailed_description_en_html"),
+    detailedDescriptionArHtml: text("detailed_description_ar_html"),
     match: varchar("match", { length: 5 }).notNull(), // 5-bit code like "01111"
     avatarUrl: varchar("avatar_url", { length: 500 }),
     createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),

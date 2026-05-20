@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Favicon</title>
+</head>
+<body>
+    <canvas id="canvas" width="32" height="32"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Blue background
+        ctx.fillStyle = '#00A3E0';
+        ctx.fillRect(0, 0, 32, 32);
+        
+        // White text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('BH', 16, 16);
+        
+        // Convert to data URL
+        const dataUrl = canvas.toDataURL('image/png');
+        console.log('Favicon generated. Right-click the canvas and save as favicon.ico');
+    </script>
+</body>
+</html>

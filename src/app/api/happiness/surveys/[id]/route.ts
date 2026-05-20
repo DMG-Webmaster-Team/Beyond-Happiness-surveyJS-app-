@@ -13,10 +13,10 @@ export const runtime = "nodejs";
 // GET - Get single happiness survey
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
 
     const survey = await db
       .select()
@@ -53,10 +53,10 @@ export async function GET(
 // PUT - Update happiness survey
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
+    const { id: surveyId } = await params;
     const body = await request.json();
     const {
       title,
@@ -100,9 +100,7 @@ export async function PUT(
             updateData.retakeCooldownDays = 0;
           }
         } catch (e) {
-          console.log(
-            "accessMode column not yet available, using anonymous field"
-          );
+
           updateData.anonymous =
             accessMode === "anonymous" || accessMode === "collect_info";
           if (accessMode === "anonymous" || accessMode === "collect_info") {
@@ -173,12 +171,10 @@ export async function PUT(
 // DELETE - Soft delete happiness survey (set isPublished = false)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const surveyId = params.id;
-
-    console.log(`🗑️ Soft deleting happiness survey: ${surveyId}`);
+    const { id: surveyId } = await params;
 
     // Soft delete by setting isPublished = false
     await db
@@ -200,7 +196,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Survey not found" }, { status: 404 });
     }
 
-    console.log(`✅ Successfully soft deleted happiness survey: ${surveyId}`);
     return NextResponse.json({
       success: true,
       message: "Survey deleted successfully (soft delete - can be restored)",

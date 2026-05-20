@@ -3,9 +3,9 @@ import { db } from "../../../../db/client";
 import { users, userAssignments, surveys } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
 
-
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const userSession = request.cookies.get("user_session");
@@ -105,12 +105,6 @@ export async function GET(request: NextRequest) {
         phone: userData.phone,
         assignments: assignments,
       };
-
-      console.log("✅ Session check successful for user:", {
-        id: userData.id,
-        email: userData.email,
-        assignmentsCount: assignments.length,
-      });
 
       return NextResponse.json({
         isAuthenticated: true,

@@ -10,19 +10,16 @@ import { nanoid } from "nanoid";
 export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
-    console.log("🔍 GET /api/happiness/questions - Starting request");
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
     const isActive = searchParams.get("isActive");
 
-    console.log("📋 Request parameters:", { category, search, isActive });
-
     // Test database connection first
     try {
       await db.execute("SELECT 1 as test");
-      console.log("✅ Database connection test successful");
+
     } catch (dbError) {
       console.error("❌ Database connection test failed:", dbError);
       return NextResponse.json(
@@ -35,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch all questions with essential names - sorted by ID ascending (1, 2, 3, ...)
-    console.log("📊 Fetching questions from database...");
+
     const questions = await db
       .select({
         id: happinessQuestions.id,
@@ -52,8 +49,6 @@ export async function GET(request: NextRequest) {
       .from(happinessQuestions)
       .leftJoin(essentials, eq(happinessQuestions.essentialId, essentials.id))
       .orderBy(asc(happinessQuestions.id));
-
-    console.log(`📋 Fetched ${questions.length} questions from database`);
 
     // Values are already parsed as JSON in MySQL, no need to parse again
     let parsedQuestions = questions.map((q) => {
@@ -84,14 +79,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log(`🔄 Processed ${parsedQuestions.length} questions`);
-
     // Apply client-side filtering since Drizzle ORM filtering can be complex
     if (category && category !== "all") {
       parsedQuestions = parsedQuestions.filter((q) => q.category === category);
-      console.log(
-        `🔍 Filtered by category '${category}': ${parsedQuestions.length} questions`
-      );
+
     }
 
     if (search && search.trim()) {
@@ -99,9 +90,7 @@ export async function GET(request: NextRequest) {
       parsedQuestions = parsedQuestions.filter((q) =>
         q.text.toLowerCase().includes(searchLower)
       );
-      console.log(
-        `🔍 Filtered by search '${search}': ${parsedQuestions.length} questions`
-      );
+
     }
 
     if (isActive && isActive !== "all") {
@@ -109,12 +98,8 @@ export async function GET(request: NextRequest) {
       parsedQuestions = parsedQuestions.filter(
         (q) => Boolean(q.isActive) === activeFilter
       );
-      console.log(
-        `🔍 Filtered by active '${isActive}': ${parsedQuestions.length} questions`
-      );
-    }
 
-    console.log(`✅ Returning ${parsedQuestions.length} questions`);
+    }
 
     return NextResponse.json({
       success: true,
@@ -199,15 +184,6 @@ export async function POST(request: NextRequest) {
     const nextId = lastQuestion.length > 0 ? lastQuestion[0].id + 1 : 1;
 
     // Log the data we're trying to insert for debugging
-    console.log("🔍 Attempting to insert question:", {
-      id: nextId,
-      text,
-      category,
-      categoryValues,
-      essentialId,
-      essentialValues,
-      isActive: isActive !== undefined ? isActive : true,
-    });
 
     // Insert the question (MySQL doesn't support .returning())
     await db.insert(happinessQuestions).values({

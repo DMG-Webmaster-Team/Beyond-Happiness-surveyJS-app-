@@ -10,25 +10,20 @@ export default function TestSurveyJSPage() {
   useEffect(() => {
     const testImports = async () => {
       try {
-        console.log("🧪 Testing SurveyJS imports...");
 
         // Test survey-core
         const { Model } = await import("survey-core");
-        console.log("✅ survey-core Model imported:", Model);
 
         // Test survey-analytics
         const { Tabulator } = await import(
           "survey-analytics/survey.analytics.tabulator"
         );
-        console.log("✅ survey-analytics Tabulator imported:", Tabulator);
 
         // Test jsPDF
         const jsPDF = await import("jspdf");
-        console.log("✅ jsPDF imported:", jsPDF);
 
         // Test XLSX
         const XLSX = await import("xlsx");
-        console.log("✅ XLSX imported:", XLSX);
 
         setImports({
           Model: typeof Model,

@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     try {
       insertValues.accessMode = finalAccessMode;
     } catch (e) {
-      console.log("accessMode column not yet available, using anonymous field");
+
     }
 
     await db.insert(happinessSurveys).values(insertValues);

@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import LoadingScreen from "@/components/shared/LoadingScreen";
+import ParticipantInformationForm, {
+  ParticipantData,
+} from "@/components/shared/ParticipantInformationForm";
 import {
   extendSessionForRetake,
   validateSurveySession,
@@ -83,7 +86,6 @@ export default function HappinessSurveyPage({
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
-      console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
     }
 
     // Check for language parameter in URL
@@ -108,7 +110,6 @@ export default function HappinessSurveyPage({
   useEffect(() => {
     // Prevent access check if we've already redirected
     if (hasRedirected) {
-      console.log("🚫 Skipping access check - redirect already initiated");
       return;
     }
 
@@ -118,16 +119,6 @@ export default function HappinessSurveyPage({
       try {
         setAccessLoading(true);
         setAccessCheckError(null);
-
-        console.log(
-          "🔍 CROSS-TAB TEST - Single access check starting for:",
-          params.surveyId,
-          {
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent.substring(0, 100),
-            tabId: Math.random().toString(36).substr(2, 9), // Random tab identifier
-          }
-        );
 
         // ✅ The access API already handles all authentication logic
         // No need for additional session validation here since the backend is authoritative
@@ -143,12 +134,9 @@ export default function HappinessSurveyPage({
             if (age < 120000) {
               // 120s TTL
               cachedData = parsed.data;
-              console.log("🔍 Using cached access data (age:", age, "ms)");
             }
           }
-        } catch (e) {
-          console.log("🔍 Cache read error (ignoring):", e);
-        }
+        } catch (e) {}
 
         // Always make the API call for authoritative data
         const response = await fetch(
@@ -159,54 +147,77 @@ export default function HappinessSurveyPage({
         );
 
         if (!isMounted) {
-          console.log("🚫 Component unmounted during access check");
           return;
         }
 
         if (!response.ok) {
           const errorData = await response.json();
-          console.log("🔍 Access check failed:", response.status, errorData);
 
-          // Handle different error cases with redirects
+          // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, don't redirect to login
+          // Allow access even on error - they don't need authentication
+          if (
+            errorData.accessMode === "anonymous" ||
+            errorData.accessMode === "collect_info"
+          ) {
+            // Allow access - will show language selection first, then user info collection
+            setAccessData(errorData);
+            setAccessCheckComplete(true);
+            // Don't set showUserInfoCollection here - let language selection happen first
+            return;
+          }
+
+          // Handle different error cases with redirects for NON-ANONYMOUS surveys
           if (response.status === 401) {
-            console.log("🔍 Unauthorized - redirecting to login");
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/login");
+            router.push(
+              `/user/login?redirect=${params.surveyId}&type=happiness`
+            );
             return;
           } else if (response.status === 404) {
-            console.log("🔍 Survey not found - redirecting to 404");
             setHasRedirected(true);
             setIsRedirecting(true);
             router.push("/not-found");
             return;
           } else if (response.status === 403) {
-            console.log("🔍 Access forbidden - redirecting to home");
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/login");
+            router.push(
+              `/user/login?redirect=${params.surveyId}&type=happiness`
+            );
             return;
           } else {
             // Generic error - redirect to home
-            console.log("🔍 Generic error - redirecting to home");
+
             setHasRedirected(true);
             setIsRedirecting(true);
-            router.push("/user/login");
+            router.push(
+              `/user/login?redirect=${params.surveyId}&type=happiness`
+            );
             return;
           }
         }
 
         const data = await response.json();
-        console.log("🔍 CROSS-TAB TEST - Access check response:", data);
 
-        // ✅ SECURITY FIX: Check if user is assigned and has access
+        // ✅ ANONYMOUS FIX: For anonymous/collect_info surveys, skip assignment checks
+        if (
+          data.accessMode === "anonymous" ||
+          data.accessMode === "collect_info"
+        ) {
+          setAccessData(data);
+          setAccessCheckComplete(true);
+          // Don't set showUserInfoCollection here - let language selection happen first
+          return;
+        }
+
+        // ✅ SECURITY FIX: Check if user is assigned and has access (NON-ANONYMOUS only)
         if (data.assigned === false || data.canAccess === false) {
-          console.log("❌ Access denied:", data.message);
           setHasRedirected(true);
           setIsRedirecting(true);
           // Show error message and redirect to login
           alert(data.message || "You are not assigned to this survey");
-          router.push("/user/login");
+          router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
           return;
         }
 
@@ -219,13 +230,10 @@ export default function HappinessSurveyPage({
               timestamp: Date.now(),
             })
           );
-        } catch (e) {
-          console.log("🔍 Cache write error (ignoring):", e);
-        }
+        } catch (e) {}
 
         // Handle cooldown case
         if (data.cooldown === true && (data.cooldownRemaining ?? 0) > 0) {
-          console.log("🔍 Survey in cooldown - redirecting to results");
           setHasRedirected(true);
           setIsRedirecting(true);
           router.push(
@@ -236,7 +244,6 @@ export default function HappinessSurveyPage({
 
         // Handle retake case
         if (data.retake === true) {
-          console.log("🔍 Retake allowed - proceeding with survey");
           // Clear any previous submission state for retakes
           clearSurveySubmissionState(params.surveyId);
         }
@@ -247,10 +254,10 @@ export default function HappinessSurveyPage({
       } catch (error) {
         console.error("🔍 Access check error:", error);
         if (isMounted) {
-          // On network error, redirect to home
+          // On network error, redirect to login with type
           setHasRedirected(true);
           setIsRedirecting(true);
-          router.push("/user/login");
+          router.push(`/user/login?redirect=${params.surveyId}&type=happiness`);
         }
       } finally {
         if (isMounted) {
@@ -317,7 +324,7 @@ export default function HappinessSurveyPage({
         );
         if (multilingualResponse.ok) {
           const multilingualData = await multilingualResponse.json();
-          console.log("🔍 Multilingual questions fetched:", multilingualData);
+
           setQuestionsData(multilingualData);
           setMultilingualChoices(multilingualData.choices || []);
         } else {
@@ -327,7 +334,7 @@ export default function HappinessSurveyPage({
             throw new Error("Failed to fetch questions");
           }
           const data = await response.json();
-          console.log("🔍 Questions fetched (fallback):", data);
+
           setQuestionsData(data);
         }
       } catch (error) {
@@ -394,19 +401,12 @@ export default function HappinessSurveyPage({
 
   const handleSubmit = async () => {
     if (isSubmitting || submissionCompletedRef.current) {
-      console.log("🚫 Submission already in progress or completed");
       return;
     }
 
     try {
       setIsSubmitting(true);
       submissionCompletedRef.current = true;
-
-      console.log("🔍 Submitting happiness survey:", {
-        surveyId: params.surveyId,
-        answers: answers.length,
-        timestamp: new Date().toISOString(),
-      });
 
       // Prepare submission data
       const accessMode =
@@ -438,7 +438,6 @@ export default function HappinessSurveyPage({
       }
 
       const result = await response.json();
-      console.log("✅ Survey submitted successfully:", result);
 
       // Store answers separately for subtype calculation
       localStorage.setItem(
@@ -527,10 +526,14 @@ export default function HappinessSurveyPage({
 
   // Show loading state while access check is in progress or data is loading
   if (accessLoading || !accessCheckComplete || isLoading || !questionsData) {
+    const isAnonymousSurvey =
+      accessData?.survey?.anonymous ||
+      accessData?.accessMode === "anonymous" ||
+      accessData?.accessMode === "collect_info";
     return (
       <>
         {/* Show navbar based on survey type */}
-        {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+        {isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />}
         <LoadingScreen message="Loading survey..." />
       </>
     );
@@ -562,10 +565,14 @@ export default function HappinessSurveyPage({
 
   // Show language selection if not selected yet
   if (showLanguageSelection) {
+    const isAnonymousSurvey =
+      accessData?.survey?.anonymous ||
+      accessData?.accessMode === "anonymous" ||
+      accessData?.accessMode === "collect_info";
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Conditional Navbar based on survey type */}
-        {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+        {isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />}
 
         {/* Header */}
         <div className="bg-white shadow-sm">
@@ -639,184 +646,16 @@ export default function HappinessSurveyPage({
           </div>
         </div>
 
-        {/* User Info Form */}
-        <div className="max-w-2xl mx-auto px-4 py-8">
-          <div className="bg-white rounded-lg shadow-sm p-8">
-            {/* Form fields - all required */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {selectedLanguage === "ar" ? "الاسم الكامل" : "Full Name"}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={collectedUserData.name}
-                  onChange={(e) =>
-                    setCollectedUserData({
-                      ...collectedUserData,
-                      name: e.target.value,
-                    })
-                  }
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  placeholder={
-                    selectedLanguage === "ar"
-                      ? "أدخل اسمك الكامل"
-                      : "Enter your full name"
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {selectedLanguage === "ar" ? "البريد الإلكتروني" : "Email"}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  value={collectedUserData.email}
-                  onChange={(e) =>
-                    setCollectedUserData({
-                      ...collectedUserData,
-                      email: e.target.value,
-                    })
-                  }
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  placeholder={
-                    selectedLanguage === "ar"
-                      ? "example@email.com"
-                      : "example@email.com"
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {selectedLanguage === "ar" ? "رقم الهاتف" : "Phone Number"}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  value={collectedUserData.phone}
-                  onChange={(e) =>
-                    setCollectedUserData({
-                      ...collectedUserData,
-                      phone: e.target.value,
-                    })
-                  }
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  placeholder={
-                    selectedLanguage === "ar"
-                      ? "+20 123 456 7890"
-                      : "+20 123 456 7890"
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {selectedLanguage === "ar" ? "الجنس" : "Gender"}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={collectedUserData.gender}
-                  onChange={(e) =>
-                    setCollectedUserData({
-                      ...collectedUserData,
-                      gender: e.target.value,
-                    })
-                  }
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  <option value="">
-                    {selectedLanguage === "ar" ? "اختر الجنس" : "Select Gender"}
-                  </option>
-                  <option value="male">
-                    {selectedLanguage === "ar" ? "ذكر" : "Male"}
-                  </option>
-                  <option value="female">
-                    {selectedLanguage === "ar" ? "أنثى" : "Female"}
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {selectedLanguage === "ar" ? "الفئة العمرية" : "Age Range"}{" "}
-                  <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={collectedUserData.ageRange}
-                  onChange={(e) =>
-                    setCollectedUserData({
-                      ...collectedUserData,
-                      ageRange: e.target.value,
-                    })
-                  }
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                >
-                  <option value="">
-                    {selectedLanguage === "ar"
-                      ? "اختر الفئة العمرية"
-                      : "Select Age Range"}
-                  </option>
-                  <option value="18-24">18-24</option>
-                  <option value="25-34">25-34</option>
-                  <option value="35-44">35-44</option>
-                  <option value="45-54">45-54</option>
-                  <option value="55-64">55-64</option>
-                  <option value="65+">65+</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Continue Button with validation */}
-            <div className="mt-6">
-              <button
-                onClick={() => {
-                  // Validate all required fields
-                  if (
-                    !collectedUserData.name.trim() ||
-                    !collectedUserData.email.trim() ||
-                    !collectedUserData.phone.trim() ||
-                    !collectedUserData.gender ||
-                    !collectedUserData.ageRange
-                  ) {
-                    alert(
-                      selectedLanguage === "ar"
-                        ? "يرجى ملء جميع الحقول المطلوبة"
-                        : "Please fill in all required fields"
-                    );
-                    return;
-                  }
-
-                  // Basic email validation
-                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                  if (!emailRegex.test(collectedUserData.email)) {
-                    alert(
-                      selectedLanguage === "ar"
-                        ? "يرجى إدخال بريد إلكتروني صحيح"
-                        : "Please enter a valid email address"
-                    );
-                    return;
-                  }
-
-                  setShowUserInfoCollection(false);
-                }}
-                className="w-full px-6 py-3 bg-blue-400 hover:bg-blue-600 text-white rounded-md font-medium transition-colors"
-              >
-                {selectedLanguage === "ar"
-                  ? "متابعة إلى الاستطلاع"
-                  : "Continue to Survey"}
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* User Info Form - Using unified component */}
+        <ParticipantInformationForm
+          language={selectedLanguage as "en" | "ar"}
+          onSubmit={(data: ParticipantData) => {
+            setCollectedUserData(data);
+            setShowUserInfoCollection(false);
+          }}
+          initialData={collectedUserData}
+          showHeader={false}
+        />
       </div>
     );
   }
@@ -863,10 +702,15 @@ export default function HappinessSurveyPage({
     );
   }
 
+  const isAnonymousSurvey =
+    accessData?.survey?.anonymous ||
+    accessData?.accessMode === "anonymous" ||
+    accessData?.accessMode === "collect_info";
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Conditional Navbar based on survey type */}
-      {accessData?.survey?.anonymous ? <AnonymousNavbar /> : <UserNavbar />}
+      {isAnonymousSurvey ? <AnonymousNavbar /> : <UserNavbar />}
 
       {/* Header */}
       <div className="bg-white shadow-sm">
@@ -884,7 +728,7 @@ export default function HappinessSurveyPage({
 
       {/* Question */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-8">
+        <div className="bg-white rounded-lg shadow-sm p-8 happiness-survey" data-happiness-survey>
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {getLocalizedText(
@@ -906,6 +750,7 @@ export default function HappinessSurveyPage({
                       <button
                         key={choice.value}
                         onClick={() => handleAnswer(choice.value)}
+                        data-value={choice.value}
                         className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
                           isSelected
                             ? "border-blue-400 bg-blue-50 text-blue-900"
@@ -971,6 +816,7 @@ export default function HappinessSurveyPage({
                       <button
                         key={choice.value}
                         onClick={() => handleAnswer(choice.value)}
+                        data-value={choice.value}
                         className={`w-full p-4 text-left border-2 rounded-lg transition-all ${
                           isSelected
                             ? "border-blue-400 bg-blue-50 text-blue-900"

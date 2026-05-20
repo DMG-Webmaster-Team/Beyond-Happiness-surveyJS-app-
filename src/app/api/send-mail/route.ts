@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = 'nodejs';
 interface MailgunRequest {
@@ -15,13 +14,6 @@ export async function POST(request: NextRequest) {
     // Parse request body
     const body: MailgunRequest = await request.json();
     const { to, subject, html, cc } = body;
-
-    console.log("📧 Mailgun API route called with:", {
-      to,
-      subject: subject?.substring(0, 50) + "...",
-      cc: cc || "none",
-      htmlLength: html?.length || 0,
-    });
 
     // Validate required fields
     if (!to || !subject || !html) {
@@ -62,13 +54,6 @@ export async function POST(request: NextRequest) {
     const MAILGUN_API_URL = process.env.MAILGUN_API_URL;
     const MAILGUN_PRIVATE_API_KEY = process.env.MAILGUN_PRIVATE_API_KEY;
 
-    console.log("🔧 Mailgun config check:", {
-      domain: MAILGUN_DOMAIN ? "✅" : "❌",
-      from: MAILGUN_FROM ? "✅" : "❌",
-      apiUrl: MAILGUN_API_URL ? "✅" : "❌",
-      apiKey: MAILGUN_PRIVATE_API_KEY ? "✅" : "❌",
-    });
-
     // Validate environment variables
     if (
       !MAILGUN_DOMAIN ||
@@ -99,14 +84,6 @@ export async function POST(request: NextRequest) {
     // Make request to Mailgun API
     const mailgunUrl = `${MAILGUN_API_URL}/${MAILGUN_DOMAIN}/messages`;
 
-    console.log("📧 Sending email via Mailgun:", {
-      to,
-      subject: subject.substring(0, 50) + "...",
-      cc: cc || "none",
-      domain: MAILGUN_DOMAIN,
-      url: mailgunUrl,
-    });
-
     // Use Bearer token as specified in the curl example
     const response = await fetch(mailgunUrl, {
       method: "POST",
@@ -120,7 +97,7 @@ export async function POST(request: NextRequest) {
     const result = await response.json();
 
     if (response.ok) {
-      console.log("✅ Email sent successfully:", result.id);
+
       return NextResponse.json({
         success: true,
         message: "Email sent successfully",

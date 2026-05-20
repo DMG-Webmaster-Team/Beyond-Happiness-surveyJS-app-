@@ -6,6 +6,7 @@ import UserNavbar from "@/components/shared/UserNavbar";
 import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import DownloadPDFButton from "@/components/DownloadPDFButton";
 import { getEssentialName } from "@/lib/essential-mappings";
+import { getTruthIcon, getEssentialsIcon } from "@/lib/truth-icons";
 import {
   BarChart,
   Bar,
@@ -17,7 +18,9 @@ import {
   PieChart,
   Pie,
   Cell,
+  LabelList,
 } from "recharts";
+import type { LabelProps } from "recharts";
 
 interface HappinessResult {
   id?: string;
@@ -26,8 +29,10 @@ interface HappinessResult {
   code: string;
   character: {
     id: number;
-    name: string;
+    nameEn: string;
+    nameAr: string;
     description: string;
+    detailedDescription?: string;
     avatarUrl: string;
   };
   categoryTotals: {
@@ -57,7 +62,10 @@ export default function HappinessResultsPage({
   const [isLoading, setIsLoading] = useState(true);
   const [currentAccessData, setCurrentAccessData] = useState<any>(null);
   const [accessLoading, setAccessLoading] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "ar">("en");
+  // Force English language - Arabic logic commented out below
+  // const [selectedLanguage, setSelectedLanguage] = useState<"en" | "ar">("en");
+  // Always use English
+  const selectedLanguage = "en" as const;
 
   // Function to fetch current access data for retake button
   const fetchCurrentAccessData = async () => {
@@ -70,7 +78,6 @@ export default function HappinessResultsPage({
       if (response.ok) {
         const data = await response.json();
         setCurrentAccessData(data);
-        console.log("🔍 Current access data for retake button:", data);
       }
     } catch (error) {
       console.error("Error fetching current access data:", error);
@@ -80,13 +87,10 @@ export default function HappinessResultsPage({
   };
 
   useEffect(() => {
-    console.log("🔍 Results page loading...");
-
     // Store surveyId in sessionStorage for logout recovery
     if (params.surveyId) {
       sessionStorage.setItem("currentSurveyId", params.surveyId);
       sessionStorage.setItem("currentSurveyType", "happiness");
-      console.log("💾 Stored surveyId for logout recovery:", params.surveyId);
     }
 
     // Fetch survey data to check if it's anonymous
@@ -113,47 +117,37 @@ export default function HappinessResultsPage({
     const urlParams = new URLSearchParams(window.location.search);
     const isCooldown = urlParams.get("cooldown") === "true";
     const isRetake = urlParams.get("retake") === "true";
-    console.log("🔍 Results page check:", {
-      isCooldown,
-      isRetake,
-      url: window.location.search,
-    });
 
     // Always try to get result from localStorage first (most reliable)
     const storedResult = localStorage.getItem(
       `happiness:lastResult:${params.surveyId}`
     );
-    console.log(
-      "🔍 Stored result from localStorage:",
-      storedResult ? "Found" : "Not found"
-    );
 
     if (storedResult) {
       try {
         const parsedResult = JSON.parse(storedResult);
-        console.log("🔍 Parsed result:", parsedResult);
-        console.log(
-          "🔍 Character data in stored result:",
-          parsedResult.character
-        );
+
         setResult(parsedResult);
 
-        // Detect language from stored result or URL params
-        const urlParams = new URLSearchParams(window.location.search);
-        const langParam = urlParams.get("lang");
-        if (langParam === "ar" || langParam === "en") {
-          setSelectedLanguage(langParam);
-          // Apply RTL/LTR direction
-          if (langParam === "ar") {
-            document.body.dir = "rtl";
-            document.documentElement.dir = "rtl";
-          } else {
-            document.body.dir = "ltr";
-            document.documentElement.dir = "ltr";
-          }
-        }
+        // Force English - Arabic language detection commented out
+        // // Detect language from stored result or URL params
+        // const urlParams = new URLSearchParams(window.location.search);
+        // const langParam = urlParams.get("lang");
+        // if (langParam === "ar" || langParam === "en") {
+        //   setSelectedLanguage(langParam);
+        //   // Apply RTL/LTR direction
+        //   if (langParam === "ar") {
+        //     document.body.dir = "rtl";
+        //     document.documentElement.dir = "rtl";
+        //   } else {
+        //     document.body.dir = "ltr";
+        //     document.documentElement.dir = "ltr";
+        //   }
+        // }
 
-        console.log("🔍 Result set successfully");
+        // Always set to LTR for English
+        document.body.dir = "ltr";
+        document.documentElement.dir = "ltr";
       } catch (error) {
         console.error("❌ Error parsing stored result:", error);
         router.push(`/happiness/${params.surveyId}`);
@@ -161,7 +155,7 @@ export default function HappinessResultsPage({
       }
     } else {
       // No result found - redirect back to survey (no sessionStorage fallback)
-      console.log("🔍 No stored result found, redirecting to survey");
+
       router.push(`/happiness/${params.surveyId}`);
       return;
     }
@@ -169,9 +163,7 @@ export default function HappinessResultsPage({
     setIsLoading(false);
 
     // Cleanup function - do NOT clear localStorage to prevent redirect loops
-    return () => {
-      console.log("🔍 Results page unmounting - localStorage preserved");
-    };
+    return () => {};
   }, [params.surveyId, router]);
 
   // Multilingual text helper
@@ -262,8 +254,8 @@ export default function HappinessResultsPage({
         ar: "النوع D",
       },
       subtypeBreakdown: {
-        en: "Subtype Breakdown",
-        ar: "تفصيل الأنواع الفرعية",
+        en: "Truth Dimension Breakdown",
+        ar: "تفصيل أبعاد الحقيقة",
       },
     };
     return texts[key]?.[selectedLanguage] || texts[key]?.en || key;
@@ -276,35 +268,35 @@ export default function HappinessResultsPage({
           bg: "bg-purple-100",
           text: "text-purple-800",
           bar: "bg-purple-500",
-          hex: "#7E57C2", // Updated to match brand specifications
+          hex: "#784C9F", // rgb(120, 76, 159)
         };
       case "Delight":
         return {
           bg: "bg-yellow-100",
           text: "text-yellow-800",
           bar: "bg-yellow-500",
-          hex: "#FFCA28", // Updated to match brand specifications
+          hex: "#FEC010", // rgb(254, 192, 16)
         };
       case "Freedom":
         return {
           bg: "bg-orange-100",
           text: "text-orange-800",
           bar: "bg-orange-500",
-          hex: "#FFA726", // Updated to match brand specifications
+          hex: "#F67E52", // rgb(246, 126, 82)
         };
       case "Engagement":
         return {
           bg: "bg-blue-100",
           text: "text-blue-800",
           bar: "bg-blue-500",
-          hex: "#42A5F5", // Updated to match brand specifications
+          hex: "#4972B8", // rgb(73, 114, 184)
         };
       case "Vitality":
         return {
           bg: "bg-green-100",
           text: "text-green-800",
           bar: "bg-green-500",
-          hex: "#66BB6A", // Updated to match brand specifications
+          hex: "#71AD46", // rgb(113, 173, 70)
         };
       default:
         return {
@@ -333,12 +325,15 @@ export default function HappinessResultsPage({
 
   // Use unified scoring service for consistent calculations
   const [unifiedScore, setUnifiedScore] = useState<any>(null);
+  const [unifiedScoreLoading, setUnifiedScoreLoading] = useState(false);
 
   // Calculate unified scores when result data is available
   useEffect(() => {
-    if (result?.answers) {
+    if (result?.answers && result.answers.length > 0) {
       const calculateScores = async () => {
         try {
+          setUnifiedScoreLoading(true);
+
           const response = await fetch("/api/happiness/unified-scoring", {
             method: "POST",
             headers: {
@@ -346,19 +341,36 @@ export default function HappinessResultsPage({
             },
             body: JSON.stringify({
               answers: result.answers || [],
-              language: selectedLanguage,
+              language: "en", // Always use English for results page
             }),
           });
 
           if (response.ok) {
             const data = await response.json();
             setUnifiedScore(data.data);
-            console.log("📊 Unified scores calculated:", data.data);
+
+            // Log any percentages > 100% for debugging
+            Object.entries(data.data.subtypePercentages).forEach(
+              ([cat, subtypes]: [string, any]) => {
+                Object.entries(subtypes).forEach(
+                  ([sub, pct]: [string, any]) => {
+                    if (pct > 100) {
+                      console.error(
+                        `❌ PERCENTAGE > 100%: ${cat} - ${sub}: ${pct}%`
+                      );
+                    }
+                  }
+                );
+              }
+            );
           } else {
-            console.error("Failed to calculate unified scores");
+            const errorText = await response.text();
+            console.error("❌ Failed to calculate unified scores:", errorText);
           }
         } catch (error) {
-          console.error("Error calculating unified scores:", error);
+          console.error("❌ Error calculating unified scores:", error);
+        } finally {
+          setUnifiedScoreLoading(false);
         }
       };
       calculateScores();
@@ -366,11 +378,13 @@ export default function HappinessResultsPage({
   }, [result?.answers, selectedLanguage]);
 
   // Use unified scores if available, otherwise fall back to legacy calculation
+  // Note: Legacy fallback is deprecated and may show incorrect percentages
+  // The unified scoring service calculates dynamic max scores per category
   const displayData = unifiedScore || {
     categoryPercentages: result?.categoryTotals
       ? Object.entries(result.categoryTotals).map(([category, score]) => ({
           name: category,
-          value: Math.round(((score as number) / 10000) * 100), // Legacy max score
+          value: 0, // Legacy fallback disabled - unified scoring required
           score: score as number,
           color: getCategoryColor(category).hex,
         }))
@@ -432,6 +446,27 @@ export default function HappinessResultsPage({
     );
   };
 
+  // Render percentage labels using Recharts (centered above each bar)
+  const renderPercentageLabel = (props: LabelProps) => {
+    const { x, y, width, value } = props;
+    if (x == null || y == null || width == null || value == null) {
+      return null;
+    }
+    const cx = Number(x) + Number(width) / 2;
+    const cy = Number(y) - 8; // small gap above bar
+    return (
+      <text
+        x={cx}
+        y={Number(y) - 8}
+        textAnchor="middle"
+        dominantBaseline="alphabetic"
+        style={{ fontWeight: 800, fill: "#111827" }} // text-gray-900
+      >
+        {`${value}%`}
+      </text>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -467,13 +502,6 @@ export default function HappinessResultsPage({
   }
 
   // Debug logging to confirm character data and categories
-  console.log("Happiness Result (render source):", result);
-  console.log("Character data:", {
-    name: result.character.name,
-    avatarUrl: result.character.avatarUrl,
-    code: result.code,
-  });
-  console.log("Category totals:", result.categoryTotals);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -541,8 +569,14 @@ export default function HappinessResultsPage({
                 className={`text-2xl font-bold mb-0 ${getCharacterNameColor(
                   result
                 )}`}
+                data-character-code={result.code}
               >
-                {getText("youAre")} {result.character.name}!
+                {getText("youAre")}{" "}
+                {/* Force English - Arabic name commented out */}
+                {/* {selectedLanguage === "ar"
+                  ? result.character.nameAr
+                  : result.character.nameEn} */}
+                {result.character.nameEn}!
               </h2>
             </div>
             <div className="mb-6">
@@ -552,7 +586,13 @@ export default function HappinessResultsPage({
                     result.character.avatarUrl ||
                     `/characters/${result.code}.png`
                   }
-                  alt={result.character.name}
+                  alt={
+                    // Force English - Arabic name commented out
+                    // selectedLanguage === "ar"
+                    //   ? result.character.nameAr
+                    //   : result.character.nameEn
+                    result.character.nameEn
+                  }
                   className="w-full h-full   bg-white "
                   onError={(e) => {
                     const img = e.target as HTMLImageElement;
@@ -627,7 +667,9 @@ export default function HappinessResultsPage({
                           `happiness:lastResult:${params.surveyId}`
                         );
                         router.push(
-                          `/happiness/${params.surveyId}?retake=1&lang=${selectedLanguage}`
+                          // Force English - Arabic lang param commented out
+                          // `/happiness/${params.surveyId}?retake=1&lang=${selectedLanguage}`
+                          `/happiness/${params.surveyId}?retake=1&lang=en`
                         );
                       }}
                       className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
@@ -648,7 +690,9 @@ export default function HappinessResultsPage({
                       `happiness:lastResult:${params.surveyId}`
                     );
                     router.push(
-                      `/happiness/${params.surveyId}?retake=1&lang=${selectedLanguage}`
+                      // Force English - Arabic lang param commented out
+                      // `/happiness/${params.surveyId}?retake=1&lang=${selectedLanguage}`
+                      `/happiness/${params.surveyId}?retake=1&lang=en`
                     );
                   }}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-md text-sm font-medium transition-colors"
@@ -682,14 +726,15 @@ export default function HappinessResultsPage({
           <h3 className="text-lg font-semibold text-gray-900 mb-6">
             {getText("dimensionsOverview")}
           </h3>
-          <div className="h-80">
+          <div className="h-80 relative">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={categoryPercentages}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                margin={{ top: 80, right: 20, left: 0, bottom: 50 }}
+                barCategoryGap="20%"
               >
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
+                <XAxis dataKey="name" tick={false} axisLine={false} />
                 <YAxis
                   domain={[0, 100]}
                   tickFormatter={(value) => `${value}%`}
@@ -705,9 +750,45 @@ export default function HappinessResultsPage({
                   {categoryPercentages.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
+                  <LabelList dataKey="value" content={renderPercentageLabel} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+            {/* Truth photos positioned under each bar - centered alignment */}
+            <div
+              className="absolute bottom-0 left-0 right-0 flex items-start"
+              style={{
+                paddingLeft: "60px",
+                paddingRight: "20px",
+                paddingBottom: "0.5rem",
+              }}
+            >
+              {categoryPercentages.map((entry: any, index: number) => (
+                <div
+                  key={entry.name}
+                  className="flex flex-col items-center justify-center"
+                  style={{
+                    flex: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <img
+                    src={getTruthIcon(entry.name)}
+                    alt={entry.name}
+                    className="w-6 h-6 sm:w-10 sm:h-10 object-contain"
+                    onError={(e) => {
+                      // Hide icon if image fails to load
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                  <div className="text-[10px] sm:text-sm font-medium text-gray-700 text-center mt-1 px-0.5 whitespace-nowrap">
+                    {getText(entry.name.toLowerCase())}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -721,13 +802,21 @@ export default function HappinessResultsPage({
             {categoryPercentages.map((category: any) => {
               const colors = getCategoryColor(category.name);
               const percentage = category.value;
-              const maxPossibleScore = 10000;
 
               return (
-                <div key={category.name} className="space-y-4">
+                <div key={category.name} className="space-y-4" data-category={category.name.toLowerCase()}>
                   {/* Main Category Header */}
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-3">
+                      <img
+                        src={getTruthIcon(category.name)}
+                        alt={category.name}
+                        className="w-8 h-8 object-contain"
+                        onError={(e) => {
+                          // Hide icon if image fails to load
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-medium ${colors.bg} ${colors.text}`}
                       >
@@ -755,40 +844,48 @@ export default function HappinessResultsPage({
                   {/* Subtype Breakdown */}
                   <div
                     className={`${
-                      selectedLanguage === "ar" ? "mr-0" : "ml-6"
+                      // Force English - Arabic RTL margin commented out
+                      // selectedLanguage === "ar" ? "mr-0" : "ml-6"
+                      "ml-6"
                     } space-y-3 bg-gray-50 p-4 rounded-lg`}
+                    data-essentials
                   >
                     <h4 className="text-sm font-semibold text-gray-700 mb-3">
                       {getText("subtypeBreakdown")}
                     </h4>
 
                     {(["A", "B", "C", "D"] as const).map((subtype) => {
-                      // Use unified scores if available, otherwise fall back to proportional distribution
+                      // ONLY use unified scores - no fallback calculation
+                      // Fallback calculations are ALWAYS wrong because max scores are dynamic
                       const subtypeScore =
                         unifiedScore?.subtypeScores?.[category.name]?.[
                           subtype
-                        ] || Math.round(category.score * 0.25); // Fallback: 25% of category score
+                        ] || 0;
                       const subtypePercentage =
                         unifiedScore?.subtypePercentages?.[category.name]?.[
                           subtype
-                        ] || Math.round((subtypeScore / 1000) * 100); // Fallback calculation
+                        ] || 0;
 
                       // Get Essential name instead of Type A/B/C/D
+                      // Always use English for essential names
                       const essentialName = getEssentialName(
                         category.name,
                         subtype,
-                        selectedLanguage
+                        "en" as "en" | "ar"
                       );
 
                       return (
                         <div
                           key={subtype}
                           className={`flex items-center gap-3 ${
-                            selectedLanguage === "ar" ? "flex-row-reverse" : ""
+                            // Force English - Arabic RTL flex direction commented out
+                            // selectedLanguage === "ar" ? "flex-row-reverse" : ""
+                            ""
                           }`}
                         >
-                          {selectedLanguage === "ar" ? (
-                            // Arabic layout: percentage, progress bar, then label
+                          {/* Force English layout - Arabic layout commented out */}
+                          {/* {selectedLanguage === "ar" ? (
+                            // Arabic layout: percentage, progress bar, label, then essentials image
                             <>
                               <span className="min-w-12 text-xs font-semibold text-gray-700">
                                 {subtypePercentage}%
@@ -805,27 +902,46 @@ export default function HappinessResultsPage({
                               <div className="w-40 text-sm font-medium text-gray-600 text-right">
                                 {essentialName}:
                               </div>
+                              <img
+                                src={getEssentialsIcon(category.name)}
+                                alt={`${category.name} essentials`}
+                                className="w-6 h-6 object-contain flex-shrink-0"
+                                onError={(e) => {
+                                  // Hide icon if image fails to load
+                                  (e.target as HTMLImageElement).style.display = "none";
+                                }}
+                              />
                             </>
-                          ) : (
-                            // English layout: label, progress bar, then percentage
-                            <>
-                              <div className="w-40 text-sm font-medium text-gray-600 text-left">
-                                {essentialName}:
-                              </div>
-                              <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                <div
-                                  className="h-2 rounded-full transition-all duration-700 ease-out"
-                                  style={{
-                                    width: `${subtypePercentage}%`,
-                                    backgroundColor: colors.hex,
-                                  }}
-                                />
-                              </div>
-                              <span className="min-w-12 text-xs font-semibold text-gray-700">
-                                {subtypePercentage}%
-                              </span>
-                            </>
-                          )}
+                          ) : ( */}
+                          {/* English layout: essentials image, label, progress bar, then percentage */}
+                          <>
+                            <img
+                              src={getEssentialsIcon(category.name)}
+                              alt={`${category.name} essentials`}
+                              className="w-6 h-6 object-contain flex-shrink-0"
+                              onError={(e) => {
+                                // Hide icon if image fails to load
+                                (e.target as HTMLImageElement).style.display =
+                                  "none";
+                              }}
+                            />
+                            <div className="w-40 text-sm font-medium text-gray-600 text-left">
+                              {essentialName}:
+                            </div>
+                            <div className="flex-1 bg-gray-200 rounded-full h-2">
+                              <div
+                                className="h-2 rounded-full transition-all duration-700 ease-out"
+                                style={{
+                                  width: `${subtypePercentage}%`,
+                                  backgroundColor: colors.hex,
+                                }}
+                              />
+                            </div>
+                            <span className="min-w-12 text-xs font-semibold text-gray-700">
+                              {subtypePercentage}%
+                            </span>
+                          </>
+                          {/* )} */}
                         </div>
                       );
                     })}

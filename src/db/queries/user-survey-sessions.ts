@@ -57,10 +57,13 @@ export async function createSurveySession(
   const existingSession = await getActiveSession(userId, surveyId);
   if (existingSession) {
     // Update the existing session with fresh config and extend expiry
-    const updatedSession = await db
+    await db
       .update(userSurveySessions)
       .set({
-        surveyConfig: surveyData.definition,
+        surveyConfig:
+          typeof surveyData.definition === "string"
+            ? surveyData.definition
+            : JSON.stringify(surveyData.definition),
         surveyTitle: surveyData.title,
         surveyDescription: surveyData.description,
         canTakeMultiple: Boolean(surveyData.canTakeMultiple),
@@ -69,7 +72,11 @@ export async function createSurveySession(
         updatedAt: new Date(),
       })
       .where(eq(userSurveySessions.id, existingSession.id));
-    return await getActiveSession(userId, surveyId);
+    const updatedSession = await getActiveSession(userId, surveyId);
+    if (!updatedSession) {
+      throw new Error("Failed to retrieve updated session");
+    }
+    return updatedSession;
   }
 
   // Create new session
@@ -78,7 +85,10 @@ export async function createSurveySession(
     id: sessionId,
     userId,
     surveyId,
-    surveyConfig: surveyData.definition,
+    surveyConfig:
+      typeof surveyData.definition === "string"
+        ? surveyData.definition
+        : JSON.stringify(surveyData.definition),
     surveyTitle: surveyData.title,
     surveyDescription: surveyData.description,
     canTakeMultiple: Boolean(surveyData.canTakeMultiple),
@@ -87,7 +97,11 @@ export async function createSurveySession(
     expiresAt,
   });
 
-  return await getActiveSession(userId, surveyId);
+  const newSession = await getActiveSession(userId, surveyId);
+  if (!newSession) {
+    throw new Error("Failed to retrieve created session");
+  }
+  return newSession;
 }
 
 /**
@@ -148,14 +162,21 @@ export async function updateSessionProgress(
   sessionId: string,
   progress: any
 ): Promise<UserSurveySession | null> {
-  const updatedSessions = await db
+  await db
     .update(userSurveySessions)
     .set({
       progress: JSON.stringify(progress),
       updatedAt: new Date(),
     })
     .where(eq(userSurveySessions.id, sessionId));
-  return updatedSessions.length > 0 ? updatedSessions[0] : null;
+
+  // Fetch the updated session
+  const updatedSession = await db
+    .select()
+    .from(userSurveySessions)
+    .where(eq(userSurveySessions.id, sessionId))
+    .limit(1);
+  return updatedSession.length > 0 ? updatedSession[0] : null;
 }
 
 /**
@@ -175,11 +196,18 @@ export async function updateSessionStatus(
     updateData.completedAt = completedAt;
   }
 
-  const updatedSessions = await db
+  await db
     .update(userSurveySessions)
     .set(updateData)
     .where(eq(userSurveySessions.id, sessionId));
-  return updatedSessions.length > 0 ? updatedSessions[0] : null;
+
+  // Fetch the updated session
+  const updatedSession = await db
+    .select()
+    .from(userSurveySessions)
+    .where(eq(userSurveySessions.id, sessionId))
+    .limit(1);
+  return updatedSession.length > 0 ? updatedSession[0] : null;
 }
 
 /**
@@ -230,7 +258,7 @@ export async function cleanupExpiredSessions(): Promise<number> {
       )
     );
 
-  return deletedSessions.changes;
+  return (deletedSessions as any).affectedRows || 0;
 }
 
 /**

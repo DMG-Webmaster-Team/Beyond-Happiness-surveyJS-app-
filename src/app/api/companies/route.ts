@@ -4,7 +4,7 @@ import { createCompanySchema } from "@/db/queries/companies";
 // Helper function to update survey assignments using many-to-many relationships
 
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 async function updateSurveyAssignments(
   companyId: string,
   companyName: string,
@@ -25,9 +25,6 @@ async function updateSurveyAssignments(
       "system"
     );
 
-    console.log(
-      `✅ Updated survey assignments for company ${companyId}: ${surveyIds.length} regular, ${happinessSurveyIds.length} happiness`
-    );
   } catch (error) {
     console.error("Error updating survey assignments:", error);
     throw error;
@@ -88,7 +85,7 @@ async function syncUsersWithCompanySurveys(
     }
 
     // Add new assignments
-    const now = Date.now();
+    const now = new Date();
 
     // Regular survey assignments
     if (surveyIds.length > 0) {
@@ -130,9 +127,6 @@ async function syncUsersWithCompanySurveys(
       }
     }
 
-    console.log(
-      `✅ Synced ${userIds.length} users with company ${companyId} survey assignments`
-    );
   } catch (error) {
     console.error("Error syncing users with company surveys:", error);
     throw error;
@@ -209,9 +203,7 @@ export async function POST(request: NextRequest) {
           surveyIds,
           happinessSurveyIds
         );
-        console.log(
-          `✅ Synced existing users with new company ${company.id} survey assignments`
-        );
+
       } catch (error) {
         console.warn(
           `⚠️ Failed to sync existing users with company ${company.id}:`,

@@ -1,3 +1,12 @@
+/**
+ * @deprecated This PDF render page is deprecated and should not be used.
+ * It contains hardcoded max scores (10000) that are incorrect.
+ * Use /api/generate-pdf instead, which uses the unified scoring service
+ * with dynamic max score calculation.
+ */
+
+export const dynamic = 'force-dynamic';
+
 import { NextRequest } from "next/server";
 
 interface ResultData {
@@ -40,7 +49,9 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
     );
 
     result = decodedData.result;
-    language = decodedData.lang || "en";
+    // Force English - Arabic language detection commented out
+    // language = decodedData.lang || "en";
+    language = "en";
   } catch (error) {
     console.error("Failed to decode PDF data:", error);
     return (
@@ -53,7 +64,9 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
     );
   }
 
-  const isRTL = language === "ar";
+  // Force English - Arabic RTL logic commented out
+  // const isRTL = language === "ar";
+  const isRTL = false; // Always use LTR for English
 
   // Translation objects
   const categoryTranslations = {
@@ -133,21 +146,28 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
   // Color mapping for categories
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
-      Meaning: "#A682FF",
-      Delight: "#F9B233",
-      Freedom: "#26C17E",
-      Engagement: "#007BFF",
-      Vitality: "#F44336",
+      Meaning: "#784C9F", // rgb(120, 76, 159)
+      Delight: "#FEC010", // rgb(254, 192, 16)
+      Freedom: "#F67E52", // rgb(246, 126, 82)
+      Engagement: "#4972B8", // rgb(73, 114, 184)
+      Vitality: "#71AD46", // rgb(113, 173, 70)
     };
     return colors[category] || "#6B7280";
   };
 
   return (
-    <html lang={language} dir={isRTL ? "rtl" : "ltr"}>
+    // Force English - Arabic language/direction commented out
+    // <html lang={language} dir={isRTL ? "rtl" : "ltr"}>
+    <html lang="en" dir="ltr">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Happiness Survey Report - {result.character.name}</title>
+        <title>
+          Happiness Survey Report -{" "}
+          {/* Force English - Arabic name commented out */}
+          {/* {language === "ar" ? result.character.nameAr : result.character.name} */}
+          {result.character.name}
+        </title>
 
         {/* Google Fonts */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -247,7 +267,9 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
         `}</style>
       </head>
 
-      <body className={`bg-gray-50 ${isRTL ? "font-arabic" : "font-english"}`}>
+      {/* Force English - Arabic font class commented out */}
+      {/* <body className={`bg-gray-50 ${isRTL ? "font-arabic" : "font-english"}`}> */}
+      <body className="bg-gray-50 font-english">
         <div className="min-h-screen p-8 max-w-4xl mx-auto bg-white">
           {/* Header */}
           <div className="text-center mb-12">
@@ -267,7 +289,10 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
           <div className="text-center mb-8">
             <div className="inline-block px-8 py-4 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg shadow-sm">
               <h2 className="text-2xl font-bold text-blue-600">
-                {getText("youAre")} {result.character.name}!
+                {getText("youAre")}{" "}
+                {/* Force English - Arabic name commented out */}
+                {/* {language === "ar" ? result.character.nameAr : result.character.name} */}
+                {result.character.name}!
               </h2>
             </div>
           </div>
@@ -329,27 +354,31 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
                         key={category}
                         className="flex flex-col items-center flex-1 mx-1"
                       >
+                        <div className="mb-2">
+                          <img
+                            src={`/truths/${category.toLowerCase()}.png`}
+                            alt={category}
+                            className="w-10 h-10 object-contain"
+                            style={{ display: "block" }}
+                          />
+                        </div>
                         <div
-                          className="w-full rounded-t-md flex items-end justify-center text-white text-sm font-semibold"
+                          className="w-full rounded-t-md"
                           style={{
                             backgroundColor: color,
                             height: `${height}px`,
                             minHeight: "20px",
                           }}
-                        >
-                          {percentage > 15 && `${percentage}%`}
-                        </div>
+                        />
                         <div className="mt-2 text-center">
                           <div className="text-sm font-medium text-gray-700">
                             {categoryTranslations[
                               category as keyof typeof categoryTranslations
                             ]?.[language] || category}
                           </div>
-                          {percentage <= 15 && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {percentage}%
-                            </div>
-                          )}
+                          <div className="text-lg font-bold text-gray-900 mt-1">
+                            {percentage}%
+                          </div>
                         </div>
                       </div>
                     );
@@ -385,10 +414,12 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
                     <div key={category} className="space-y-3">
                       <div className="flex justify-between items-center">
                         <div className="flex items-center gap-3">
-                          <div
-                            className="w-4 h-4 rounded"
-                            style={{ backgroundColor: color }}
-                          ></div>
+                          <img
+                            src={`/truths/${category.toLowerCase()}.png`}
+                            alt={category}
+                            className="w-8 h-8 object-contain"
+                            style={{ display: "block" }}
+                          />
                           <span
                             className="font-bold text-lg"
                             style={{ color: color }}
@@ -412,7 +443,6 @@ export default function PDFRenderPage({ searchParams }: PDFRenderPageProps) {
 
           {/* Footer */}
           <div className="mt-12 text-center text-gray-500 text-sm">
-            <p>{getText("footer")}</p>
             <p className="mt-2">{new Date().toLocaleDateString()}</p>
           </div>
         </div>

@@ -1,0 +1,1191 @@
+{
+  "metadata": {
+    "resultId": "9Gr78SqQjAGHl1FUJnQpN",
+    "surveyId": "zBYrjcPEpgz2TFhwXpCph",
+    "surveyTitle": "test essential data",
+    "userId": null,
+    "language": "en",
+    "submittedAt": "2025-10-21T09:46:38.000Z",
+    "extractedAt": "2025-10-21T10:18:28.244Z"
+  },
+  "character": {
+    "name": "Purposeful Wanderer",
+    "description": "A focused explorer who combines freedom with meaning. You seek purpose while maintaining independence.",
+    "avatarUrl": "/characters/10100.png",
+    "code": "10100"
+  },
+  "scores": {
+    "categoryTotals": {
+      "Meaning": 6650,
+      "Delight": 5950,
+      "Freedom": 6075,
+      "Engagement": 5150,
+      "Vitality": 4275
+    },
+    "categoryMaxScores": {
+      "Meaning": 10000,
+      "Delight": 10000,
+      "Freedom": 10000,
+      "Engagement": 10000,
+      "Vitality": 10000
+    },
+    "essentialTotals": {
+      "essential_1": 21.875,
+      "essential_2": 18.75,
+      "essential_3": 15.625,
+      "essential_4": 12.5,
+      "essential_5": 18.75,
+      "essential_6": 15.625,
+      "essential_7": 15.625,
+      "essential_8": 12.5,
+      "essential_9": 21.875,
+      "essential_10": 9.375,
+      "essential_11": 15.625,
+      "essential_12": 9.375,
+      "essential_13": 6.25,
+      "essential_14": 9.375,
+      "essential_15": 18.75,
+      "essential_16": 15.625,
+      "essential_17": 9.375,
+      "essential_18": 18.75,
+      "essential_19": 18.75,
+      "essential_20": 3.125
+    },
+    "totalScore": 28100,
+    "totalMaxScore": 50000,
+    "overallPercentage": 56
+  },
+  "storedScores": {
+    "categoryTotals": {
+      "Delight": 5950,
+      "Freedom": 6075,
+      "Meaning": 6650,
+      "Vitality": 4275,
+      "Engagement": 5150
+    }
+  },
+  "answers": [
+    {
+      "questionId": 1,
+      "valueIndex": 4,
+      "category": "Meaning",
+      "essentialId": "1",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I believe that my daily activities are meaningful and contribute to a greater good.",
+      "answerText": "Often / Agree",
+      "categoryScore": 1500,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 2,
+      "valueIndex": 5,
+      "category": "Meaning",
+      "essentialId": "1",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I am committed to goals or causes that spark my passion and inspire action.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1000,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 3,
+      "valueIndex": 3,
+      "category": "Meaning",
+      "essentialId": "2",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "My actions and choices consistently reflect what's really important to me.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 1000,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 4,
+      "valueIndex": 5,
+      "category": "Meaning",
+      "essentialId": "2",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "The places where I live, work, and spend time support me in living according to my most important values.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1000,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 5,
+      "valueIndex": 5,
+      "category": "Meaning",
+      "essentialId": "3",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I frequently engage in experiences that challenge me and help me grow personally and professionally.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1000,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 6,
+      "valueIndex": 2,
+      "category": "Meaning",
+      "essentialId": "3",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I am aware of my personal strengths and actively seek opportunities to apply them in various aspects of my life.",
+      "answerText": "Rarely / Disagree",
+      "categoryScore": 150,
+      "essentialScore": 3.125
+    },
+    {
+      "questionId": 7,
+      "valueIndex": 3,
+      "category": "Meaning",
+      "essentialId": "4",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I frequently express gratitude and show appreciation to others for their support, kindness, or positive impact on my life.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 8,
+      "valueIndex": 3,
+      "category": "Meaning",
+      "essentialId": "4",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I regularly take a moment to acknowledge and appreciate my personal achievements, strengths, or growth.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 9,
+      "valueIndex": 3,
+      "category": "Delight",
+      "essentialId": "5",
+      "categoryValues": [
+        0,
+        75,
+        250,
+        375,
+        500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I engage in creative activities in the community where I live.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 250,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 10,
+      "valueIndex": 5,
+      "category": "Delight",
+      "essentialId": "5",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I actively pursue personal interests and passions that inspire my creativity.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1500,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 11,
+      "valueIndex": 4,
+      "category": "Delight",
+      "essentialId": "6",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I engage in playful & fun activities in the community where I live.",
+      "answerText": "Often / Agree",
+      "categoryScore": 1500,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 12,
+      "valueIndex": 3,
+      "category": "Delight",
+      "essentialId": "6",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "In the community where I live, I can easily meet friendly people and join in unplanned activities anytime.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 13,
+      "valueIndex": 5,
+      "category": "Delight",
+      "essentialId": "7",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I make an effort to surround myself with people and activities that boost my enthusiasm and energy.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1000,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 14,
+      "valueIndex": 2,
+      "category": "Delight",
+      "essentialId": "7",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I maintain a positive attitude even in challenging situations.",
+      "answerText": "Rarely / Disagree",
+      "categoryScore": 300,
+      "essentialScore": 3.125
+    },
+    {
+      "questionId": 15,
+      "valueIndex": 4,
+      "category": "Delight",
+      "essentialId": "8",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "When I bump into something amazing, I take the time to truly appreciate and think about its meaning.",
+      "answerText": "Often / Agree",
+      "categoryScore": 750,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 16,
+      "valueIndex": 2,
+      "category": "Delight",
+      "essentialId": "8",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "My home and the community where I live have places that spark wonder, amazement, and admiration.",
+      "answerText": "Rarely / Disagree",
+      "categoryScore": 150,
+      "essentialScore": 3.125
+    },
+    {
+      "questionId": 17,
+      "valueIndex": 4,
+      "category": "Freedom",
+      "essentialId": "9",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "My home and the community where I live are safe and secure.",
+      "answerText": "Often / Agree",
+      "categoryScore": 1125,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 18,
+      "valueIndex": 5,
+      "category": "Freedom",
+      "essentialId": "9",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I feel financially safe.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1500,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 19,
+      "valueIndex": 1,
+      "category": "Freedom",
+      "essentialId": "10",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I am able to personalize my living spaces to reflect my needs, tastes and preferences.",
+      "answerText": "Never / Strongly Disagree",
+      "categoryScore": 0,
+      "essentialScore": 0
+    },
+    {
+      "questionId": 20,
+      "valueIndex": 4,
+      "category": "Freedom",
+      "essentialId": "10",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I am able to express my talents, character and quirks in my social circles.",
+      "answerText": "Often / Agree",
+      "categoryScore": 1500,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 21,
+      "valueIndex": 2,
+      "category": "Freedom",
+      "essentialId": "11",
+      "categoryValues": [
+        0,
+        75,
+        250,
+        375,
+        500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "My home has spaces that can easily adjust to meet the needs of people I live with.",
+      "answerText": "Rarely / Disagree",
+      "categoryScore": 75,
+      "essentialScore": 3.125
+    },
+    {
+      "questionId": 22,
+      "valueIndex": 5,
+      "category": "Freedom",
+      "essentialId": "11",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I am open to diverse ideas and enjoy exploring them.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1500,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 23,
+      "valueIndex": 4,
+      "category": "Freedom",
+      "essentialId": "12",
+      "categoryValues": [
+        0,
+        75,
+        250,
+        375,
+        500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I can choose how to adapt my home space to meet my needs and preferences.",
+      "answerText": "Often / Agree",
+      "categoryScore": 375,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 24,
+      "valueIndex": 1,
+      "category": "Freedom",
+      "essentialId": "12",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I feel in control of my life choices and decisions.",
+      "answerText": "Never / Strongly Disagree",
+      "categoryScore": 0,
+      "essentialScore": 0
+    },
+    {
+      "questionId": 25,
+      "valueIndex": 1,
+      "category": "Engagement",
+      "essentialId": "13",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "In my household, everyone shares responsibility for chores.",
+      "answerText": "Never / Strongly Disagree",
+      "categoryScore": 0,
+      "essentialScore": 0
+    },
+    {
+      "questionId": 26,
+      "valueIndex": 3,
+      "category": "Engagement",
+      "essentialId": "13",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I engage in volunteer work in my community.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 27,
+      "valueIndex": 3,
+      "category": "Engagement",
+      "essentialId": "14",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I feel valued, respected, and able to express my thoughts and opinions in my social environment, regardless of my background.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 1000,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 28,
+      "valueIndex": 2,
+      "category": "Engagement",
+      "essentialId": "14",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "My home and community have designs that make spaces and activities easily accessible for everyone, considering people with disabilities.",
+      "answerText": "Rarely / Disagree",
+      "categoryScore": 150,
+      "essentialScore": 3.125
+    },
+    {
+      "questionId": 29,
+      "valueIndex": 4,
+      "category": "Engagement",
+      "essentialId": "15",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I have people in my community who I trust and can rely on for support.",
+      "answerText": "Often / Agree",
+      "categoryScore": 750,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 30,
+      "valueIndex": 4,
+      "category": "Engagement",
+      "essentialId": "15",
+      "categoryValues": [
+        0,
+        300,
+        1000,
+        1500,
+        2000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I make an effort to stay connected with people who are important to me.",
+      "answerText": "Often / Agree",
+      "categoryScore": 1500,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 31,
+      "valueIndex": 3,
+      "category": "Engagement",
+      "essentialId": "16",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I welcome people from my social circles to my home for a visit.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 32,
+      "valueIndex": 4,
+      "category": "Engagement",
+      "essentialId": "16",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I participate in events or activities in the community where I live.",
+      "answerText": "Often / Agree",
+      "categoryScore": 750,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 33,
+      "valueIndex": 4,
+      "category": "Vitality",
+      "essentialId": "17",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "My daily routine includes activities that promote physical movement, fitness, and healthy eating habits.",
+      "answerText": "Often / Agree",
+      "categoryScore": 1125,
+      "essentialScore": 9.375
+    },
+    {
+      "questionId": 34,
+      "valueIndex": 1,
+      "category": "Vitality",
+      "essentialId": "17",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I regularly schedule and attend medical check-ups to maintain my physical health.",
+      "answerText": "Never / Strongly Disagree",
+      "categoryScore": 0,
+      "essentialScore": 0
+    },
+    {
+      "questionId": 35,
+      "valueIndex": 3,
+      "category": "Vitality",
+      "essentialId": "18",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I regularly incorporate calming elements, like decluttering, using relaxing scents, and adding plants, into my living spaces.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 36,
+      "valueIndex": 5,
+      "category": "Vitality",
+      "essentialId": "18",
+      "categoryValues": [
+        0,
+        225,
+        750,
+        1125,
+        1500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I intentionally set healthy boundaries for the use of digital screens.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 1500,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 37,
+      "valueIndex": 3,
+      "category": "Vitality",
+      "essentialId": "19",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I prioritize physical comfort in my living spaces by paying attention to factors like natural light, temperature control, and ergonomics.",
+      "answerText": "Sometimes / Neutral",
+      "categoryScore": 500,
+      "essentialScore": 6.25
+    },
+    {
+      "questionId": 38,
+      "valueIndex": 5,
+      "category": "Vitality",
+      "essentialId": "19",
+      "categoryValues": [
+        0,
+        75,
+        250,
+        375,
+        500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I make an effort to keep my living spaces clean, organized, and clutter-free.",
+      "answerText": "Always / Strongly Agree",
+      "categoryScore": 500,
+      "essentialScore": 12.5
+    },
+    {
+      "questionId": 39,
+      "valueIndex": 1,
+      "category": "Vitality",
+      "essentialId": "20",
+      "categoryValues": [
+        0,
+        375,
+        1250,
+        1875,
+        2500
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I actively set aside time to relax, reflect, and recharge.",
+      "answerText": "Never / Strongly Disagree",
+      "categoryScore": 0,
+      "essentialScore": 0
+    },
+    {
+      "questionId": 40,
+      "valueIndex": 2,
+      "category": "Vitality",
+      "essentialId": "20",
+      "categoryValues": [
+        0,
+        150,
+        500,
+        750,
+        1000
+      ],
+      "essentialValues": [
+        0,
+        3.125,
+        6.25,
+        9.375,
+        12.5
+      ],
+      "questionText": "I actively engage in activities that require my full attention and presence, such as meditation, yoga, or deep breathing.",
+      "answerText": "Rarely / Disagree",
+      "categoryScore": 150,
+      "essentialScore": 3.125
+    }
+  ],
+  "answersSimplified": [
+    {
+      "questionId": 1,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 2,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 3,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 4,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 5,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 6,
+      "valueIndex": 2
+    },
+    {
+      "questionId": 7,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 8,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 9,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 10,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 11,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 12,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 13,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 14,
+      "valueIndex": 2
+    },
+    {
+      "questionId": 15,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 16,
+      "valueIndex": 2
+    },
+    {
+      "questionId": 17,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 18,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 19,
+      "valueIndex": 1
+    },
+    {
+      "questionId": 20,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 21,
+      "valueIndex": 2
+    },
+    {
+      "questionId": 22,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 23,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 24,
+      "valueIndex": 1
+    },
+    {
+      "questionId": 25,
+      "valueIndex": 1
+    },
+    {
+      "questionId": 26,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 27,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 28,
+      "valueIndex": 2
+    },
+    {
+      "questionId": 29,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 30,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 31,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 32,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 33,
+      "valueIndex": 4
+    },
+    {
+      "questionId": 34,
+      "valueIndex": 1
+    },
+    {
+      "questionId": 35,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 36,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 37,
+      "valueIndex": 3
+    },
+    {
+      "questionId": 38,
+      "valueIndex": 5
+    },
+    {
+      "questionId": 39,
+      "valueIndex": 1
+    },
+    {
+      "questionId": 40,
+      "valueIndex": 2
+    }
+  ]
+}

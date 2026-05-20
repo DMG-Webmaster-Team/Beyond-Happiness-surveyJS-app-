@@ -14,18 +14,10 @@ export async function GET(request: NextRequest) {
   const limit = searchParams.get("limit");
 
   // 🔍 DEBUG: Log the received parameters
-  console.log("🔍 /api/results GET request:", {
-    surveyId,
-    userId,
-    adminId,
-    page,
-    limit,
-    url: request.url,
-  });
 
   // 🚨 SECURITY: Enforce both surveyId AND userId for submission checks
   if (userId && !surveyId) {
-    console.log("❌ userId provided without surveyId - rejecting request");
+
     return NextResponse.json(
       { error: "surveyId is required when userId is provided" },
       { status: 400 }
@@ -42,15 +34,8 @@ export async function GET(request: NextRequest) {
 
     // 🔍 SPECIFIC USER SUBMISSION CHECK: If both surveyId and userId provided
     if (surveyId && userId) {
-      console.log(
-        `🔍 Checking submissions for user ${userId} in survey ${surveyId}`
-      );
 
       const userResults = await getUserResultsForSurvey(userId, surveyId);
-
-      console.log(
-        `🔍 Found ${userResults.length} submissions for user ${userId} in survey ${surveyId}`
-      );
 
       return NextResponse.json({
         results: userResults,
@@ -62,9 +47,6 @@ export async function GET(request: NextRequest) {
 
     // 🔍 ADMIN VIEW: Survey results (paginated)
     if (surveyId) {
-      console.log(
-        `🔍 Fetching paginated results for survey ${surveyId} (admin view)`
-      );
 
       // Always use pagination for survey results
       const pageNum = page ? parseInt(page) : 1;
@@ -76,10 +58,6 @@ export async function GET(request: NextRequest) {
         limit: limitNum,
       });
 
-      console.log(
-        `🔍 Returning ${paginatedResults.results.length} results out of ${paginatedResults.total} total`
-      );
-
       return NextResponse.json({
         items: paginatedResults.results,
         total: paginatedResults.total,
@@ -89,7 +67,6 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Get all results with pagination (admin overview)
-      console.log("🔍 Fetching all results (admin overview)");
 
       const pageNum = page ? parseInt(page) : 1;
       const limitNum = limit ? parseInt(limit) : 100;
@@ -98,10 +75,6 @@ export async function GET(request: NextRequest) {
         page: pageNum,
         limit: limitNum,
       });
-
-      console.log(
-        `🔍 Returning ${paginatedResults.results.length} results out of ${paginatedResults.total} total`
-      );
 
       return NextResponse.json({
         items: paginatedResults.results,
@@ -173,7 +146,7 @@ export async function POST(request: NextRequest) {
 
     // ✅ NEW: Skip all restrictions for anonymous surveys
     if (isAnonymous) {
-      console.log("🌐 Anonymous survey submission - bypassing restrictions");
+
     } else {
       // Block duplicates only for one-time surveys (non-anonymous only)
       if (!canTakeMultiple && resultData.userId) {

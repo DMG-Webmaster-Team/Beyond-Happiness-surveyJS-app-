@@ -446,15 +446,6 @@ function QuestionModal({
   // Update form data when question prop changes (for editing)
   useEffect(() => {
     if (question) {
-      console.log("🔄 Updating form data for question:", question);
-      console.log(
-        "📊 Question essentialId:",
-        question.essentialId,
-        "type:",
-        typeof question.essentialId
-      );
-      console.log("📊 Question essentialValues:", question.essentialValues);
-      console.log("📊 Question categoryValues:", question.categoryValues);
 
       const categoryValues = question.categoryValues || [
         200, 400, 600, 800, 1000,
@@ -526,11 +517,7 @@ function QuestionModal({
         const data = await response.json();
         if (data.success) {
           setEssentials(data.data);
-          console.log(
-            "✅ Fetched essentials for category:",
-            formData.category,
-            data.data
-          );
+
         }
       } catch (error) {
         console.error("Error fetching essentials:", error);
@@ -619,7 +606,6 @@ function QuestionModal({
       isActive: formData.isActive,
     };
 
-    console.log("📤 Sending payload to API:", apiPayload);
     onSave(apiPayload);
   };
 

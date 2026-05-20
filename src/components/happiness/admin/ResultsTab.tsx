@@ -16,6 +16,22 @@ const formatDate = (timestamp: number) => {
   return date.toLocaleString();
 };
 
+// Calculate total score percentage
+const calculateTotalScorePercentage = (categoryTotals: {
+  Meaning: number;
+  Delight: number;
+  Freedom: number;
+  Engagement: number;
+  Vitality: number;
+}): number => {
+  const totalScore = Object.values(categoryTotals).reduce(
+    (sum, score) => sum + score,
+    0
+  );
+  const maxTotalScore = 50000; // 10000 per category × 5 categories
+  return Math.round((totalScore / maxTotalScore) * 100);
+};
+
 interface HappinessResult {
   id: string;
   surveyId: string;
@@ -95,47 +111,38 @@ export default function ResultsTab() {
       const excelData = [
         // Headers
         [
-          "Result ID",
-          "Survey ID",
           "Survey Title",
-          "Company ID",
           "Company Name",
           "User Email",
           "User Name",
           "Character Code (5-bit)",
           "Character Name",
-          "Meaning Score",
-          "Delight Score",
-          "Freedom Score",
-          "Engagement Score",
-          "Vitality Score",
-          "Total Score",
+          "Total Score %",
           "Submission Date",
           "Export Date",
         ],
         // Data rows
-        ...allData.results.map((result: HappinessResult) => [
-          result.id,
-          result.surveyId,
-          result.surveyTitle,
-          result.companyId || "N/A",
-          result.companyName || "N/A",
-          result.userEmail || "Anonymous",
-          result.userName || "N/A",
-          result.code, // This is the 5-bit character code
-          result.characterName,
-          result.categoryTotals.Meaning,
-          result.categoryTotals.Delight,
-          result.categoryTotals.Freedom,
-          result.categoryTotals.Engagement,
-          result.categoryTotals.Vitality,
-          Object.values(result.categoryTotals).reduce(
+        ...allData.results.map((result: HappinessResult) => {
+          const totalScore = Object.values(result.categoryTotals).reduce(
             (sum, score) => sum + score,
             0
-          ),
-          formatDate(result.createdAt),
-          new Date().toLocaleDateString(),
-        ]),
+          );
+          const maxTotalScore = 50000; // 10000 per category × 5 categories
+          const totalScorePercentage = Math.round(
+            (totalScore / maxTotalScore) * 100
+          );
+          return [
+            result.surveyTitle,
+            result.companyName || "N/A",
+            result.userEmail || "Anonymous",
+            result.userName || "N/A",
+            result.code, // This is the 5-bit character code
+            result.characterName,
+            totalScorePercentage,
+            formatDate(result.createdAt),
+            new Date().toLocaleDateString(),
+          ];
+        }),
       ];
 
       // Create workbook and worksheet
@@ -502,7 +509,7 @@ export default function ResultsTab() {
                   Character
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category Scores
+                  Total Score %
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -540,20 +547,9 @@ export default function ResultsTab() {
                       {result.characterName}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {Object.entries(result.categoryTotals).map(
-                        ([category, score]) => (
-                          <span
-                            key={category}
-                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(
-                              category
-                            )}`}
-                          >
-                            {category}: {score}
-                          </span>
-                        )
-                      )}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">
+                      {calculateTotalScorePercentage(result.categoryTotals)}%
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -677,15 +673,17 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
                 />
               </div>
               <div>
-                <div className="font-medium text-gray-900">
+                <div className="text-sm text-gray-600 mb-1">
+                  Code: {result.code}
+                </div>
+                <div className="font-bold text-black">
                   {result.characterName}
                 </div>
-                <div className="text-sm text-gray-600">Code: {result.code}</div>
               </div>
             </div>
           </div>
 
-          {/* Category Breakdown */}
+          {/* Category Scores with Percentages */}
           <div>
             <h4 className="font-semibold text-gray-900 mb-3">
               Category Scores
@@ -693,35 +691,96 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {Object.entries(result.categoryTotals).map(
                 ([category, score]) => {
-                  const percentage = Math.min((score / 8000) * 100, 100); // Assuming max possible is around 8000
+                  const maxScorePerCategory = 10000; // Max per category
+                  const percentage = Math.min(
+                    Math.round((score / maxScorePerCategory) * 100),
+                    100
+                  );
+                  // Use the same colors as "Your Happiness Profile" page
+                  const categoryColors: Record<
+                    string,
+                    { hex: string; bg: string; text: string; bar: string }
+                  > = {
+                    Meaning: {
+                      hex: "#784C9F", // rgb(120, 76, 159)
+                      bg: "bg-purple-100",
+                      text: "text-purple-800",
+                      bar: "bg-purple-500",
+                    },
+                    Delight: {
+                      hex: "#FEC010", // rgb(254, 192, 16)
+                      bg: "bg-yellow-100",
+                      text: "text-yellow-800",
+                      bar: "bg-yellow-500",
+                    },
+                    Freedom: {
+                      hex: "#F67E52", // rgb(246, 126, 82)
+                      bg: "bg-orange-100",
+                      text: "text-orange-800",
+                      bar: "bg-orange-500",
+                    },
+                    Engagement: {
+                      hex: "#4972B8", // rgb(73, 114, 184)
+                      bg: "bg-blue-100",
+                      text: "text-blue-800",
+                      bar: "bg-blue-500",
+                    },
+                    Vitality: {
+                      hex: "#71AD46", // rgb(113, 173, 70)
+                      bg: "bg-green-100",
+                      text: "text-green-800",
+                      bar: "bg-green-500",
+                    },
+                  };
+                  const categoryColor = categoryColors[category] || {
+                    hex: "#6B7280",
+                    bg: "bg-gray-100",
+                    text: "text-gray-800",
+                    bar: "bg-gray-500",
+                  };
                   return (
                     <div key={category} className="text-center">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {score}
+                      <div
+                        className={`text-lg font-semibold ${categoryColor.text}`}
+                      >
+                        {percentage}%
                       </div>
                       <div className="text-sm text-gray-600 mb-2">
                         {category}
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
-                          className={`h-2 rounded-full ${
-                            category === "Meaning"
-                              ? "bg-purple-500"
-                              : category === "Delight"
-                              ? "bg-yellow-500"
-                              : category === "Freedom"
-                              ? "bg-green-500"
-                              : category === "Engagement"
-                              ? "bg-blue-500"
-                              : "bg-red-500"
-                          }`}
-                          style={{ width: `${percentage}%` }}
+                          className="h-2 rounded-full"
+                          style={{
+                            width: `${percentage}%`,
+                            backgroundColor: categoryColor.hex,
+                          }}
                         />
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {score} / {maxScorePerCategory}
                       </div>
                     </div>
                   );
                 }
               )}
+            </div>
+          </div>
+
+          {/* Total Score Percentage - Centered */}
+          <div>
+            <h4 className="font-semibold text-gray-900 mb-3 text-center">
+              Total Score
+            </h4>
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-gray-900 mb-2">
+                  {calculateTotalScorePercentage(result.categoryTotals)}%
+                </div>
+                <div className="text-sm text-gray-600">
+                  Overall Happiness Score
+                </div>
+              </div>
             </div>
           </div>
 
@@ -731,7 +790,7 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
               Answer Summary ({result.answers.length} questions)
             </h4>
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium">Total Questions:</span>{" "}
                   {result.answers.length}
@@ -739,13 +798,6 @@ function ResultDetailModal({ result, onClose }: ResultDetailModalProps) {
                 <div>
                   <span className="font-medium">Submitted:</span>{" "}
                   {formatDate(result.createdAt)}
-                </div>
-                <div>
-                  <span className="font-medium">Survey ID:</span>{" "}
-                  {result.surveyId}
-                </div>
-                <div>
-                  <span className="font-medium">Result ID:</span> {result.id}
                 </div>
               </div>
             </div>

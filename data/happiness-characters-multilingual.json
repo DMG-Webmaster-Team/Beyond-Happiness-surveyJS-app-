@@ -4,7 +4,7 @@
       "id": 1,
       "name": {
         "en": "Curious Nomad",
-        "ar": "الرحالة الفضولي"
+        "ar": "الرحّال الفضولي"
       },
       "description": {
         "en": "A free-spirited explorer who finds joy in discovery and new experiences. You value freedom and delight in life's surprises.",
@@ -16,8 +16,8 @@
     {
       "id": 2,
       "name": {
-        "en": "Mindful Seeker",
-        "ar": "الباحث الواعي"
+        "en": "Purposeful Stumbler",
+        "ar": "المتعثّر الهادف"
       },
       "description": {
         "en": "A contemplative soul who finds deep meaning in life's purpose and spiritual connections. You prioritize reflection and growth.",
@@ -29,8 +29,8 @@
     {
       "id": 3,
       "name": {
-        "en": "Joyful Creator",
-        "ar": "المبدع المبهج"
+        "en": "Energetic Drifter",
+        "ar": "المتجول النشيط"
       },
       "description": {
         "en": "A vibrant artist who finds delight in creativity and beauty. You bring color and playfulness to everything you do.",
@@ -42,8 +42,8 @@
     {
       "id": 4,
       "name": {
-        "en": "Balanced Dreamer",
-        "ar": "الحالم المتوازن"
+        "en": "Driven Conqueror",
+        "ar": "الفاتح الطموح"
       },
       "description": {
         "en": "A harmonious soul who balances meaning and delight. You find purpose in joy and joy in purpose.",
@@ -55,8 +55,8 @@
     {
       "id": 5,
       "name": {
-        "en": "Free Spirit",
-        "ar": "الروح الحرة"
+        "en": "Aimless Wanderer",
+        "ar": "الرحّال التائه"
       },
       "description": {
         "en": "An independent soul who values freedom above all. You chart your own course and live by your own rules.",
@@ -68,8 +68,8 @@
     {
       "id": 6,
       "name": {
-        "en": "Purposeful Wanderer",
-        "ar": "المتجول الهادف"
+        "en": "Unbound Visionary",
+        "ar": "الحالم المتحرر"
       },
       "description": {
         "en": "A focused explorer who combines freedom with meaning. You seek purpose while maintaining independence.",
@@ -81,8 +81,8 @@
     {
       "id": 7,
       "name": {
-        "en": "Playful Rebel",
-        "ar": "المتمرد المرح"
+        "en": "Independent Sprinter",
+        "ar": "العدّاء المستقل"
       },
       "description": {
         "en": "A carefree spirit who finds joy in freedom. You delight in breaking boundaries and living spontaneously.",
@@ -94,8 +94,8 @@
     {
       "id": 8,
       "name": {
-        "en": "Harmonious Explorer",
-        "ar": "المستكشف المتناغم"
+        "en": "Vibrant Navigator",
+        "ar": "المُوجه النشط"
       },
       "description": {
         "en": "A balanced adventurer who finds meaning, delight, and freedom in equal measure. You live life fully and authentically.",
@@ -107,8 +107,8 @@
     {
       "id": 9,
       "name": {
-        "en": "Dedicated Achiever",
-        "ar": "المنجز المتفاني"
+        "en": "Weary Diligent",
+        "ar": "المجتهد المُرهق"
       },
       "description": {
         "en": "A focused professional who finds deep engagement in meaningful work. You're committed to excellence and growth.",
@@ -120,8 +120,8 @@
     {
       "id": 10,
       "name": {
-        "en": "Spiritual Professional",
-        "ar": "المحترف الروحاني"
+        "en": "Resolute Anchor",
+        "ar": "المرتكز الحازم"
       },
       "description": {
         "en": "A mindful worker who combines engagement with spiritual meaning. You find purpose in your professional growth.",
@@ -133,8 +133,8 @@
     {
       "id": 11,
       "name": {
-        "en": "Creative Professional",
-        "ar": "المحترف المبدع"
+        "en": "Determined Striver",
+        "ar": "المثابر المصمم"
       },
       "description": {
         "en": "An engaged artist who finds joy in their work. You bring creativity and delight to your professional life.",
@@ -146,8 +146,8 @@
     {
       "id": 12,
       "name": {
-        "en": "Fulfilled Professional",
-        "ar": "المحترف المحقق"
+        "en": "Committed Dynamo",
+        "ar": "الدينامو الملتزم"
       },
       "description": {
         "en": "A satisfied worker who finds meaning, delight, and engagement in their career. You've found your calling.",
@@ -159,8 +159,8 @@
     {
       "id": 13,
       "name": {
-        "en": "Independent Professional",
-        "ar": "المحترف المستقل"
+        "en": "Persistent Wanderer",
+        "ar": "الرحّال المُثابر"
       },
       "description": {
         "en": "A self-directed worker who values freedom and engagement. You chart your own professional path.",
@@ -172,8 +172,8 @@
     {
       "id": 14,
       "name": {
-        "en": "Purposeful Professional",
-        "ar": "المحترف الهادف"
+        "en": "Dedicated Pathfinder",
+        "ar": "الرائد المُكرّس"
       },
       "description": {
         "en": "A focused worker who combines freedom, meaning, and engagement. You've found your professional purpose.",
@@ -185,8 +185,8 @@
     {
       "id": 15,
       "name": {
-        "en": "Joyful Professional",
-        "ar": "المحترف المبهج"
+        "en": "Tenacious Seeker",
+        "ar": "الباحث العنيد"
       },
       "description": {
         "en": "A happy worker who finds freedom, delight, and engagement in their career. You love what you do.",
@@ -198,8 +198,8 @@
     {
       "id": 16,
       "name": {
-        "en": "Complete Professional",
-        "ar": "المحترف الكامل"
+        "en": "Harmonious Achiever",
+        "ar": "المنجز المتوازن"
       },
       "description": {
         "en": "A fulfilled worker who has achieved the perfect balance of freedom, meaning, delight, and engagement. You're living your dream career.",
@@ -211,21 +211,21 @@
     {
       "id": 17,
       "name": {
-        "en": "Vital Achiever",
-        "ar": "المنجز الحيوي"
+        "en": "Playful Wanderer",
+        "ar": "المرح المتنقل"
       },
       "description": {
-        "en": "A healthy professional who combines engagement with vitality. You're energized and focused in your work.",
-        "ar": "محترف صحي يجمع بين الانخراط والحيوية. أنت نشيط ومركز في عملك."
+        "en": "A free-spirited explorer who finds joy in discovery and new experiences. You value freedom and delight in life's surprises.",
+        "ar": "مستكشف حر الروح يجد الفرح في الاكتشاف والتجارب الجديدة. تقدر الحرية وتستمتع بمفاجآت الحياة."
       },
-      "match": "00011",
-      "avatar_url": "/characters/00011.png"
+      "match": "00001",
+      "avatar_url": "/characters/00001.png"
     },
     {
       "id": 18,
       "name": {
-        "en": "Spiritual Vitalist",
-        "ar": "الحيوي الروحاني"
+        "en": "Fulfilled Dreamer",
+        "ar": "الحالم المُحقق"
       },
       "description": {
         "en": "A mindful person who combines vitality with spiritual meaning. You're healthy in body and soul.",
@@ -237,8 +237,8 @@
     {
       "id": 19,
       "name": {
-        "en": "Joyful Vitalist",
-        "ar": "الحيوي المبهج"
+        "en": "Spirited Enjoyer",
+        "ar": "المُحب النشيط للحياة"
       },
       "description": {
         "en": "A healthy person who finds delight in vitality. You're energized and happy in your daily life.",
@@ -250,8 +250,8 @@
     {
       "id": 20,
       "name": {
-        "en": "Fulfilled Vitalist",
-        "ar": "الحيوي المحقق"
+        "en": "Spirited Seeker",
+        "ar": "الباحث الحيوي"
       },
       "description": {
         "en": "A healthy person who finds meaning and delight in vitality. You're energized, happy, and purposeful.",
@@ -263,8 +263,8 @@
     {
       "id": 21,
       "name": {
-        "en": "Free Vitalist",
-        "ar": "الحيوي الحر"
+        "en": "Carefree Enthusiast",
+        "ar": "المتحمس الهادئ"
       },
       "description": {
         "en": "A healthy person who values freedom and vitality. You're energized and independent in your lifestyle.",
@@ -276,8 +276,8 @@
     {
       "id": 22,
       "name": {
-        "en": "Purposeful Vitalist",
-        "ar": "الحيوي الهادف"
+        "en": "Inspired Wanderer",
+        "ar": "الرحّال المُلهَم"
       },
       "description": {
         "en": "A healthy person who combines freedom, meaning, and vitality. You're energized, independent, and purposeful.",
@@ -289,8 +289,8 @@
     {
       "id": 23,
       "name": {
-        "en": "Joyful Free Vitalist",
-        "ar": "الحيوي الحر المبهج"
+        "en": "Vibrant Free Spirit",
+        "ar": "الروح الحرة النشطة"
       },
       "description": {
         "en": "A healthy person who finds freedom, delight, and vitality. You're energized, independent, and happy.",
@@ -302,8 +302,8 @@
     {
       "id": 24,
       "name": {
-        "en": "Complete Vitalist",
-        "ar": "الحيوي الكامل"
+        "en": "Joyful Adventurer",
+        "ar": "المُغامر السعيد"
       },
       "description": {
         "en": "A healthy person who has achieved the perfect balance of freedom, meaning, delight, and vitality. You're living your best life.",
@@ -315,8 +315,8 @@
     {
       "id": 25,
       "name": {
-        "en": "Engaged Vitalist",
-        "ar": "الحيوي المنخرط"
+        "en": "Distracted Connoisseur",
+        "ar": "الذوّاق المشتت"
       },
       "description": {
         "en": "A healthy person who combines vitality with deep engagement. You're energized and focused in your activities.",
@@ -328,8 +328,8 @@
     {
       "id": 26,
       "name": {
-        "en": "Spiritual Engaged Vitalist",
-        "ar": "الحيوي المنخرط الروحاني"
+        "en": "Devoted Optimist",
+        "ar": "المتفائل المُخلص"
       },
       "description": {
         "en": "A healthy person who combines vitality, engagement, and spiritual meaning. You're energized, focused, and purposeful.",
@@ -341,8 +341,8 @@
     {
       "id": 27,
       "name": {
-        "en": "Joyful Engaged Vitalist",
-        "ar": "الحيوي المنخرط المبهج"
+        "en": "Joyful Dynamo",
+        "ar": "القوة المبهجة"
       },
       "description": {
         "en": "A healthy person who combines vitality, engagement, and delight. You're energized, focused, and happy.",
@@ -354,8 +354,8 @@
     {
       "id": 28,
       "name": {
-        "en": "Fulfilled Engaged Vitalist",
-        "ar": "الحيوي المنخرط المحقق"
+        "en": "Energetic Champion",
+        "ar": "البطل النشيط"
       },
       "description": {
         "en": "A healthy person who combines vitality, engagement, meaning, and delight. You're energized, focused, happy, and purposeful.",
@@ -367,8 +367,8 @@
     {
       "id": 29,
       "name": {
-        "en": "Free Engaged Vitalist",
-        "ar": "الحيوي المنخرط الحر"
+        "en": "Passionate Dabbler",
+        "ar": "المجرب الشغوف"
       },
       "description": {
         "en": "A healthy person who combines vitality, engagement, and freedom. You're energized, focused, and independent.",
@@ -380,8 +380,8 @@
     {
       "id": 30,
       "name": {
-        "en": "Purposeful Free Engaged Vitalist",
-        "ar": "الحيوي المنخرط الحر الهادف"
+        "en": "Enlightened Explorer",
+        "ar": "المُستكشف المُستنير"
       },
       "description": {
         "en": "A healthy person who combines vitality, engagement, freedom, and meaning. You're energized, focused, independent, and purposeful.",
@@ -393,8 +393,8 @@
     {
       "id": 31,
       "name": {
-        "en": "Joyful Free Engaged Vitalist",
-        "ar": "الحيوي المنخرط الحر المبهج"
+        "en": "Thriving Adventurer",
+        "ar": "المُغامر المُزدهر"
       },
       "description": {
         "en": "A healthy person who combines vitality, engagement, freedom, and delight. You're energized, focused, independent, and happy.",
@@ -406,8 +406,8 @@
     {
       "id": 32,
       "name": {
-        "en": "Complete Human",
-        "ar": "الإنسان الكامل"
+        "en": "Radiant Fulfiller",
+        "ar": "المُنجز المتألق"
       },
       "description": {
         "en": "You've achieved the perfect balance of all five happiness dimensions: Meaning, Delight, Freedom, Engagement, and Vitality. You're living your fullest, most authentic life.",

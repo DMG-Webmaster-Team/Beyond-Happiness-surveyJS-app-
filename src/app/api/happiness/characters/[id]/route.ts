@@ -6,13 +6,14 @@ import { eq } from "drizzle-orm";
 // PUT - Update happiness character (description and avatar only)
 
 // Force Node.js runtime (disable Edge runtime)
-export const runtime = 'nodejs';
+export const runtime = "nodejs";
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const characterId = parseInt(params.id);
+    const { id } = await params;
+    const characterId = parseInt(id);
     if (isNaN(characterId)) {
       return NextResponse.json(
         { error: "Invalid character ID" },
@@ -21,14 +22,15 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { description, avatarUrl } = body;
+    const { descriptionEn, descriptionAr, avatarUrl } = body;
 
-    // Build update object (only allow description and avatarUrl changes)
+    // Build update object (only allow descriptions and avatarUrl changes)
     const updateData: any = {
       updatedAt: new Date(),
     };
 
-    if (description !== undefined) updateData.description = description;
+    if (descriptionEn !== undefined) updateData.descriptionEn = descriptionEn;
+    if (descriptionAr !== undefined) updateData.descriptionAr = descriptionAr;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
 
     // Check if there's anything to update

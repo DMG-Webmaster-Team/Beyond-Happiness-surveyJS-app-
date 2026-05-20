@@ -20,8 +20,10 @@ interface HappinessResult {
   code: string;
   character: {
     id: number;
-    name: string;
+    nameEn: string;
+    nameAr: string;
     description: string;
+    detailedDescription?: string;
     avatarUrl: string;
   };
   categoryTotals: {
@@ -31,6 +33,7 @@ interface HappinessResult {
     Engagement: number;
     Vitality: number;
   };
+  essentialTotals?: Record<string, number>;
 }
 
 interface DownloadPDFButtonProps {
@@ -107,8 +110,6 @@ export default function DownloadPDFButton({
       setIsGenerating(true);
       setError(null);
 
-      console.log("🔄 Generating PDF for character:", result.character.name);
-
       // Get answers from localStorage or result object for accurate subtype calculation
       const getStoredAnswers = () => {
         try {
@@ -174,9 +175,7 @@ export default function DownloadPDFButton({
       const contentDisposition = response.headers.get("Content-Disposition");
       const filename = contentDisposition
         ? contentDisposition.split("filename=")[1]?.replace(/"/g, "")
-        : getSafePdfFilename(result.character.name, language);
-
-      console.log("📄 PDF generated successfully, downloading as:", filename);
+        : getSafePdfFilename(language === "ar" ? result.character.nameAr : result.character.nameEn, language);
 
       // Create download link
       const url = window.URL.createObjectURL(pdfBlob);
@@ -192,7 +191,7 @@ export default function DownloadPDFButton({
       if (typeof window !== "undefined" && (window as any).gtag) {
         (window as any).gtag("event", "pdf_download", {
           event_category: "happiness_survey",
-          event_label: result.character.name,
+          event_label: language === "ar" ? result.character.nameAr : result.character.nameEn,
           character_code: result.code,
           language: language,
         });

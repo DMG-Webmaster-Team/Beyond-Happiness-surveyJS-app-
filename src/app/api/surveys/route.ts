@@ -72,7 +72,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const surveyData = await request.json();
-    console.log("Received survey data:", surveyData);
 
     // Dynamic import to avoid static generation issues
     const { createSurvey } = await import("../../../db/queries/surveys");
@@ -91,8 +90,6 @@ export async function POST(request: NextRequest) {
         surveyData.isPublished !== undefined ? surveyData.isPublished : true,
       createdBy: surveyData.adminId || "admin1", // Fallback to default admin if not provided
     };
-
-    console.log("Data being passed to createSurvey:", createSurveyData);
 
     const newSurvey = await createSurvey(createSurveyData);
 

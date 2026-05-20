@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, redirect } from "next/navigation";
 import { Survey } from "survey-react-ui";
 import { Model } from "survey-core";
 import dynamic from "next/dynamic";
@@ -11,6 +11,9 @@ import AnonymousNavbar from "@/components/shared/AnonymousNavbar";
 import SurveySkeletonLoader from "@/components/shared/SurveySkeletonLoader";
 import SurveyStatusPage from "@/components/survey/SurveyStatusPage";
 import LoadingScreen from "@/components/shared/LoadingScreen";
+import ParticipantInformationForm, {
+  ParticipantData,
+} from "@/components/shared/ParticipantInformationForm";
 
 // Dynamically import Survey component to avoid SSR issues
 const DynamicSurvey = dynamic(
@@ -70,10 +73,31 @@ export default function SurveyPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [surveyModel, setSurveyModel] = useState<Model | null>(null);
+  const [showUserInfoCollection, setShowUserInfoCollection] = useState(false);
+  // Initialize collectedUserData from sessionStorage if available (persist across re-renders)
+  const getStoredUserData = () => {
+    if (typeof window === "undefined") {
+      return { name: "", email: "", phone: "", gender: "", ageRange: "" };
+    }
+    try {
+      const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+    return { name: "", email: "", phone: "", gender: "", ageRange: "" };
+  };
+
+  const [collectedUserData, setCollectedUserData] = useState(getStoredUserData);
 
   // Fetch survey session data on mount
   useEffect(() => {
+    console.log(`[SurveyPage] 🔍 Component mounted, surveyId: ${surveyId}`);
+
     if (!surveyId) {
+      console.log(`[SurveyPage] ❌ No surveyId provided`);
       setError("Survey ID is required");
       setIsLoading(false);
       return;
@@ -81,6 +105,9 @@ export default function SurveyPage() {
 
     const fetchSurveySession = async () => {
       try {
+        console.log(
+          `[SurveyPage] 📡 Fetching survey session for ${surveyId}...`
+        );
         setIsLoading(true);
         setError(null);
 
@@ -92,20 +119,29 @@ export default function SurveyPage() {
           },
         });
 
+        console.log(
+          `[SurveyPage] 📡 Response status: ${response.status} ${response.statusText}`
+        );
+
         if (!response.ok) {
           const data = await response.json();
           const apiError = data as ApiError;
+          console.log(`[SurveyPage] ❌ API error:`, apiError);
 
           // Handle specific error cases
           if (apiError.requiresAuth) {
-            // Redirect to login for non-anonymous surveys
-            router.push(
-              apiError.redirectUrl || `/user/login?redirect=${surveyId}`
+            console.log(
+              `[SurveyPage] 🔒 Authentication required, redirecting to login...`
             );
+            // Redirect to login page (survey page will handle redirect back)
+            router.push(`/user/login`);
             return;
           }
 
           if (apiError.redirect && apiError.surveyType === "happiness") {
+            console.log(
+              `[SurveyPage] 🎭 Happiness survey detected, redirecting...`
+            );
             // Redirect to happiness survey page
             router.push(apiError.redirectUrl || `/happiness/${surveyId}`);
             return;
@@ -115,9 +151,41 @@ export default function SurveyPage() {
         }
 
         const data = await response.json();
+        console.log(`[SurveyPage] ✅ Session data received:`, {
+          surveyId: data.survey?.id,
+          title: data.survey?.title,
+          isAnonymous: data.survey?.isAnonymous,
+          hasUser: !!data.user,
+          submissionStatus: data.submissionStatus,
+          isHappinessSurvey: data.isHappinessSurvey,
+        });
+
+        // Check if this is a happiness survey that requires authentication
+        if (data.isHappinessSurvey && data.surveyType === "happiness") {
+          console.log(
+            `[SurveyPage] 🎭 Authenticated happiness survey detected - redirecting to /happiness/${surveyId}`
+          );
+          // Redirect to happiness survey page which will handle authentication
+          router.push(`/happiness/${surveyId}`);
+          return;
+        }
+
+        // If anonymous survey, redirect to /survey/[id] (not /user/survey/[id])
+        const isAnonymous =
+          data.survey?.isAnonymous === true ||
+          (data.survey?.isAnonymous as any) === 1;
+
+        if (isAnonymous) {
+          console.log(
+            `[SurveyPage] 🎭 Anonymous survey detected - redirecting to /survey/...`
+          );
+          router.push(`/survey/${surveyId}`);
+          return;
+        }
+
         setSessionData(data);
       } catch (err) {
-        console.error("❌ Error fetching survey session:", err);
+        console.error("[SurveyPage] ❌ Error fetching survey session:", err);
         setError(err instanceof Error ? err.message : "Failed to load survey");
       } finally {
         setIsLoading(false);
@@ -127,94 +195,181 @@ export default function SurveyPage() {
     fetchSurveySession();
   }, [surveyId, router]);
 
-  // Create survey model when session data is available
+  // Check if we need to show user info collection (separate from model creation)
   useEffect(() => {
-    if (!sessionData?.survey?.json) {
+    if (!sessionData) {
+      console.log(`[SurveyPage] ⏳ Waiting for session data...`);
       return;
     }
 
+    console.log(`[SurveyPage] 🔍 Checking if user info collection needed...`);
+    console.log(
+      `[SurveyPage] 📋 Session data survey isAnonymous:`,
+      sessionData.survey.isAnonymous,
+      `(type: ${typeof sessionData.survey.isAnonymous})`
+    );
+
+    // For anonymous surveys, check if we need to show user info collection
+    const isAnonymous =
+      sessionData.survey.isAnonymous === true ||
+      (sessionData.survey.isAnonymous as any) === 1;
+
+    console.log(`[SurveyPage] 🔐 isAnonymous check result: ${isAnonymous}`);
+
+    if (isAnonymous) {
+      router.push(`/survey/${surveyId}`);
+      return;
+      //   console.log(
+      //     `[SurveyPage] 🎭 Anonymous survey detected - checking for collected user data...`
+      //   );
+      //   // Check both state and sessionStorage for collected data
+      //   let storedData = collectedUserData;
+      //   if (typeof window !== "undefined") {
+      //     try {
+      //       const stored = sessionStorage.getItem(`survey:userData:${surveyId}`);
+      //       if (stored) {
+      //         storedData = JSON.parse(stored);
+      //         console.log(
+      //           `[SurveyPage] 💾 Found stored user data in sessionStorage:`,
+      //           storedData
+      //         );
+      //         // Update state if we found stored data and state is empty
+      //         if (
+      //           storedData.name &&
+      //           storedData.email &&
+      //           !collectedUserData.name
+      //         ) {
+      //           console.log(
+      //             `[SurveyPage] ✅ Updating state with stored user data`
+      //           );
+      //           setCollectedUserData(storedData);
+      //         }
+      //       } else {
+      //         console.log(
+      //           `[SurveyPage] 💾 No stored user data in sessionStorage`
+      //         );
+      //       }
+      //     } catch (e) {
+      //       console.error(`[SurveyPage] ❌ Error reading sessionStorage:`, e);
+      //     }
+      //   }
+
+      //   // Show user info collection if data not collected yet
+      //   const hasCollectedData = storedData.name && storedData.email;
+      //   console.log(
+      //     `[SurveyPage] 📝 Has collected data: ${hasCollectedData} (name: ${!!storedData.name}, email: ${!!storedData.email})`
+      //   );
+      //   setShowUserInfoCollection(!hasCollectedData);
+      //   console.log(
+      //     `[SurveyPage] 📝 Setting showUserInfoCollection to: ${!hasCollectedData}`
+      //   );
+      // } else {
+      //   console.log(
+      //     `[SurveyPage] 🔒 Non-anonymous survey - skipping user info collection`
+      //   );
+      //   setShowUserInfoCollection(false);
+    }
+  }, [sessionData, surveyId, collectedUserData]);
+
+  // Create survey model when session data is available AND user info is collected (if needed)
+  useEffect(() => {
+    console.log(
+      `[SurveyPage] 🔍 Checking if survey model should be created...`
+    );
+    console.log(
+      `[SurveyPage] 📋 Has sessionData: ${!!sessionData}, Has JSON: ${!!sessionData
+        ?.survey?.json}, showUserInfoCollection: ${showUserInfoCollection}`
+    );
+
+    if (!sessionData?.survey?.json) {
+      console.log(`[SurveyPage] ⏳ Waiting for survey JSON...`);
+      return;
+    }
+
+    // Don't create model if we need to show user info collection first
+    if (showUserInfoCollection) {
+      console.log(`[SurveyPage] ⏳ Waiting for user info collection...`);
+      return;
+    }
+
+    console.log(`[SurveyPage] 🏗️ Creating survey model...`);
     try {
       const originalSurveyJson = JSON.parse(sessionData.survey.json);
       let surveyJson = { ...originalSurveyJson };
+      console.log(
+        `[SurveyPage] 📋 Survey JSON parsed, pages: ${
+          surveyJson.pages?.length || 0
+        }`
+      );
 
-      // If survey is anonymous, prepend intro page for user info collection
-      if (sessionData.survey.isAnonymous) {
-        const introPage = {
-          name: "anonymousInfoPage",
-          title: "Please provide your information",
-          description:
-            "This information helps us better understand our survey participants.",
-          elements: [
-            {
-              type: "text",
-              name: "anonymousInfo.name",
-              title: "Full Name",
-              isRequired: true,
-              placeholder: "Enter your full name",
-            },
-            {
-              type: "text",
-              name: "anonymousInfo.phone",
-              title: "Phone Number",
-              isRequired: true,
-              placeholder: "Enter your phone number",
-              inputType: "tel",
-              validators: [
-                {
-                  type: "regex",
-                  text: "Please enter a valid phone number",
-                  regex: "^[+]?[0-9\\s\\-\\(\\)]{10,}$",
-                },
-              ],
-            },
-            {
-              type: "text",
-              name: "anonymousInfo.email",
-              title: "Email Address",
-              isRequired: true,
-              placeholder: "Enter your email address",
-              inputType: "email",
-              validators: [
-                {
-                  type: "email",
-                  text: "Please enter a valid email address",
-                },
-              ],
-            },
-            {
-              type: "dropdown",
-              name: "anonymousInfo.gender",
-              title: "Gender",
-              isRequired: true,
-              choices: [
-                { value: "male", text: "Male" },
-                { value: "female", text: "Female" },
-              ],
-              placeholder: "Select your gender",
-            },
-            {
-              type: "dropdown",
-              name: "anonymousInfo.ageRange",
-              title: "Age Range",
-              isRequired: true,
-              choices: [
-                { value: "under_18", text: "Under 18" },
-                { value: "18_25", text: "18–25" },
-                { value: "26_35", text: "26–35" },
-                { value: "36_50", text: "36–50" },
-                { value: "51_plus", text: "51+" },
-              ],
-              placeholder: "Select your age range",
-            },
-          ],
-        };
+      // For anonymous surveys, filter out personal info fields that are already collected via ParticipantInformationForm
+      // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
+      const isAnonymous =
+        sessionData.survey.isAnonymous === true ||
+        (sessionData.survey.isAnonymous as any) === 1;
 
-        // Prepend the intro page to existing pages
-        surveyJson.pages = [introPage, ...(surveyJson.pages || [])];
+      console.log(
+        `[SurveyPage] 🔐 Filtering check - isAnonymous: ${isAnonymous}`
+      );
 
-        // Ensure we have a title if not set
-        if (!surveyJson.title) {
-          surveyJson.title = sessionData.survey.title;
+      if (isAnonymous) {
+        console.log(
+          `[SurveyPage] 🎭 Anonymous survey - filtering personal info fields...`
+        );
+        // List of personal info field names to filter out
+        // Simple field names (exact match)
+        const simplePersonalInfoFields = [
+          "name",
+          "email",
+          "phone",
+          "gender",
+          "ageRange",
+          "fullName",
+        ];
+        // Nested field names (prefix match for nested structures)
+        const nestedPersonalInfoFields = [
+          "anonymousInfo.name",
+          "anonymousInfo.email",
+          "anonymousInfo.phone",
+          "anonymousInfo.gender",
+          "anonymousInfo.ageRange",
+        ];
+
+        // Filter out personal info fields from all pages
+        if (surveyJson.pages && Array.isArray(surveyJson.pages)) {
+          surveyJson.pages = surveyJson.pages.map((page: any) => {
+            if (page.elements && Array.isArray(page.elements)) {
+              return {
+                ...page,
+                elements: page.elements.filter((el: any) => {
+                  const elementName = el.name;
+                  if (!elementName) return true; // Keep elements without names
+
+                  // Check exact match for simple fields
+                  if (simplePersonalInfoFields.includes(elementName)) {
+                    return false;
+                  }
+
+                  // Check prefix match for nested fields
+                  if (
+                    nestedPersonalInfoFields.some((field) =>
+                      elementName.startsWith(field)
+                    )
+                  ) {
+                    return false;
+                  }
+
+                  return true;
+                }),
+              };
+            }
+            return page;
+          });
+
+          // Remove empty pages after filtering
+          surveyJson.pages = surveyJson.pages.filter(
+            (page: any) => !page.elements || page.elements.length > 0
+          );
         }
       }
 
@@ -228,6 +383,102 @@ export default function SurveyPage() {
       // Remove progress bar from all regular surveys
       model.showProgressBar = "off";
 
+      // Ensure navigation buttons are visible for all surveys
+      model.showNavigationButtons = true;
+      model.showNavigationButtonsOnTop = false;
+      model.showNavigationButtonsOnBottom = true;
+
+      // Explicitly set button texts
+      model.completeText = "Submit";
+      model.pageNextText = "Next";
+      model.pagePrevText = "Previous";
+
+      // Enable validation to control button state
+      model.checkErrorsMode = "onValueChanged"; // Check errors as user types
+
+      // Add handler to ensure footer visibility and make it fixed at bottom
+      model.onAfterRenderSurvey.add((sender, options) => {
+        const surveyElement = options.htmlElement;
+        if (surveyElement) {
+          // Find all footer elements
+          const footers = surveyElement.querySelectorAll(".sv-footer");
+
+          // Make footer fixed and always visible at bottom with !important styles
+          footers.forEach((footer) => {
+            const footerEl = footer as HTMLElement;
+            footerEl.style.cssText = `
+              display: block !important;
+              visibility: visible !important;
+              opacity: 1 !important;
+              position: fixed !important;
+              bottom: 0 !important;
+              left: 0 !important;
+              right: 0 !important;
+              width: 100% !important;
+              background-color: #ffffff !important;
+              border-top: 1px solid #e5e7eb !important;
+              padding: 1rem !important;
+              z-index: 9999 !important;
+              box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+            `;
+          });
+
+          // Add padding to survey body so content doesn't hide behind footer
+          const surveyBody = surveyElement.querySelector(".sv-body");
+          if (surveyBody) {
+            (surveyBody as HTMLElement).style.paddingBottom = "80px";
+          }
+        }
+      });
+
+      // Ensure footer buttons are always visible and add visual feedback
+      model.onAfterRenderPage.add((sender, options) => {
+        const pageElement = options.htmlElement;
+        if (pageElement) {
+          // Find footer in page or parent
+          const findAndStyleFooter = (element: Element) => {
+            const footer = element.querySelector(".sv-footer");
+            if (footer) {
+              const footerEl = footer as HTMLElement;
+              footerEl.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: fixed !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                background-color: #ffffff !important;
+                border-top: 1px solid #e5e7eb !important;
+                padding: 1rem !important;
+                z-index: 9999 !important;
+                box-shadow: 0 -2px 10px rgba(0,0,0,0.1) !important;
+              `;
+            }
+          };
+
+          // Try to find footer in page element
+          findAndStyleFooter(pageElement);
+
+          // Also check parent survey element
+          const surveyElement = pageElement.closest(".sv-root");
+          if (surveyElement) {
+            findAndStyleFooter(surveyElement);
+          }
+
+          // Add smooth transitions to navigation buttons for state changes
+          const buttons = pageElement.querySelectorAll(".sv-btn");
+          buttons.forEach((btn) => {
+            const button = btn as HTMLElement;
+            button.style.transition = "all 0.3s ease";
+          });
+
+          // Add padding to page so content doesn't hide behind fixed footer
+          (pageElement as HTMLElement).style.paddingBottom = "80px";
+        }
+      });
+
       // Check if this is a multi-language survey and apply UI customizations
       const isMultiLanguageSurvey =
         model.getVariable("isMultiLanguageSurvey") === true ||
@@ -236,7 +487,7 @@ export default function SurveyPage() {
       if (isMultiLanguageSurvey) {
         // Apply UI customizations for multi-language surveys only using proper SurveyJS settings
         model.showTitle = false; // Hide survey title
-        model.showPageTitles = false; // Hide page titles
+        model.showPageTitles = true; // Show page titles for multilingual surveys
         model.showNavigationButtons = true; // Enable navigation buttons
         model.showNavigationButtonsOnTop = false; // Hide top navigation buttons
         model.showNavigationButtonsOnBottom = true; // Show bottom navigation buttons
@@ -252,10 +503,26 @@ export default function SurveyPage() {
           }
         });
 
-        // Safe cleanup - only hide top footer if SurveyJS still renders it
+        // Ensure page titles are visible and styled properly for multilingual surveys
         model.onAfterRenderPage.add((sender, options) => {
           const pageElement = options.htmlElement;
           if (pageElement) {
+            // Find and style page title
+            const pageTitle = pageElement.querySelector(".sv-page__title");
+            if (pageTitle) {
+              const titleEl = pageTitle as HTMLElement;
+              titleEl.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                font-size: 1.5rem !important;
+                font-weight: 600 !important;
+                color: #111827 !important;
+                margin-bottom: 1.5rem !important;
+                padding-bottom: 0.75rem !important;
+                border-bottom: 2px solid #e5e7eb !important;
+              `;
+            }
+            
             // Only hide top footer elements that might still appear
             const topFooters = pageElement.querySelectorAll(
               ".sv-footer.sv-footer-top"
@@ -266,10 +533,31 @@ export default function SurveyPage() {
             });
           }
         });
-
-        console.log(
-          "🌐 Multi-language survey detected - Safe UI customizations applied"
-        );
+      } else {
+        // For regular surveys, enable page titles if they exist in the survey JSON
+        model.showPageTitles = true;
+        
+        // Ensure page titles are visible and styled properly
+        model.onAfterRenderPage.add((sender, options) => {
+          const pageElement = options.htmlElement;
+          if (pageElement) {
+            // Find and style page title
+            const pageTitle = pageElement.querySelector(".sv-page__title");
+            if (pageTitle) {
+              const titleEl = pageTitle as HTMLElement;
+              titleEl.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                font-size: 1.5rem !important;
+                font-weight: 600 !important;
+                color: #111827 !important;
+                margin-bottom: 1.5rem !important;
+                padding-bottom: 0.75rem !important;
+                border-bottom: 2px solid #e5e7eb !important;
+              `;
+            }
+          }
+        });
       }
 
       // Handle survey completion
@@ -278,11 +566,14 @@ export default function SurveyPage() {
       });
 
       setSurveyModel(model);
+      setIsLoading(false);
+      console.log(`[SurveyPage] ✅ Survey model set and loading complete`);
     } catch (err) {
-      console.error("❌ Error creating survey model:", err);
+      console.error("[SurveyPage] ❌ Error creating survey model:", err);
       setError("Invalid survey configuration");
+      setIsLoading(false);
     }
-  }, [sessionData]);
+  }, [sessionData, showUserInfoCollection]);
 
   // Handle survey submission
   const handleSurveySubmission = async (surveyData: any) => {
@@ -291,11 +582,29 @@ export default function SurveyPage() {
     try {
       setIsSubmitting(true);
 
+      // Include collected user data for anonymous surveys
+      // Handle MySQL boolean values (1/0) vs JavaScript boolean (true/false)
+      const isAnonymous =
+        sessionData.survey.isAnonymous === true ||
+        (sessionData.survey.isAnonymous as any) === 1;
+
+      let finalSurveyData = surveyData;
+      if (isAnonymous && collectedUserData.name) {
+        finalSurveyData = {
+          ...surveyData,
+          "anonymousInfo.name": collectedUserData.name,
+          "anonymousInfo.email": collectedUserData.email,
+          "anonymousInfo.phone": collectedUserData.phone,
+          "anonymousInfo.gender": collectedUserData.gender,
+          "anonymousInfo.ageRange": collectedUserData.ageRange,
+        };
+      }
+
       const submissionPayload = {
         surveyId: sessionData.survey.id,
         userId: sessionData.user?.id || null,
-        data: surveyData,
-        isAnonymous: sessionData.survey.isAnonymous,
+        data: finalSurveyData,
+        isAnonymous: Boolean(isAnonymous), // Ensure we send a proper boolean
       };
 
       const response = await fetch("/api/results", {
@@ -313,7 +622,7 @@ export default function SurveyPage() {
       }
 
       // Redirect to success page or status page
-      if (sessionData.survey.isAnonymous) {
+      if (isAnonymous) {
         // For anonymous surveys, redirect to a thank you page
         router.push(`/survey/thank-you?surveyId=${sessionData.survey.id}`);
       } else {
@@ -356,6 +665,61 @@ export default function SurveyPage() {
             <p className="text-gray-600 mb-6">{error}</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // Show user info collection for anonymous surveys
+  if (showUserInfoCollection && sessionData?.survey?.isAnonymous) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <AnonymousNavbar />
+
+        <div className="bg-white shadow-sm">
+          <div className="max-w-4xl text-center mx-auto px-4 py-6">
+            <h1 className="text-2xl font-bold text-blue-600">
+              Participant Information
+            </h1>
+            <p className="text-blue-500 mt-2">
+              Please fill in your information to continue to the survey
+            </p>
+          </div>
+        </div>
+
+        <ParticipantInformationForm
+          language="en"
+          onSubmit={(data: ParticipantData) => {
+            console.log(
+              `[SurveyPage] 📝 ParticipantInformationForm submitted:`,
+              data
+            );
+            // Persist collected data to sessionStorage (like happiness survey)
+            if (typeof window !== "undefined") {
+              try {
+                sessionStorage.setItem(
+                  `survey:userData:${surveyId}`,
+                  JSON.stringify(data)
+                );
+                console.log(
+                  `[SurveyPage] 💾 Saved user data to sessionStorage`
+                );
+              } catch (e) {
+                console.error(
+                  "[SurveyPage] ❌ Failed to save user data to sessionStorage:",
+                  e
+                );
+              }
+            }
+            // Update collected user data
+            setCollectedUserData(data);
+            console.log(`[SurveyPage] ✅ Updated collectedUserData state`);
+            // This will trigger the useEffect that checks if we need to show user info collection
+            // Since data is now collected, showUserInfoCollection will be set to false
+            // which will then trigger the survey model creation useEffect
+          }}
+          initialData={collectedUserData}
+          showHeader={false}
+        />
       </div>
     );
   }

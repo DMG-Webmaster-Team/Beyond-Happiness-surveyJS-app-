@@ -95,10 +95,6 @@ export const checkIPRateLimit = (
   ipLimits[ipAddress] = ipRecord;
   saveRateLimitData(IP_LIMITS_FILE, ipLimits);
 
-  console.log(
-    `🔒 IP Rate Limit Check: ${ipAddress} - ${ipRecord.count}/${RATE_LIMIT_CONFIG.IP_REQUESTS_PER_MINUTE} requests`
-  );
-
   return { allowed: true };
 };
 
@@ -138,10 +134,6 @@ export const checkIdentifierRateLimit = (
   identifierRecord.count++;
   identifierLimits[identifier] = identifierRecord;
   saveRateLimitData(IDENTIFIER_LIMITS_FILE, identifierLimits);
-
-  console.log(
-    `🔒 Identifier Rate Limit Check: ${identifier} - ${identifierRecord.count}/${RATE_LIMIT_CONFIG.IDENTIFIER_REQUESTS_PER_MINUTE} requests`
-  );
 
   return { allowed: true };
 };
@@ -254,8 +246,6 @@ export const logOTPRequest = (data: {
     date: new Date().toISOString(),
   };
 
-  console.log("🔐 OTP Request Log:", JSON.stringify(logEntry, null, 2));
-
   // In production, you might want to send this to a security monitoring service
   // or store in a dedicated security log file
 };
@@ -281,7 +271,6 @@ export const startRateLimitCleanup = () => {
       );
       saveRateLimitData(IDENTIFIER_LIMITS_FILE, cleanedIdentifierLimits);
 
-      console.log("🧹 Rate limit cleanup completed");
     } catch (error) {
       console.error("Error during rate limit cleanup:", error);
     }

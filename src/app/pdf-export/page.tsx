@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Model } from "survey-core";
@@ -76,9 +78,6 @@ export default function PdfExport() {
 
   // Get the survey JSON structure
   const surveyJson = survey.definition || {};
-
-  console.log("Survey object:", survey);
-  console.log("Survey JSON for PDF:", surveyJson);
 
   return (
     <div className="flex min-h-screen flex-col items-center p-24">

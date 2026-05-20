@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "motion/react";
 import CompanySelect from "@/components/shared/CompanySelect";
+import SurveySelectorSeparate from "@/components/shared/SurveySelectorSeparate";
 
 interface ImportResult {
   success: boolean;
@@ -47,10 +48,6 @@ export default function UserImport() {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(
     null
   );
-  const [surveys, setSurveys] = useState<{ id: string; title: string }[]>([]);
-  const [happinessSurveys, setHappinessSurveys] = useState<
-    { id: string; title: string }[]
-  >([]);
   const [companySurveys, setCompanySurveys] = useState<
     { id: string; title: string }[]
   >([]);
@@ -63,37 +60,6 @@ export default function UserImport() {
   const [result, setResult] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Fetch available surveys
-  useEffect(() => {
-    const fetchSurveys = async () => {
-      try {
-        const response = await fetch("/api/surveys");
-        if (response.ok) {
-          const data = await response.json();
-          // The API returns an array directly, not wrapped in a surveys property
-          setSurveys(Array.isArray(data) ? data : []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch surveys:", error);
-      }
-    };
-
-    const fetchHappinessSurveys = async () => {
-      try {
-        const response = await fetch("/api/happiness/surveys");
-        if (response.ok) {
-          const data = await response.json();
-          setHappinessSurveys(data.surveys || []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch happiness surveys:", error);
-      }
-    };
-
-    fetchSurveys();
-    fetchHappinessSurveys();
-  }, []);
 
   // Fetch company surveys when company is selected
   useEffect(() => {
@@ -434,81 +400,37 @@ user4@example.com,Bob Johnson,`;
         </div>
       )}
 
-      {/* Regular Survey Selection */}
+      {/* Survey Selection - Regular Surveys */}
       <div className="mb-6">
-        <label
-          htmlFor="survey-select"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          Additional Regular Surveys (Optional)
-        </label>
-        <select
-          id="survey-select"
-          multiple
+        <SurveySelectorSeparate
           value={selectedSurveyIds}
-          onChange={(e) => {
-            const selectedOptions = Array.from(
-              e.target.selectedOptions,
-              (option) => option.value
-            );
-            setSelectedSurveyIds(selectedOptions);
-          }}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white"
-          size={Math.min(surveys.length + 1, 6)} // Show up to 6 options at once
-        >
-          <option value="" disabled className="text-gray-500">
-            {surveys.length === 0
-              ? "No regular surveys available"
-              : "Select surveys..."}
-          </option>
-          {surveys.map((survey) => (
-            <option key={survey.id} value={survey.id} className="py-1">
-              {survey.title}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedSurveyIds}
+          surveyType="regular"
+          label="Additional Regular Surveys (Optional)"
+          placeholder="Select regular surveys to assign to imported users..."
+          multiple={true}
+          includeDeleted={false}
+        />
         <p className="mt-1 text-xs text-gray-500">
-          Hold Ctrl/Cmd to select multiple surveys. These will be assigned in
-          addition to company surveys.
+          These regular surveys will be assigned to all imported users in
+          addition to any company surveys.
         </p>
       </div>
 
-      {/* Happiness Survey Selection */}
+      {/* Survey Selection - Happiness Surveys */}
       <div className="mb-6">
-        <label
-          htmlFor="happiness-survey-select"
-          className="block text-sm font-medium text-gray-700 mb-2"
-        >
-          Additional Happiness Surveys (Optional)
-        </label>
-        <select
-          id="happiness-survey-select"
-          multiple
+        <SurveySelectorSeparate
           value={selectedHappinessSurveyIds}
-          onChange={(e) => {
-            const selectedOptions = Array.from(
-              e.target.selectedOptions,
-              (option) => option.value
-            );
-            setSelectedHappinessSurveyIds(selectedOptions);
-          }}
-          className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-400 focus:border-blue-400 bg-white"
-          size={Math.min(happinessSurveys.length + 1, 6)} // Show up to 6 options at once
-        >
-          <option value="" disabled className="text-gray-500">
-            {happinessSurveys.length === 0
-              ? "No happiness surveys available"
-              : "Select surveys..."}
-          </option>
-          {happinessSurveys.map((survey) => (
-            <option key={survey.id} value={survey.id} className="py-1">
-              {survey.title}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedHappinessSurveyIds}
+          surveyType="happiness"
+          label="Additional Happiness Surveys (Optional)"
+          placeholder="Select happiness surveys to assign to imported users..."
+          multiple={true}
+          includeDeleted={false}
+        />
         <p className="mt-1 text-xs text-gray-500">
-          Hold Ctrl/Cmd to select multiple surveys. These will be assigned in
-          addition to company surveys.
+          These happiness surveys will be assigned to all imported users in
+          addition to any company surveys.
         </p>
       </div>
 
@@ -706,10 +628,6 @@ user4@example.com,Bob Johnson,`;
                     <p>
                       <strong>Updated Users:</strong>{" "}
                       {result.importResults.updatedUsers || 0}
-                    </p>
-                    <p>
-                      <strong>Inserted Assignments:</strong>{" "}
-                      {result.importResults.insertedAssignments || 0}
                     </p>
                     {(result.importResults.skippedAssignments || 0) > 0 && (
                       <p>

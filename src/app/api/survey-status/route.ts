@@ -9,6 +9,8 @@ import { users } from "../../../db/schema/users";
 import { eq, and } from "drizzle-orm";
 import { createApiError, ErrorCode } from "../../../utils/errors";
 
+export const dynamic = 'force-dynamic';
+
 
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = 'nodejs';

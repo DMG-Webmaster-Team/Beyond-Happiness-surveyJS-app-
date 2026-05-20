@@ -126,12 +126,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Validation: Must have at least one assignment: company OR surveys
+    // Validation: Company is optional, but user must select at least one of:
+    // - Company (optional, but if selected, validation passes)
+    // - Regular Surveys (optional)
+    // - Happiness Surveys (optional)
     const hasCompany = !!validatedData.companyId;
     const hasSurveys =
       (validatedData.surveyAssignments?.length || 0) > 0 ||
       (validatedData.happinessSurveyAssignments?.length || 0) > 0;
 
+    // Require at least one of the three options: company, regular surveys, or happiness surveys
     if (!hasCompany && !hasSurveys) {
       return NextResponse.json(
         {
@@ -179,17 +183,6 @@ export async function POST(request: NextRequest) {
         finalHappinessAssignments = Array.from(
           new Set([...finalHappinessAssignments, ...companyHappinessIds])
         );
-
-        console.log(
-          `🏢 Auto-assigned ${companySurveyIds.length} regular surveys and ${companyHappinessIds.length} happiness surveys from company ${validatedData.companyId}`
-        );
-        console.log(`📋 Company survey IDs:`, companySurveyIds);
-        console.log(`😊 Company happiness survey IDs:`, companyHappinessIds);
-        console.log(`📊 Final survey assignments:`, finalSurveyAssignments);
-        console.log(
-          `😊 Final happiness assignments:`,
-          finalHappinessAssignments
-        );
       } catch (error) {
         console.error("Error fetching company surveys:", error);
         // Continue with manual assignments if company survey fetch fails
@@ -206,9 +199,6 @@ export async function POST(request: NextRequest) {
         const company = await getCompanyById(validatedData.companyId);
         if (company) {
           companyName = company.name;
-          console.log(
-            `🏢 Found company: ${companyName} (${validatedData.companyId})`
-          );
         } else {
           console.warn(
             `⚠️ Company not found for ID: ${validatedData.companyId}`
