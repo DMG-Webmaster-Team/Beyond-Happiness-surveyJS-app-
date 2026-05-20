@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "../client";
+import { getDb } from "../client";
 import { admins, type Admin, type NewAdmin } from "../schema/admins";
 import { z } from "zod";
 
@@ -19,6 +19,7 @@ export const loginAdminSchema = z.object({
 export async function getAdminByEmail(
   email: string
 ): Promise<Admin | undefined> {
+  const db = await getDb();
   const result = await db
     .select()
     .from(admins)
@@ -28,6 +29,7 @@ export async function getAdminByEmail(
 }
 
 export async function getAdminById(id: string): Promise<Admin | undefined> {
+  const db = await getDb();
   const result = await db
     .select()
     .from(admins)
@@ -41,6 +43,7 @@ export async function createAdmin(
 ): Promise<Admin> {
   const validatedData = createAdminSchema.parse(adminData);
   const adminId = (adminData as any).id || require("nanoid").nanoid();
+  const db = await getDb();
   await db.insert(admins).values({ ...validatedData, id: adminId });
   const createdAdmin = await getAdminById(adminId);
   if (!createdAdmin) {
@@ -69,5 +72,6 @@ export async function validateAdminCredentials(
 }
 
 export async function listAdmins(): Promise<Admin[]> {
+  const db = await getDb();
   return db.select().from(admins);
 }

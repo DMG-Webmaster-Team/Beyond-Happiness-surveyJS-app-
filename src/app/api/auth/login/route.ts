@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDatabaseConnectionError } from "../../../../db/client";
 
 // Force Node.js runtime (disable Edge runtime)
 export const runtime = "nodejs";
@@ -31,6 +32,15 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Login error:", error);
+
+    if (isDatabaseConnectionError(error)) {
+      const message =
+        error instanceof Error && error.message.startsWith("Database misconfigured")
+          ? error.message
+          : "Database unavailable. Check DATABASE_URL on the server.";
+      return NextResponse.json({ error: message }, { status: 503 });
+    }
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
